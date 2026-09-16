@@ -79,8 +79,31 @@ jobs:
             # manifest.
             case "$head" in
               dependabot/*)
-                if [ "$(jq -r .mergeable <<<"$pr")" != "CONFLICTING" ]; then
-                  echo "#$num ($head): left to Dependabot"; skipped=$((skipped + 1)); continue
+                # GitHub computes mergeability in the background and a push to main
+                # invalidates it for every open PR — so the first read after the push that
+                # triggered this run is almost always UNKNOWN, and treating that as "not
+                # conflicted" skipped the one case this block exists for, every time.
+                # Poll until GitHub has an answer; REST spells it true/false/null where
+                # the listing above spells it MERGEABLE/CONFLICTING/UNKNOWN.
+                state=$(jq -r .mergeable <<<"$pr")
+                for _ in 1 2 3 4 5; do
+                  [ "$state" != "UNKNOWN" ] && break
+                  sleep 5
+                  # Not `.mergeable // "UNKNOWN"`: false is falsy in jq, so that would
+                  # report a genuinely conflicted PR as unknown and skip it forever.
+                  state=$(gh api "repos/$GH_REPO/pulls/$num" \
+                            --jq 'if .mergeable == null then "UNKNOWN" elif .mergeable then "MERGEABLE" else "CONFLICTING" end' \
+                          || echo "UNKNOWN")
+                done
+
+                if [ "$state" = "UNKNOWN" ]; then
+                  # Said out loud rather than skipped quietly, which is what hid this.
+                  echo "::warning::#$num ($head): GitHub never settled on a mergeable state"
+                  failed=$((failed + 1)); continue
+                fi
+                if [ "$state" != "CONFLICTING" ]; then
+                  echo "#$num ($head): $state, left to Dependabot"
+                  skipped=$((skipped + 1)); continue
                 fi
 
                 # Conflicted alone is not evidence Dependabot has given up — it rebases on
