@@ -14,10 +14,10 @@
     "build:bands": "tsx scripts/build-bands.ts"
   },
   "dependencies": {
-    "@frontify/fondue": "^13.7.5",
-    "next": "^16.3.2",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "@frontify/fondue": "^13.7.10",
+    "next": "^16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
@@ -26,8 +26,8 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.5",
     "@types/node": "^26.2.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@typescript-eslint/parser": "^8.67.0",
     "@vitest/coverage-v8": "^4.1.11",
     "autoprefixer": "^10.5.4",
