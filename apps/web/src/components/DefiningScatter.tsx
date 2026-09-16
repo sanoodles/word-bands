@@ -16,10 +16,22 @@ import Loading from "@/components/Loading";
  * reader, so the figure stays one static picture and one click target.
  */
 
-/** Rank boundaries the CEFR bands top out at — drawn as the vertical stripes. */
-const CEFR_EDGES = [1000, 3000, 6000, 12000, 25000];
+/**
+ * The CEFR bands as `cefrBands` cuts them, each with the rank it tops out at; C2 runs to
+ * the end of whatever the language ranks, so it has none. Drawn as the vertical stripes
+ * and named under them, because a stripe nobody can name is just a shade of grey.
+ */
+const CEFR_BANDS: { key: string; max: number | null }[] = [
+  { key: "A1", max: 1000 },
+  { key: "A2", max: 3000 },
+  { key: "B1", max: 6000 },
+  { key: "B2", max: 12000 },
+  { key: "C1", max: 25000 },
+  { key: "C2", max: null },
+];
 const LEVELS = 7;
-const PAD = { top: 10, right: 12, bottom: 26, left: 34 };
+// Two label rows sit under the plot: the ranks the stripes break at, then the band names.
+const PAD = { top: 10, right: 12, bottom: 40, left: 38 };
 /** Point radius, and the hit radius around the pointer, in CSS pixels. */
 const DOT = 1.6;
 const HIT = { mouse: 7, finger: 22 };
@@ -201,29 +213,47 @@ export default function DefiningScatter({
 
     // CEFR stripes, alternating, so a vertical slice of near-equal frequency is visible
     // without a control to narrow one.
-    const edges = [0, ...CEFR_EDGES, total];
-    for (let i = 0; i < edges.length - 1; i++) {
+    const edges = [0, ...CEFR_BANDS.map((b) => b.max ?? total)];
+    const xAt = (rank: number) => xOf(rank, w, total);
+    for (let i = 0; i < CEFR_BANDS.length; i++) {
       if (i % 2 === 0) continue;
-      const x0 = xOf(edges[i]!, w, total);
-      const x1 = xOf(edges[i + 1]!, w, total);
+      const x0 = xAt(edges[i]!);
       ctx.fillStyle = faint;
-      ctx.fillRect(x0, PAD.top, x1 - x0, h - PAD.top - PAD.bottom);
+      ctx.fillRect(x0, PAD.top, xAt(edges[i + 1]!) - x0, h - PAD.top - PAD.bottom);
     }
 
-    // Level labels down the left edge.
+    // Level labels down the left edge. Everything in the gutter — these and the two row
+    // names below — ends on the same line, 6px off the plot, so the corner reads as one
+    // column of labels rather than three things that happen to be on the left.
+    const gutter = PAD.left - 6;
     ctx.fillStyle = ink;
     ctx.globalAlpha = 0.55;
     ctx.font = "11px ui-sans-serif, system-ui, sans-serif";
-    ctx.textAlign = "left";
+    ctx.textAlign = "right";
     ctx.textBaseline = "middle";
-    for (let l = 1; l <= LEVELS; l++) ctx.fillText(`D${l}`, 4, yOf(l, 0, h));
+    for (let l = 1; l <= LEVELS; l++) ctx.fillText(`D${l}`, gutter, yOf(l, 0, h));
 
-    // Rank ticks along the bottom, at the CEFR edges the stripes already mark.
+    // Two rows under the plot: the ranks the stripes break at, then each stripe's band.
+    // The gutter names both, because "6k" on its own reads as a quantity of something.
+    // It is a place in the order, and the order is the whole of what the axis says.
+    const rankRow = h - PAD.bottom + 5;
+    const bandRow = rankRow + 14;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    for (const r of CEFR_EDGES) {
-      ctx.fillText(r >= 1000 ? `${r / 1000}k` : String(r), xOf(r, w, total), h - PAD.bottom + 6);
+    // Every break but the last: the right edge is wherever the list ends, not a boundary.
+    for (let i = 1; i < edges.length - 1; i++) {
+      const r = edges[i]!;
+      ctx.fillText(r >= 1000 ? `${r / 1000}k` : String(r), xAt(r), rankRow);
     }
+    // Stronger than the row above: the band name is what ties a stripe to the CEFR tab.
+    ctx.globalAlpha = 0.75;
+    CEFR_BANDS.forEach((b, i) => {
+      ctx.fillText(b.key, (xAt(edges[i]!) + xAt(edges[i + 1]!)) / 2, bandRow);
+    });
+    ctx.globalAlpha = 0.55;
+    ctx.textAlign = "right";
+    ctx.fillText("rank", gutter, rankRow);
+    ctx.fillText("CEFR", gutter, bandRow);
     ctx.globalAlpha = 1;
 
     // The points. One ink colour, not a ramp per level: the y position already encodes the
@@ -315,7 +345,7 @@ export default function DefiningScatter({
           role="img"
           // The picture states a shape, and the shape is the caption. A screen reader gets
           // the claim in words; the tabs below are where it reads the words themselves.
-          aria-label={`Frequency against defining level: ${levelled.toLocaleString()} words plotted, most frequent at the left, D1 at the top. Within any one frequency range the words still spread across every level.`}
+          aria-label={`Frequency against defining level: ${levelled.toLocaleString()} words plotted, commonest at the left, D1 at the top. The vertical stripes are the CEFR bands, A1 at the left through C2 at the right. Within any one frequency range the words still spread across every level.`}
           className="tw-block tw-h-full tw-w-full"
           onMouseMove={onMove}
           onMouseLeave={() => setHover(null)}
@@ -348,12 +378,15 @@ export default function DefiningScatter({
           {/* The axes and the one thing a reader gets wrong stay out of the fold: a figure
               that silently reads as easy-to-hard is worse than one nobody expands. */}
           <summary className="tw-cursor-pointer tw-py-1.5 marker:tw-text-current">
-            Frequency across, defining level up — not a difficulty scale
+            Commonest words at the left, defining level up — not a difficulty scale
           </summary>
           {levelled.toLocaleString()} words. D1 at the top is the core the dictionary defines
           everything else with; D7 at the bottom is never used in a definition at all. That makes
           D1 a defining vocabulary in the Longman sense — one the dictionary&rsquo;s usage reveals,
-          rather than one an editor fixes in advance. The stripes are the CEFR bands.{" "}
+          rather than one an editor fixes in advance. The numbers across the bottom are ranks, not
+          counts: 6k is the 6,000th commonest word, so the further right a point sits, the rarer
+          it is. The stripes are the CEFR bands, named in the row beneath — A1 the first thousand
+          words, C2 the rarest.{" "}
           <span lang={source}>olá</span> is A1 vocabulary sitting at D7, which is what &ldquo;not a
           difficulty scale&rdquo; means. Pick a point to look it up.
         </details>

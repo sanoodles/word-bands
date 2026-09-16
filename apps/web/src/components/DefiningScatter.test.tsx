@@ -53,7 +53,7 @@ describe("DefiningScatter", () => {
     const fig = await screen.findByRole("figure");
     // Whatever else folds away, a reader must not be left thinking height is difficulty.
     const summary = fig.querySelector("summary")!;
-    expect(summary.textContent).toContain("Frequency across, defining level up");
+    expect(summary.textContent).toContain("Commonest words at the left, defining level up");
     expect(summary.textContent).toContain("not a difficulty scale");
     expect(fig.textContent).toContain("D1 at the top");
   });
@@ -146,8 +146,8 @@ describe("the caption's fold", () => {
 const W = 800;
 const H = 400;
 /** Where two of the fixture's words land in an 800x400 plot, and what a pick there gets. */
-const FIRST = { x: 272, y: 22, word: "o" };
-const LAST = { x: 788, y: 333, word: "d" };
+const FIRST = { x: 275, y: 21, word: "o" };
+const LAST = { x: 788, y: 321, word: "d" };
 
 describe("the hit-test", () => {
   const plot = { w: W, h: H };
@@ -174,16 +174,21 @@ describe("the hit-test", () => {
   });
 });
 
-describe("picking a point", () => {
-  // jsdom has no layout and no canvas, so the figure never paints and nothing can be
-  // picked. Give it just enough of both, and only here: the tests above are the ones that
-  // prove the figure stands up with nothing ever drawn.
+/**
+ * jsdom has no layout and no canvas, so the figure never paints: nothing can be picked
+ * and nothing is drawn. Give it just enough of both — and only inside the block that
+ * calls this, since the tests above are the ones proving the figure stands up with
+ * nothing ever drawn. Returns every string the figure writes and where it wrote it.
+ */
+function paints() {
+  const drawn: { text: string; x: number }[] = [];
   const realGetContext = window.HTMLCanvasElement.prototype.getContext;
   const realBox = ["clientWidth", "clientHeight"].map(
     (k) => [k, Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, k)] as const,
   );
 
   beforeEach(() => {
+    drawn.length = 0;
     Object.defineProperty(window.HTMLElement.prototype, "clientWidth", {
       get: () => W,
       configurable: true,
@@ -192,8 +197,11 @@ describe("picking a point", () => {
       get: () => H,
       configurable: true,
     });
+    const pen = {
+      fillText: (text: string, x: number) => drawn.push({ text, x }),
+    } as unknown as CanvasRenderingContext2D;
     window.HTMLCanvasElement.prototype.getContext = (() =>
-      new Proxy({} as CanvasRenderingContext2D, {
+      new Proxy(pen, {
         get: (t, k) => (k in t ? Reflect.get(t, k) : () => {}),
         set: () => true,
       })) as unknown as typeof window.HTMLCanvasElement.prototype.getContext;
@@ -205,6 +213,60 @@ describe("picking a point", () => {
         ? Object.defineProperty(window.HTMLElement.prototype, k, d)
         : Reflect.deleteProperty(window.HTMLElement.prototype, k);
   });
+  return drawn;
+}
+
+// The caption calls the stripes the CEFR bands, and for a while the figure never named
+// one: a reader got six shades of grey and five bare numbers that read as counts of
+// words. Both rows are labelled now, so paint once and read back what was written.
+describe("the axis under the plot", () => {
+  const drawn = paints();
+  // The ten-word fixture has no axis to speak of: every band edge falls past the end of
+  // it. This one is long enough to carry all six bands, and is handed over without a
+  // Response — serializing 30,000 words to JSON and back costs more than the test does.
+  const wide = {
+    levels: "1".repeat(30_000),
+    words: Array.from({ length: 30_000 }, (_, i) => `w${i}`),
+  };
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => wide })));
+  });
+
+  const axis = async () => {
+    render(<DefiningScatter source="pt" anchorWord={null} onSelect={() => {}} />);
+    await screen.findByRole("img");
+    return (text: string) => drawn.find((d) => d.text === text)?.x ?? NaN;
+  };
+
+  it("names every band, and says what the numbers along the bottom are", async () => {
+    await axis();
+    const written = drawn.map((d) => d.text);
+    for (const t of ["A1", "A2", "B1", "B2", "C1", "C2", "rank", "CEFR"])
+      expect(written).toContain(t);
+  });
+
+  it("puts each band's name inside its own stripe", async () => {
+    const at = await axis();
+    const ticks = ["1k", "3k", "6k", "12k", "25k"].map(at);
+    // Right of the rank that opens the band, left of the one that closes it — which is
+    // also what says the axis runs commonest to rarest, A1 first and C2 last.
+    ["A1", "A2", "B1", "B2", "C1", "C2"].map(at).forEach((x, i) => {
+      if (i > 0) expect(x).toBeGreaterThan(ticks[i - 1]!);
+      if (i < ticks.length) expect(x).toBeLessThan(ticks[i]!);
+    });
+  });
+
+  it("stops the ticks at the last band's edge, not the end of the list", async () => {
+    await axis();
+    // `total` is where the ranking happens to stop, not a boundary anything falls on.
+    // A Set, not the raw list: a second repaint would repeat every tick and prove nothing.
+    const ticks = drawn.map((d) => d.text).filter((t) => /^\d/.test(t));
+    expect([...new Set(ticks)]).toEqual(["1k", "3k", "6k", "12k", "25k"]);
+  });
+});
+
+describe("picking a point", () => {
+  paints();
 
   const figure = async (onSelect: (w: string) => void) => {
     render(<DefiningScatter source="pt" anchorWord={null} onSelect={onSelect} />);
