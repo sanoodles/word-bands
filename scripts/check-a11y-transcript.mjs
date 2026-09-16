@@ -365,12 +365,12 @@ async function transcribe(send, on) {
     // a transcript of a tab already moved and a panel not yet is a transcript of nothing.
     const label = await val(`document.activeElement.getAttribute("aria-label").split(",")[0]`);
     await until(
-      `document.querySelector("[role=tabpanel] p")?.textContent.startsWith(${JSON.stringify(label)})`,
+      `document.querySelector("[role=tabpanel] [role=listbox]")?.getAttribute("aria-label").startsWith("Words in " + ${JSON.stringify(label)})`,
       "the panel to follow the tab",
       `document.querySelector("[role=tabpanel]")?.innerText?.slice(0, 60) ?? null`,
     );
     say(`  ${k.padEnd(12)} ${line}`);
-    say(`  ${" ".repeat(12)}   panel: ${await val(`document.querySelector("[role=tabpanel] p").textContent`)}`);
+    say(`  ${" ".repeat(12)}   cloud: ${await val(`document.querySelector("[role=tabpanel] [role=listbox]").getAttribute("aria-label")`)}`);
   }
   return out.join("\n").trimStart() + "\n";
 }

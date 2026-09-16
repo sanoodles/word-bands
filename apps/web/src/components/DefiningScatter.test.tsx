@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import DefiningScatter, { tipStyle } from "./DefiningScatter";
+import DefiningScatter, { nearestWord, tipStyle } from "./DefiningScatter";
 
 // `paint` bails on the zero-size wrap that jsdom reports, before it reaches the context
 // stub in test/setup.ts. That is the point: everything outside the canvas — the label, the
@@ -136,5 +136,115 @@ describe("the caption's fold", () => {
     await waitFor(() =>
       expect(localStorage.getItem("word-bands:defining-caption")).toBe("closed"),
     );
+  });
+});
+
+// A tap picked the word the *previous* tap had hovered. The click handler read the `hover`
+// state, and a tap fires its synthetic mousemove and its click in one burst — the move's
+// setState has not rendered by the time the click reads it. So the pick is hit-tested from
+// its own coordinates now, and these say so by moving to one point and clicking another.
+const W = 800;
+const H = 400;
+/** Where two of the fixture's words land in an 800x400 plot, and what a pick there gets. */
+const FIRST = { x: 272, y: 22, word: "o" };
+const LAST = { x: 788, y: 333, word: "d" };
+
+describe("the hit-test", () => {
+  const plot = { w: W, h: H };
+
+  it("finds the word under the pointer", () => {
+    expect(nearestWord(points, plot, FIRST.x, FIRST.y, 7)).toBe(FIRST.word);
+    expect(nearestWord(points, plot, LAST.x, LAST.y, 7)).toBe(LAST.word);
+  });
+
+  it("finds nothing out in the white", () => {
+    expect(nearestWord(points, plot, FIRST.x, LAST.y, 7)).toBeNull();
+  });
+
+  it("never returns a word with no level", () => {
+    // "john" is the fixture's "-". Nothing is plotted for it, so no radius can reach it.
+    for (let x = 0; x <= W; x += 4)
+      for (let y = 0; y <= H; y += 4) expect(nearestWord(points, plot, x, y, 22)).not.toBe("john");
+  });
+
+  it("reaches further for a finger than for a cursor", () => {
+    const off = { x: FIRST.x + 14, y: FIRST.y };
+    expect(nearestWord(points, plot, off.x, off.y, 7)).toBeNull();
+    expect(nearestWord(points, plot, off.x, off.y, 22)).toBe(FIRST.word);
+  });
+});
+
+describe("picking a point", () => {
+  // jsdom has no layout and no canvas, so the figure never paints and nothing can be
+  // picked. Give it just enough of both, and only here: the tests above are the ones that
+  // prove the figure stands up with nothing ever drawn.
+  const realGetContext = window.HTMLCanvasElement.prototype.getContext;
+  const realBox = ["clientWidth", "clientHeight"].map(
+    (k) => [k, Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, k)] as const,
+  );
+
+  beforeEach(() => {
+    Object.defineProperty(window.HTMLElement.prototype, "clientWidth", {
+      get: () => W,
+      configurable: true,
+    });
+    Object.defineProperty(window.HTMLElement.prototype, "clientHeight", {
+      get: () => H,
+      configurable: true,
+    });
+    window.HTMLCanvasElement.prototype.getContext = (() =>
+      new Proxy({} as CanvasRenderingContext2D, {
+        get: (t, k) => (k in t ? Reflect.get(t, k) : () => {}),
+        set: () => true,
+      })) as unknown as typeof window.HTMLCanvasElement.prototype.getContext;
+  });
+  afterEach(() => {
+    window.HTMLCanvasElement.prototype.getContext = realGetContext;
+    for (const [k, d] of realBox)
+      d
+        ? Object.defineProperty(window.HTMLElement.prototype, k, d)
+        : Reflect.deleteProperty(window.HTMLElement.prototype, k);
+  });
+
+  const figure = async (onSelect: (w: string) => void) => {
+    render(<DefiningScatter source="pt" anchorWord={null} onSelect={onSelect} />);
+    return screen.findByRole("img");
+  };
+
+  it("picks the word under the pick, not the one the last move found", async () => {
+    const picked = vi.fn();
+    const canvas = await figure(picked);
+    fireEvent.mouseMove(canvas, { clientX: FIRST.x, clientY: FIRST.y });
+    fireEvent.click(canvas, { clientX: LAST.x, clientY: LAST.y });
+    expect(picked).toHaveBeenCalledExactlyOnceWith(LAST.word);
+  });
+
+  it("picks nothing when the pick lands in the white", async () => {
+    const picked = vi.fn();
+    const canvas = await figure(picked);
+    fireEvent.mouseMove(canvas, { clientX: FIRST.x, clientY: FIRST.y });
+    fireEvent.click(canvas, { clientX: FIRST.x, clientY: LAST.y });
+    expect(picked).not.toHaveBeenCalled();
+  });
+
+  it("gives a finger the wider target, and a mouse the narrow one", async () => {
+    const picked = vi.fn();
+    const canvas = await figure(picked);
+    const off = { clientX: FIRST.x + 14, clientY: FIRST.y };
+    fireEvent.pointerDown(canvas, { ...off, pointerType: "mouse" });
+    fireEvent.click(canvas, off);
+    expect(picked).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(canvas, { ...off, pointerType: "touch" });
+    fireEvent.click(canvas, off);
+    expect(picked).toHaveBeenCalledExactlyOnceWith(FIRST.word);
+  });
+
+  it("labels what a tap picked, since a finger leaves no cursor behind", async () => {
+    const canvas = await figure(() => {});
+    const tap = { clientX: LAST.x, clientY: LAST.y };
+    fireEvent.pointerDown(canvas, { ...tap, pointerType: "touch" });
+    fireEvent.click(canvas, tap);
+    expect(await screen.findByText(LAST.word)).toBeInTheDocument();
   });
 });

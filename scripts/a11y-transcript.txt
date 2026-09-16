@@ -60,8 +60,8 @@ THE BAND TABS — one stop, arrows inside it
 ------------------------------------------------------------------------
   on entry     A1 · Beginner, 1,000 words, tab, selected
   ArrowRight   A2 · Elementary, 2,000 words, tab, selected
-                 panel: A2 · Elementary · most frequent first
+                 cloud: Words in A2 · Elementary, most frequent first
   End          Rare · beyond C2, 3,517 words, tab, selected
-                 panel: Rare · beyond C2 · most frequent first
+                 cloud: Words in Rare · beyond C2, most frequent first
   Home         A1 · Beginner, 1,000 words, tab, selected
-                 panel: A1 · Beginner · most frequent first
+                 cloud: Words in A1 · Beginner, most frequent first

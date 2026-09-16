@@ -290,9 +290,6 @@ export default function BandBrowser({
         {figure && <div className="tw-mb-4">{figure}</div>}
         {band ? (
           <>
-            <p className="tw-mb-3 tw-body-small text-muted-aaa">
-              {band.label} · most frequent first
-            </p>
             <StepButtons words={band.words} current={anchorInBand} onSelect={onSelect} />
             <WordChips
               words={band.words}
@@ -300,7 +297,7 @@ export default function BandBrowser({
               chipClass={CHIP}
               anchorClass={CHIP_ANCHOR}
               onPick={onSelect}
-              label={`Words in ${band.label}`}
+              label={`Words in ${band.label}, most frequent first`}
               lang={source}
             />
           </>

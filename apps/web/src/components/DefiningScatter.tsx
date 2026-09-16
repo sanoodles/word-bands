@@ -20,9 +20,9 @@ import Loading from "@/components/Loading";
 const CEFR_EDGES = [1000, 3000, 6000, 12000, 25000];
 const LEVELS = 7;
 const PAD = { top: 10, right: 12, bottom: 26, left: 34 };
-/** Point radius, and the hover radius around the cursor, in CSS pixels. */
+/** Point radius, and the hit radius around the pointer, in CSS pixels. */
 const DOT = 1.6;
-const HOVER = 7;
+const HIT = { mouse: 7, finger: 22 };
 /** Whether the reader has folded the caption away. Absent until they touch it. */
 const CAPTION_KEY = "word-bands:defining-caption";
 
@@ -48,6 +48,24 @@ interface Points {
   words: string[];
 }
 
+/** The plot's size in CSS pixels, which is all the scales below need. */
+interface Plot {
+  w: number;
+  h: number;
+}
+
+function xOf(rank: number, w: number, total: number): number {
+  // Square root, not log: log gives ranks 1-1,000 two thirds of the width. Sqrt gives
+  // each CEFR band a roughly equal share of it, which is what makes a stripe readable.
+  const t = Math.sqrt(rank) / Math.sqrt(total);
+  return PAD.left + t * (w - PAD.left - PAD.right);
+}
+
+function yOf(level: number, off: number, h: number): number {
+  const band = (h - PAD.top - PAD.bottom) / LEVELS;
+  return PAD.top + (level - 0.5) * band + off * band * 0.7;
+}
+
 /**
  * Stable per-word vertical offset inside its level band. The level is 7 discrete values,
  * so without this every point stacks on seven straight lines and the density is invisible.
@@ -57,6 +75,33 @@ function jitter(word: string): number {
   let h = 0;
   for (let i = 0; i < word.length; i++) h = (Math.imul(h, 31) + word.charCodeAt(i)) | 0;
   return ((h >>> 0) % 1000) / 1000 - 0.5;
+}
+
+/**
+ * The plotted word nearest a point, within `r` px, or null. Pure and exported for the
+ * same reason `tipStyle` is: jsdom has no layout, so the figure never paints in a test and
+ * this is the only way to prove what a pointer lands on.
+ */
+export function nearestWord(
+  points: Points,
+  plot: Plot,
+  px: number,
+  py: number,
+  r: number,
+): string | null {
+  const total = points.words.length;
+  let best: { word: string; d: number } | null = null;
+  for (let i = 0; i < total; i++) {
+    const c = points.levels[i]!;
+    if (c === "-") continue;
+    const dx = xOf(i + 1, plot.w, total) - px;
+    if (dx > r || dx < -r) continue;
+    const word = points.words[i]!;
+    const dy = yOf(+c, jitter(word), plot.h) - py;
+    const d = dx * dx + dy * dy;
+    if (d <= r * r && (!best || d < best.d)) best = { word, d };
+  }
+  return best?.word ?? null;
 }
 
 /**
@@ -99,7 +144,10 @@ export default function DefiningScatter({
   const [points, setPoints] = useState<Points | null>(null);
   const [hover, setHover] = useState<{ word: string; x: number; y: number } | null>(null);
   // Plot geometry, kept from the last paint so hit-testing measures against what is drawn.
-  const geom = useRef<{ w: number; h: number; plotted: number[] } | null>(null);
+  const plot = useRef<Plot | null>(null);
+  // How close a pointer has to land, set on pointerdown: the click event itself is a plain
+  // MouseEvent in some browsers, with no pointer type left on it to read.
+  const reach = useRef(HIT.mouse);
 
   // ~165KB gzipped, so it is fetched when the view is opened and not before. Nothing else
   // in the app needs the whole ranking client-side.
@@ -126,18 +174,6 @@ export default function DefiningScatter({
       // A private window can refuse storage. The fold still works, it just forgets.
     }
   }, [captionOpen]);
-
-  const xOf = useCallback((rank: number, w: number, total: number) => {
-    // Square root, not log: log gives ranks 1-1,000 two thirds of the width. Sqrt gives
-    // each CEFR band a roughly equal share of it, which is what makes a stripe readable.
-    const t = Math.sqrt(rank) / Math.sqrt(total);
-    return PAD.left + t * (w - PAD.left - PAD.right);
-  }, []);
-
-  const yOf = useCallback((level: number, off: number, h: number) => {
-    const band = (h - PAD.top - PAD.bottom) / LEVELS;
-    return PAD.top + (level - 0.5) * band + off * band * 0.7;
-  }, []);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -192,7 +228,6 @@ export default function DefiningScatter({
 
     // The points. One ink colour, not a ramp per level: the y position already encodes the
     // level, and the pale end of a ramp disappears against the ground.
-    const plotted: number[] = [];
     const anchor = anchorWord?.toLowerCase() ?? null;
     let anchorAt: [number, number] | null = null;
     ctx.fillStyle = ink;
@@ -203,7 +238,6 @@ export default function DefiningScatter({
       const word = points.words[i]!;
       const x = xOf(i + 1, w, total);
       const y = yOf(+c, jitter(word), h);
-      plotted.push(i);
       if (anchor && word.toLowerCase() === anchor) {
         anchorAt = [x, y];
         continue;
@@ -217,8 +251,8 @@ export default function DefiningScatter({
       ctx.arc(anchorAt[0], anchorAt[1], 4, 0, Math.PI * 2);
       ctx.fill();
     }
-    geom.current = { w, h, plotted };
-  }, [points, resolvedTheme, anchorWord, xOf, yOf]);
+    plot.current = { w, h };
+  }, [points, resolvedTheme, anchorWord]);
 
   useEffect(() => {
     paint();
@@ -229,32 +263,34 @@ export default function DefiningScatter({
     return () => ro.disconnect();
   }, [paint]);
 
-  /** The plotted word nearest the cursor, within `HOVER` px, or null. */
-  const nearest = useCallback(
-    (px: number, py: number) => {
-      const g = geom.current;
-      if (!g || !points) return null;
-      const total = points.words.length;
-      let best: { i: number; d: number } | null = null;
-      for (const i of g.plotted) {
-        const word = points.words[i]!;
-        const dx = xOf(i + 1, g.w, total) - px;
-        if (dx > HOVER || dx < -HOVER) continue;
-        const dy = yOf(+points.levels[i]!, jitter(word), g.h) - py;
-        const d = dx * dx + dy * dy;
-        if (d <= HOVER * HOVER && (!best || d < best.d)) best = { i, d };
-      }
-      return best ? points.words[best.i]! : null;
-    },
-    [points, xOf, yOf],
-  );
+  /** Where in the plot an event landed. */
+  const at = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  const hitTest = (x: number, y: number, r: number) =>
+    points && plot.current ? nearestWord(points, plot.current, x, y, r) : null;
 
   const onMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    const px = e.clientX - r.left;
-    const py = e.clientY - r.top;
-    const word = nearest(px, py);
-    setHover(word ? { word, x: px, y: py } : null);
+    const { x, y } = at(e);
+    const word = hitTest(x, y, HIT.mouse);
+    setHover(word ? { word, x, y } : null);
+  };
+
+  /**
+   * Hit-tested from the pick's own coordinates, never from `hover`. A tap fires its
+   * synthetic mousemove and its click in one burst, and the state that move sets has not
+   * rendered by the time the click handler would read it — so reading `hover` here picked
+   * whatever the *previous* tap had left in it.
+   */
+  const onPick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = at(e);
+    const word = hitTest(x, y, reach.current);
+    // A finger leaves no cursor behind, so on touch the label is the only thing that says
+    // what was picked; a mouse already put it there on the way in.
+    setHover(word ? { word, x, y } : null);
+    if (word) onSelect(word);
   };
 
   const levelled = points ? [...points.levels].filter((c) => c !== "-").length : 0;
@@ -283,7 +319,13 @@ export default function DefiningScatter({
           className="tw-block tw-h-full tw-w-full"
           onMouseMove={onMove}
           onMouseLeave={() => setHover(null)}
-          onClick={() => hover && onSelect(hover.word)}
+          // A fingertip covers about 40px of glass and hides what is under it, so it gets
+          // a target that size; a mouse keeps the small one, so what the label names stays
+          // what the click takes.
+          onPointerDown={(e) => {
+            reach.current = e.pointerType === "touch" ? HIT.finger : HIT.mouse;
+          }}
+          onClick={onPick}
           style={{ cursor: hover ? "pointer" : "default" }}
         />
         {hover && (
@@ -309,9 +351,11 @@ export default function DefiningScatter({
             Frequency across, defining level up — not a difficulty scale
           </summary>
           {levelled.toLocaleString()} words. D1 at the top is the core the dictionary defines
-          everything else with; D7 at the bottom is never used in a definition at all. The
-          stripes are the CEFR bands. <span lang={source}>olá</span> is A1 vocabulary sitting at
-          D7, which is what &ldquo;not a difficulty scale&rdquo; means. Pick a point to look it up.
+          everything else with; D7 at the bottom is never used in a definition at all. That makes
+          D1 a defining vocabulary in the Longman sense — one the dictionary&rsquo;s usage reveals,
+          rather than one an editor fixes in advance. The stripes are the CEFR bands.{" "}
+          <span lang={source}>olá</span> is A1 vocabulary sitting at D7, which is what &ldquo;not a
+          difficulty scale&rdquo; means. Pick a point to look it up.
         </details>
       </figcaption>
     </figure>

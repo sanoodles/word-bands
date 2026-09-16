@@ -550,7 +550,7 @@ describe("the defining segment", () => {
   it("is offered for Portuguese", async () => {
     window.history.replaceState(null, "", "/?source=pt&word=agua");
     render(<Workspace />);
-    expect(within(await toggle()).getByRole("radio", { name: "Defining" })).toBeInTheDocument();
+    expect(within(await toggle()).getByRole("radio", { name: "Defining level" })).toBeInTheDocument();
   });
 
   // @spec BAND-11
@@ -559,6 +559,6 @@ describe("the defining segment", () => {
     render(<Workspace />);
     const t = await toggle();
     expect(within(t).getByRole("radio", { name: "CEFR" })).toBeInTheDocument();
-    expect(within(t).queryByRole("radio", { name: "Defining" })).toBeNull();
+    expect(within(t).queryByRole("radio", { name: "Defining level" })).toBeNull();
   });
 });
