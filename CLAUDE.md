@@ -744,6 +744,18 @@ Both are internals, matched by structure, because the CSS module's class is a bu
 | `SegmentedControl.Item` | Stacks an active and an inactive copy of the label to reserve the bold width, hiding neither | Pass `aria-label` — spread through, since it is not on Item's typed surface. Without it the name reads "CEFRCEFR" |
 | `TextInput.Root` | Paints the placeholder into a sibling div and leaves the native one transparent | A layout effect marks that div `aria-hidden`, or its text is read as loose content inside the search landmark |
 
+### Focus and selection in the search field
+
+| Rule | Why |
+| --- | --- |
+| The page opens with the field focused and its word selected | It lands holding a word nobody asked for, so the first keystroke means a new one |
+| A click into it selects the whole value, on the click that focuses it and on no other | Clicking in asks for a different word far more often than it edits this one, and a second click has to leave the caret where it was put |
+| Switching the source language refocuses the field and selects the default word it lands on | That word is no more asked for than the one the page opens on. On a phone this is the difference between typing and first tapping the field to raise the keyboard |
+| A swap, a clicked alternative and a chip leave focus and the selection alone | Each lands on a word the learner picked, and on a phone a keyboard would come up over the card that just answered |
+| The selection is re-applied after the lookup recases the word | "wasser" comes back "Wasser", which collapses the selection. Without this, half the languages open only half-ready |
+| `Workspace` bumps `reseeded`, rather than the box watching `source` for a change | A swap turns the languages over too, and that one must not take the field |
+| Fondue's `Select` anchors Radix's popover instead of triggering it | Closing the menu therefore restores focus nowhere — Radix's `triggerRef` is empty — so the field can take focus as the switch commits, with nothing to race. Settled in a browser: jsdom shows no fight either way |
+
 ### The band tabs and the word cloud
 
 | Widget | Contract |

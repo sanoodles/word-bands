@@ -296,6 +296,9 @@ export default function Workspace({ country }: { country?: string | null }) {
   const [view, setView] = useState<BandView>(() => initial.view ?? "cefr");
   // The band tab the user explicitly picked; null follows the looked-up word's band.
   const [band, setBand] = useState<string | null>(() => initial.band ?? null);
+  // Bumped whenever a language switch drops a word into the field that nobody asked for.
+  // That tells the field to focus itself and select the word — see WordSearchBox.
+  const [reseeded, setReseeded] = useState(0);
 
   // The source is passed explicitly so a language switch looks up the right dictionary
   // without waiting for the state update to settle — hence the shadowing. `bandOverride`
@@ -367,6 +370,10 @@ export default function Workspace({ country }: { country?: string | null }) {
     setSource(l);
     const word = SOURCE_LANG_META[l].defaultWord;
     setQuery(word);
+    // The switch is a prelude to looking a word up in the new language, and the word it
+    // lands on is only a place to land: focus the field and select it, so the next
+    // keystroke replaces it.
+    setReseeded((n) => n + 1);
     void lookup(word, l);
   };
 
@@ -460,6 +467,7 @@ export default function Workspace({ country }: { country?: string | null }) {
                 // The one thing the page is for: it opens ready to be typed into.
                 // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
+                reseeded={reseeded}
                 // Only while the field still holds the word this level belongs to.
                 // Sitting against the text, it would otherwise read as a claim about
                 // whatever is being typed over it.

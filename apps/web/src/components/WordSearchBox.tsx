@@ -40,6 +40,7 @@ export default function WordSearchBox({
   placeholder,
   busy = false,
   autoFocus = false,
+  reseeded = 0,
   badge,
 }: {
   value: string;
@@ -55,6 +56,12 @@ export default function WordSearchBox({
   busy?: boolean;
   /** Take focus on mount, with the current value selected. */
   autoFocus?: boolean;
+  /**
+   * Bumped by the caller when it has replaced the value with a word the user did not ask
+   * for — the default word a language switch lands on. The field then focuses itself and
+   * selects that word, as it does on mount. Only where `autoFocus` is on.
+   */
+  reseeded?: number;
   /**
    * Trailed just after the field's text, inside the box. Only pass it for something that
    * describes *this* text — it is laid out against the current value, so a caller must
@@ -114,20 +121,33 @@ export default function WordSearchBox({
   };
 
   // Selected, not just focused: the field lands holding a word already, so the first
-  // keystroke means a new one. It re-selects while the opening word is still what the
-  // field holds, because the initial lookup echoes the corpus's casing back into it
-  // ("wasser" → "Wasser") and that collapses the selection. Once focus has been given
-  // away, or the text is no longer that word, the field is the user's — hands off.
+  // keystroke means a new one. It re-selects while that word is still what the field
+  // holds, because the lookup echoes the corpus's casing back into it ("wasser" →
+  // "Wasser") and that collapses the selection. Once focus has been given away, or the
+  // text is no longer that word, the field is the user's — hands off.
   const seeded = useRef(value);
   const grab = useRef<"pending" | "held" | "released">("pending");
+  const reseeds = useRef(reseeded);
   useEffect(() => {
+    // A language switch leaves the field on that language's default word, which nobody
+    // asked for any more than the word the page opens on — so focus and the selection are
+    // taken again, wherever focus had got to. It goes by the caller's bump and not by
+    // `source` changing: a swap turns the languages over too, and the word that one
+    // carries across is the one the learner was reading.
+    if (reseeded !== reseeds.current) {
+      reseeds.current = reseeded;
+      grab.current = "pending";
+    }
     if (!autoFocus || grab.current === "released") return;
     const input = wrapRef.current?.querySelector("input");
     if (!input) return;
+    // A fresh grab takes whatever word it was handed; after that the field is only taken
+    // back while it still holds that word.
+    if (grab.current === "pending") seeded.current = value;
     const mine =
       value.toLowerCase() === seeded.current.toLowerCase() &&
       (grab.current === "pending" || document.activeElement === input);
-    // Released for good, so retyping the opening word later can't select it again.
+    // Released for good, so retyping that word later can't select it again.
     if (!mine) {
       grab.current = "released";
       return;
@@ -135,7 +155,7 @@ export default function WordSearchBox({
     grab.current = "held";
     input.focus();
     input.select();
-  }, [autoFocus, value]);
+  }, [autoFocus, value, reseeded]);
 
   // Clicking into the field means a new word far more often than an edit inside the one
   // it holds, so the click that focuses it takes the whole value. Armed on mousedown and

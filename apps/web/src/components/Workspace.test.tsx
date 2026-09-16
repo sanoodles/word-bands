@@ -27,7 +27,7 @@ vi.mock("./BandBrowser", () => ({
 
 // Words the corpus stores capitalized — the API answers with that casing, not the
 // lowercased lookup key.
-const DISPLAY: Record<string, string> = { plädoyer: "Plädoyer" };
+const DISPLAY: Record<string, string> = { plädoyer: "Plädoyer", wasser: "Wasser" };
 
 type Level = { key: string; label: string; rank: number };
 
@@ -180,6 +180,40 @@ describe("Workspace", () => {
     await user.click(await screen.findByRole("option", { name: /Español/ }));
     expect(await screen.findByRole("region", { name: /meaning of agua/i })).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/word/agua?source=es"));
+  });
+
+  // The word a switch lands on is a place to land, not a word anyone asked for, so the
+  // field ends up focused with it selected, exactly as the page opens. On a phone that is
+  // the whole difference: without it the keyboard is not even up, and the word has to be
+  // selected by hand before a new one can be typed over it. German, so the selection also
+  // has to survive the lookup echoing the corpus's casing back into the field.
+  it("focuses the field and selects the word when the source language is switched", async () => {
+    const user = userEvent.setup();
+    render(<Workspace />);
+    const box = screen.getByRole("combobox", { name: /look up a word/i }) as HTMLInputElement;
+    await screen.findByRole("region", { name: /meaning of water/i }); // English default settled
+    await user.click(screen.getByRole("combobox", { name: /source language/i }));
+    await user.click(await screen.findByRole("option", { name: /Deutsch/ }));
+    await waitFor(() => expect(box.value).toBe("Wasser"));
+    await waitFor(() => expect(box).toHaveFocus());
+    expect([box.selectionStart, box.selectionEnd]).toEqual([0, "Wasser".length]);
+    // Typed without a tap, which is the point.
+    await user.keyboard("hund");
+    expect(box.value).toBe("hund");
+  });
+
+  // A swap turns the languages over too, but it lands on the word the learner was reading
+  // in the card rather than on a default one — so the field is left as it is, and on a
+  // phone no keyboard comes up over the translation.
+  it("does not touch focus or the selection when the languages are swapped", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, "", "/?source=de&word=plädoyer&target=en");
+    render(<Workspace />);
+    const box = screen.getByRole("combobox", { name: /look up a word/i }) as HTMLInputElement;
+    await screen.findByRole("region", { name: /meaning of Plädoyer/i });
+    await user.click(screen.getByRole("button", { name: /swap the source and target/i }));
+    await waitFor(() => expect(box.value).toBe("water"));
+    expect(box).not.toHaveFocus();
   });
 
   // jsdom's navigator.language is en-US, so the browser is a reader of English
