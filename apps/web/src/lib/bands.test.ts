@@ -198,6 +198,30 @@ describe("typeahead", () => {
   it("leads with the exact match, ahead of commoner words sharing the prefix", () => {
     expect(getSuggestions("en", "ban", 3)).toEqual(["ban", "bank", "band"]);
   });
+
+  // @spec BAND-14
+  it("matches a letter typed without a diacritic to that letter with one", () => {
+    const hits = getSuggestions("es", "cordo");
+    expect(hits).toContain("cordón");
+    expect(hits).toContain("cordobés");
+  });
+
+  // @spec BAND-14
+  it("matches a letter typed with a diacritic only to itself", () => {
+    const hits = getSuggestions("es", "có");
+    expect(hits).toContain("cómo");
+    expect(hits.every((w) => w.toLowerCase().startsWith("có"))).toBe(true);
+  });
+
+  // The search box looks up the head of the list unasked, so it has to be the spelling typed.
+  // @spec BAND-10, BAND-14
+  it("leads with the exact spelling, ahead of a commoner word that differs by a diacritic", () => {
+    expect(getSuggestions("es", "ano", 2)).toEqual(["ano", "año"]);
+  });
+
+  it("reads a decomposed diacritic as the letter it composes", () => {
+    expect(getSuggestions("es", "co\u0301mo")[0]).toBe("cómo");
+  });
 });
 
 // A defining level says how heavily the dictionary leans on a word when defining others,

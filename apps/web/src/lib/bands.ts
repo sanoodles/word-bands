@@ -77,11 +77,14 @@ interface LangData {
   rankOf: Map<string, number>;
   /** lowercased key -> both casings of a case-homograph ("essen" -> ["Essen","essen"]). */
   variants: Record<string, string[]>;
-  /** lowercased 1- and 2-char prefix -> `ranked` indices, frequency order. */
+  /** 1- and 2-char prefix, lowercased and folded -> `ranked` indices, frequency order. */
   byPrefix: Map<string, number[]>;
   /** Defining levels, or null for a language that has none. */
   defining: DefiningData | null;
 }
+
+// Takes the diacritics off: "córdoba" -> "cordoba".
+const fold = (s: string) => (/\P{ASCII}/u.test(s) ? s.normalize("NFD").replace(/\p{M}/gu, "") : s);
 
 // `ranked` may carry display casing (e.g. German "Wasser"); lookups key on lowercase.
 function load(
@@ -103,9 +106,10 @@ function load(
   data.ranked.forEach((w, i) => {
     const l = w.toLowerCase();
     rankOf.set(l, i + 1);
+    const key = fold(l.slice(0, 2));
     // Filled in frequency order, so a bucket already ranks its own candidates.
-    bucket(l.slice(0, 1), i);
-    if (l.length > 1) bucket(l.slice(0, 2), i);
+    bucket(key.slice(0, 1), i);
+    if (key.length > 1) bucket(key, i);
   });
   return {
     ranked: data.ranked,
@@ -268,28 +272,38 @@ export function getBand(source: SourceLang, view: BandView, key: string): Band |
   return { key: b.key, label: b.label, words: d.ranked.slice(b.min - 1, lastRank(d, b)) };
 }
 
+// A letter typed without a diacritic also matches it with one; a typed diacritic must match.
+function matchesPrefix(word: string, prefix: string): boolean {
+  if (word.length < prefix.length) return false;
+  for (let k = 0; k < prefix.length; k++) {
+    if (prefix[k] !== word[k] && prefix[k] !== fold(word[k]!)) return false;
+  }
+  return true;
+}
+
 /**
  * Words starting with `prefix`, most frequent first, for typeahead. An exact match
  * leads, ahead of frequency: commoner words sharing the prefix would otherwise crowd
  * it past `limit` — "ban" trails bank, band, bang, banana, bandit and banker — and
  * the search box reads the head of this list to decide whether what was typed is
  * itself a word, and so worth looking up unasked.
- * @spec BAND-10
+ * @spec BAND-10, BAND-14
  */
 export function getSuggestions(source: SourceLang, prefix: string, limit = 8): string[] {
-  const p = prefix.trim().toLowerCase();
+  // Composed, so a typed diacritic is one letter, as it is in the lists.
+  const p = prefix.trim().toLowerCase().normalize("NFC");
   if (!p) return [];
   const d = REGISTRY[source];
-  // Every candidate shares the query's first two characters, so one bucket holds them
-  // all: a miss costs a failed lookup, and a hit never walks the rest of the list.
-  const candidates = d.byPrefix.get(p.slice(0, 2));
+  // Every candidate shares the query's first two characters once folded, so one bucket
+  // holds them all: a miss costs a failed lookup, and a hit never walks the rest of the list.
+  const candidates = d.byPrefix.get(fold(p.slice(0, 2)));
   if (!candidates) return [];
   const exact = d.rankOf.get(p);
   const out: string[] = exact === undefined ? [] : [d.ranked[exact - 1]!];
   for (const i of candidates) {
     const word = d.ranked[i]!;
     const l = word.toLowerCase();
-    if (l !== p && l.startsWith(p)) {
+    if (l !== p && matchesPrefix(l, p)) {
       out.push(word);
       if (out.length >= limit) break;
     }

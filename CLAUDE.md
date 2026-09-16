@@ -393,6 +393,25 @@ threshold: en "green" at rank 909 against es 1,170 straddles the A1/A2 line at 1
 rank in the tooltip is what tells that apart from a real difference, like it "parete" at
 2,702.
 
+## Typing a word without its diacritics
+
+`BAND-14` is the rule. A learner often has no key for `ó` or `ñ`, so `cordo` has to reach
+`cordón`. A diacritic that was typed is a choice, so it is kept.
+
+| Detail | Why |
+| --- | --- |
+| One way, not both | Folding the query too throws away what was typed: `có` would list `con` and `comer` ahead of `cómo` |
+| The exact match leads on its own spelling | The search box looks up the head of the list unasked. So `ano` opens `ano`, and `año` is one row down |
+| `ñ`, `ç` and umlauts fold too | Folding takes off whatever Unicode splits into a letter and a mark. That is also what lets `schon` reach `schön` |
+| `ß` and `œ` do not | Unicode does not split them, so `strasse` finds no `Straße` and `coeur` no `cœur` |
+| The index folds only the two letters it is keyed on, and skips ASCII | Every API route loads the six lists. Folding every word there costs about 70ms of cold start, and this about 20ms. A query then folds one letter at a time, 0.2ms at worst |
+| The query is composed first | A pasted decomposed `có` would otherwise carry its accent as a letter of its own |
+| Enter does not fold | `/api/word` looks up the spelling as typed, so `cordon` answers 404 |
+
+| Known cost | Detail |
+| --- | --- |
+| Accent misspellings show beside the real word | They are entries of their own, below the dictionary gate (see *Measuring what the gate misses*). pt `nao` lists `não`, `näo`, `nâo`, `năo`, `náo`, `nào` |
+
 ## Looking a word up by an inflected form
 
 The merge folds every inflection onto its lemma, so a form is not an entry: `branched` and
