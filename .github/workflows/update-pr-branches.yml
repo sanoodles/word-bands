@@ -1,0 +1,127 @@
+name: Update PR branches
+
+# Merges main into every open PR branch as soon as main moves.
+#
+# The problem it solves is timing, not conflicts themselves. A branch cut a week ago
+# merges green and breaks main, because `check` passed against a main that no longer
+# exists — nothing in CI compares the PR to the branch it will actually land on. Pulling
+# main in on every push moves that discovery to the moment the conflict is created, when
+# whoever created it still has the context to resolve it.
+#
+# Merge, not rebase: the PR branch keeps its history and nothing is force-pushed, so an
+# open review, a local clone and a Vercel preview all survive the update.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Nothing is granted to github.token — every call here goes through UPDATE_PR_TOKEN
+# instead, for the reason spelled out on that env below.
+permissions: {}
+
+# Only the newest main matters. A run cancelled halfway leaves some PRs updated and some
+# not, which the run that replaced it finishes — so cancelling costs nothing and stops a
+# burst of merges from queueing a burst of redundant passes.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge main into every open PR that is behind
+        env:
+          # A fine-grained PAT (contents: write, pull requests: write), NOT github.token.
+          # A branch updated with github.token raises no `pull_request` event — GitHub
+          # suppresses it to stop workflows recursing — so `check` never reports against
+          # the new head sha, and branch protection parks the PR on "Expected — waiting
+          # for status to be reported" with no way forward but a human push. Pushing as a
+          # PAT identity makes pr.yml run the way it would for any other commit.
+          #
+          # Rotate before it expires: the failure mode is this workflow erroring on every
+          # push to main, which is loud, but PRs silently rot until someone looks.
+          GH_TOKEN: ${{ secrets.UPDATE_PR_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BASE: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::secrets.UPDATE_PR_TOKEN is unset. See the comment on this step."
+            exit 1
+          fi
+
+          updated=0 skipped=0 failed=0
+
+          # Read into a variable rather than piping straight into the loop: a failure
+          # inside a process substitution never reaches set -e, so a broken listing would
+          # be indistinguishable from "no PRs are open" and the run would end green.
+          prs=$(gh pr list --base "$BASE" --state open --limit 100 \
+                  --json number,headRefName,headRefOid,headRepositoryOwner,isDraft,mergeable)
+
+          while read -r pr; do
+            num=$(jq -r .number <<<"$pr")
+            head=$(jq -r .headRefName <<<"$pr")
+            oid=$(jq -r .headRefOid <<<"$pr")
+            owner=$(jq -r .headRepositoryOwner.login <<<"$pr")
+
+            # Dependabot rebases its own PRs when the base moves, and it stops the moment
+            # the branch carries a commit it did not write. A merge from here reads as
+            # exactly that, so the PR freezes at whatever version it was opened with.
+            case "$head" in
+              dependabot/*)
+                echo "#$num ($head): left to Dependabot"; skipped=$((skipped + 1)); continue ;;
+            esac
+
+            # update-branch writes to the head repository, which for a fork is somebody
+            # else's. It works only if the author ticked "allow edits by maintainers", so
+            # it is a request that fails half the time rather than a thing we can do.
+            if [ "$owner" != "${GH_REPO%%/*}" ]; then
+              echo "#$num ($owner:$head): fork"; skipped=$((skipped + 1)); continue
+            fi
+
+            # Drafts are excluded to keep a push to main off every abandoned experiment's
+            # CI. Delete this block to include them.
+            if [ "$(jq -r .isDraft <<<"$pr")" = "true" ]; then
+              echo "#$num ($head): draft"; skipped=$((skipped + 1)); continue
+            fi
+
+            # CONFLICTING means the merge needs a human; UNKNOWN means GitHub has not
+            # finished computing it yet, which is common seconds after a push to main, so
+            # it is worth attempting rather than skipping.
+            if [ "$(jq -r .mergeable <<<"$pr")" = "CONFLICTING" ]; then
+              echo "#$num ($head): conflicts with $BASE"; skipped=$((skipped + 1)); continue
+            fi
+
+            # `mergeStateStatus: BEHIND` would be the direct answer, but GitHub only
+            # reports it when branch protection requires up-to-date branches. Comparing
+            # commits gives the same answer whether or not that rule is on.
+            # `|| true` so a branch deleted mid-run costs one PR rather than every PR
+            # after it, which is what set -e would do with a bare failing call.
+            behind=$(gh api "repos/$GH_REPO/compare/$BASE...$head" --jq .behind_by || true)
+            if [ -z "$behind" ]; then
+              echo "::warning::#$num ($head): could not compare against $BASE"
+              failed=$((failed + 1)); continue
+            fi
+            if [ "$behind" -eq 0 ]; then
+              echo "#$num ($head): current"; skipped=$((skipped + 1)); continue
+            fi
+
+            # expected_head_sha makes this a no-op if someone pushed to the PR between the
+            # listing above and now — their commit wins instead of being merged over.
+            if gh api --method PUT "repos/$GH_REPO/pulls/$num/update-branch" \
+                 -f expected_head_sha="$oid" --silent; then
+              echo "#$num ($head): merged $BASE in, was $behind behind"
+              updated=$((updated + 1))
+            else
+              echo "::warning::#$num ($head): update-branch failed"
+              failed=$((failed + 1))
+            fi
+          done < <(jq -c '.[]' <<<"$prs")
+
+          echo "$updated updated, $skipped skipped, $failed failed" >> "$GITHUB_STEP_SUMMARY"
+
+          # A PR that could not be updated is reported and left alone. Failing the run
+          # would put a red mark on main for something main did not do wrong.
+          exit 0
