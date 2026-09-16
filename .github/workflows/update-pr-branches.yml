@@ -10,6 +10,10 @@ name: Update PR branches
 #
 # Merge, not rebase: the PR branch keeps its history and nothing is force-pushed, so an
 # open review, a local clone and a Vercel preview all survive the update.
+#
+# Dependabot PRs are the exception and are never merged into — they are handed back to
+# Dependabot with `@dependabot recreate` when, and only when, it has stopped maintaining
+# them. See the block that does it.
 on:
   push:
     branches: [main]
@@ -52,7 +56,7 @@ jobs:
             exit 1
           fi
 
-          updated=0 skipped=0 failed=0
+          updated=0 asked=0 skipped=0 failed=0
 
           # Read into a variable rather than piping straight into the loop: a failure
           # inside a process substitution never reaches set -e, so a broken listing would
@@ -68,10 +72,56 @@ jobs:
 
             # Dependabot rebases its own PRs when the base moves, and it stops the moment
             # the branch carries a commit it did not write. A merge from here reads as
-            # exactly that, so the PR freezes at whatever version it was opened with.
+            # exactly that, so merging would be the thing that breaks it. When Dependabot
+            # has already stopped, the fix is to ask it to start over rather than to
+            # resolve the conflict by hand: the bump lives in pnpm-lock.yaml, which is
+            # generated, and a lockfile merged by hand can install a tree that matches no
+            # manifest.
             case "$head" in
               dependabot/*)
-                echo "#$num ($head): left to Dependabot"; skipped=$((skipped + 1)); continue ;;
+                if [ "$(jq -r .mergeable <<<"$pr")" != "CONFLICTING" ]; then
+                  echo "#$num ($head): left to Dependabot"; skipped=$((skipped + 1)); continue
+                fi
+
+                # Conflicted alone is not evidence Dependabot has given up — it rebases on
+                # its own schedule and is briefly conflicted in between, and jumping in
+                # there would fight it. A commit by anyone else on the branch is the
+                # documented reason it stops for good, so that is the actual test.
+                commits=$(gh api "repos/$GH_REPO/pulls/$num/commits?per_page=100" || true)
+                if [ -z "$commits" ]; then
+                  echo "::warning::#$num ($head): could not list commits"
+                  failed=$((failed + 1)); continue
+                fi
+                foreign=$(jq '[.[] | select((.author.login // .commit.author.name) != "dependabot[bot]")] | length' <<<"$commits")
+                if [ "$foreign" -eq 0 ]; then
+                  echo "#$num ($head): conflicted, still Dependabot's to rebase"
+                  skipped=$((skipped + 1)); continue
+                fi
+
+                # Without this the workflow would comment once per push to main and
+                # Dependabot would rebuild once per comment. It answers by replacing the
+                # head commit, so a request made after the current head is one it has not
+                # answered yet — and anyone's request counts, not just this workflow's,
+                # so a human who already asked is not doubled up on.
+                asked_at=$(gh api "repos/$GH_REPO/issues/$num/comments?per_page=100&direction=desc" \
+                             --jq '[.[] | select(.body | test("@dependabot recreate")) | .created_at] | max // ""' || true)
+                head_at=$(gh api "repos/$GH_REPO/commits/$oid" --jq .commit.committer.date || true)
+                # Both are ISO 8601 in UTC, so a string compare is a date compare.
+                if [ -n "$asked_at" ] && [ -n "$head_at" ] && [[ "$asked_at" > "$head_at" ]]; then
+                  echo "#$num ($head): recreate already requested at $asked_at"
+                  skipped=$((skipped + 1)); continue
+                fi
+
+                # Posted by the PAT's owner, which is why this works at all: Dependabot
+                # takes commands from accounts with write access and ignores github.token.
+                if gh pr comment "$num" --body "@dependabot recreate" >/dev/null; then
+                  echo "#$num ($head): asked Dependabot to recreate, $foreign foreign commit(s) on the branch"
+                  asked=$((asked + 1))
+                else
+                  echo "::warning::#$num ($head): could not comment"
+                  failed=$((failed + 1))
+                fi
+                continue ;;
             esac
 
             # update-branch writes to the head repository, which for a fork is somebody
@@ -120,7 +170,8 @@ jobs:
             fi
           done < <(jq -c '.[]' <<<"$prs")
 
-          echo "$updated updated, $skipped skipped, $failed failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "$updated updated, $asked recreate requested, $skipped skipped, $failed failed" \
+            >> "$GITHUB_STEP_SUMMARY"
 
           # A PR that could not be updated is reported and left alone. Failing the run
           # would put a red mark on main for something main did not do wrong.
