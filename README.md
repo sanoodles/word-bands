@@ -36,6 +36,18 @@ learning order than any dictionary-structure metric, so the ranking rests on it 
   aren't vocabulary. A word is dropped only when a [names gazetteer](https://github.com/smashew/NameDatabases),
   the lemma list, mid-sentence casing, and how often it follows a determiner *all* agree
   it's a name; each guard rescues words the others would wrongly take.
+- **Defining levels**, for Portuguese only, measure how heavily the dictionary leans on a
+  word to define others. They are not a difficulty scale. They are computed from the
+  [Portuguese Wiktionary](https://pt.wiktionary.org/)
+  ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)), extracted by
+  [Wiktextract](https://kaikki.org/) (Ylonen, 2022). The definitions are read as a graph of
+  which word defines which, as in
+  [Blondin Massé et al. (2008)](https://aclanthology.org/W08-2003/) and
+  [Vincent-Lamarre et al. (2016)](https://doi.org/10.1111/tops.12211). The levels come from
+  that graph's k-core decomposition
+  ([Seidman, 1983](https://doi.org/10.1016/0378-8733(83)90028-X)). Restricted defining
+  vocabularies go back to West & Endicott (1935) and the *Longman Dictionary of
+  Contemporary English* (1978).
 - **Translations** — the word card's short meaning — are fetched live from
   [Google Translate](https://translate.google.com/) (its public `gtx` endpoint) in the
   reader's chosen language, and cached. This is the only source consulted at runtime;

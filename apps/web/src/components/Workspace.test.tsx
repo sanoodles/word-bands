@@ -3,6 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import userEvent from "@testing-library/user-event";
+import {
+  DEFINING_LANGS,
+  englishName,
+  hasDefining,
+  SOURCE_LANGS,
+  type SourceLang,
+} from "@/lib/languages";
 import Workspace from "./Workspace";
 
 // Isolate the search box + lookup wiring from the data-fetching band browser, but
@@ -296,6 +303,45 @@ describe("Workspace", () => {
     expect(screen.getByRole("link", { name: "CEFR-J" })).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: /Frequency/ }));
     expect(screen.getByRole("link", { name: "SUBTLEX-US" })).toBeInTheDocument();
+  });
+
+  // The Sources line, found through a link every language carries.
+  const creditsFor = (source: SourceLang) => {
+    window.history.replaceState(null, "", `/?source=${source}`);
+    render(<Workspace />);
+    return screen.getByRole("link", { name: "CEFR-J" }).closest("p")!;
+  };
+
+  // @spec CREDIT-1, CREDIT-2
+  it("credits the dictionary and the works behind a language's defining levels", () => {
+    for (const source of DEFINING_LANGS) {
+      const credits = creditsFor(source);
+      const link = (name: string) => within(credits).getByRole("link", { name });
+      expect(link(`${englishName(source)} Wiktionary`)).toHaveAttribute(
+        "href",
+        `https://${source}.wiktionary.org/`,
+      );
+      expect(link("CC BY-SA 4.0")).toHaveAttribute(
+        "href",
+        "https://creativecommons.org/licenses/by-sa/4.0/",
+      );
+      expect(link("Wiktextract")).toBeInTheDocument();
+      expect(link("Blondin Massé et al. (2008)")).toBeInTheDocument();
+      expect(link("Vincent-Lamarre et al. (2016)")).toBeInTheDocument();
+      expect(link("Seidman, 1983")).toBeInTheDocument();
+      expect(credits).toHaveTextContent("West & Endicott (1935)");
+      expect(credits).toHaveTextContent("Longman Dictionary of Contemporary English (1978)");
+      cleanup();
+    }
+  });
+
+  // @spec CREDIT-1
+  it("credits no dictionary where a language has no defining levels", () => {
+    for (const source of SOURCE_LANGS.filter((l) => !hasDefining(l))) {
+      const credits = creditsFor(source);
+      expect(within(credits).queryByRole("link", { name: /Wiktionary|Wiktextract/ })).toBeNull();
+      cleanup();
+    }
   });
 
   it("offers a debounced typeahead that looks up the picked word", async () => {

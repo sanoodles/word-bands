@@ -45,6 +45,7 @@ verifies the claim exists, not that it bites.
 | `FILTER` | What the committed artifacts must and must not contain | PR |
 | `HEAD` | Response headers and the CSP | PR |
 | `URL` | Deeplink state and the page title | PR |
+| `CREDIT` | Which sources and works the page credits | PR |
 
 Not covered yet, and deliberately: visual design, copy, component layout, the
 accessibility contract (its proof is the transcript, which detects change rather than
@@ -186,3 +187,12 @@ The build merges every inflection onto its lemma, so a form is not an entry of i
 | URL-6 | The tab title is `word-bands: <word>`, capped at 40 characters, and `word-bands` with no word |
 | URL-7 | A deeplink's word reaches the Open Graph and Twitter titles server-side, not only the tab |
 | URL-8 | `view=defining` is dropped when the link's source language has no defining levels |
+
+## CREDIT — what the page attributes
+
+The credits sit in the Sources line beneath the browser, and follow the source language.
+
+| ID | Rule |
+| --- | --- |
+| CREDIT-1 | A language with defining levels credits the Wiktionary they are computed from, under its license, and Wiktextract. A language without them credits neither |
+| CREDIT-2 | A language with defining levels cites the works its method follows: Blondin Massé et al. (2008), Vincent-Lamarre et al. (2016), Seidman (1983), West & Endicott (1935) and the Longman Dictionary of Contemporary English (1978) |

@@ -30,11 +30,19 @@ const CEFRJ_TITLE = "CEFR-J — a Japanese adaptation of the CEFR for finer leve
 const SUBTLEX_TITLE = "SUBTLEX-US — a US-English word-frequency database drawn from film subtitles";
 const LEIPZIG_TITLE =
   "Leipzig Corpora Collection — sentence corpora used to measure mid-sentence capitalization";
+const CC_BY_SA_TITLE = "Creative Commons Attribution-ShareAlike 4.0";
 
 // Ancillary data sources not tied to one language's frequency list.
 const LEMMA_URL = "https://github.com/michmech/lemmatization-lists";
 const LEIPZIG_URL = "https://wortschatz.uni-leipzig.de/en/download";
 const TRANSLATE_URL = "https://translate.google.com/";
+const WIKTEXTRACT_URL = "https://kaikki.org/";
+const CC_BY_SA_URL = "https://creativecommons.org/licenses/by-sa/4.0/";
+
+// The works the defining levels' method follows.
+const BLONDIN_MASSE_URL = "https://aclanthology.org/W08-2003/";
+const VINCENT_LAMARRE_URL = "https://doi.org/10.1111/tops.12211";
+const SEIDMAN_URL = "https://doi.org/10.1016/0378-8733(83)90028-X";
 
 // Persisted picks, so a returning learner lands back where they left off. A shareable
 // URL (see lib/scenario) takes precedence over these when present; where neither says
@@ -184,11 +192,12 @@ function ViewToggle({
 
 // Data sources credited beneath the browser. All of them, in full, so the attribution
 // stays complete regardless of the active view — the ranking (frequency +
-// lemmatization), the CEFR calibration, German display casing, and the word translations.
+// lemmatization), the CEFR calibration, German display casing, the defining levels with
+// the works their method follows, and the word translations.
 const CORPUS_LINK = "tw-underline hover:tw-text-primary";
 
 /**
- * An abbreviation that is also a link — which all three of ours are. `title` on the
+ * An abbreviation that is also a link — which every one of ours is. `title` on the
  * <abbr> is the whole mechanism: it draws the browser's own tooltip on hover, and it
  * sits in the accessibility tree whether or not anything is open or focused.
  *
@@ -241,6 +250,43 @@ function CorpusCredit({ source }: { source: SourceLang }) {
             Leipzig Corpora
           </AbbrLink>
           .{" "}
+        </>
+      ) : null}
+      {/* @spec CREDIT-1, CREDIT-2 */}
+      {hasDefining(source) ? (
+        <>
+          Defining levels are computed from the{" "}
+          <a
+            className={CORPUS_LINK}
+            href={`https://${source}.wiktionary.org/`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {name} Wiktionary
+          </a>{" "}
+          (
+          <AbbrLink title={CC_BY_SA_TITLE} href={CC_BY_SA_URL}>
+            CC BY-SA 4.0
+          </AbbrLink>
+          ), extracted by{" "}
+          <a className={CORPUS_LINK} href={WIKTEXTRACT_URL} target="_blank" rel="noreferrer">
+            Wiktextract
+          </a>{" "}
+          (Ylonen, 2022). The definitions are read as a graph of which word defines which, as
+          in{" "}
+          <a className={CORPUS_LINK} href={BLONDIN_MASSE_URL} target="_blank" rel="noreferrer">
+            Blondin Massé et al. (2008)
+          </a>{" "}
+          and{" "}
+          <a className={CORPUS_LINK} href={VINCENT_LAMARRE_URL} target="_blank" rel="noreferrer">
+            Vincent-Lamarre et al. (2016)
+          </a>
+          . The levels come from that graph&rsquo;s k-core decomposition (
+          <a className={CORPUS_LINK} href={SEIDMAN_URL} target="_blank" rel="noreferrer">
+            Seidman, 1983
+          </a>
+          ). Restricted defining vocabularies go back to West &amp; Endicott (1935) and the{" "}
+          <cite>Longman Dictionary of Contemporary English</cite> (1978).{" "}
         </>
       ) : null}
       Word translations come from{" "}
