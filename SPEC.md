@@ -112,8 +112,8 @@ and reused for every language.
 
 The `defining` view is the exception: a defining level is a property of the word, measured
 from how often a dictionary reaches for it when defining others, so its bands are sets
-rather than rank windows. It needs a dictionary graph per language and only Portuguese has
-one, which is why it is the one view a language can lack.
+rather than rank windows. It needs a dictionary graph per language, and only Portuguese and
+Italian have one, which is why it is the one view a language can lack.
 
 | ID | Rule |
 | --- | --- |

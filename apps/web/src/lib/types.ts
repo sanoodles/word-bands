@@ -32,7 +32,7 @@ export interface WordBands {
   rank: number;
   freq: BandRef;
   cefr: BandRef;
-  /** Absent for a language with no defining levels, which is every one but Portuguese. */
+  /** Absent for a language with no defining levels. */
   defining?: BandRef;
   /**
    * The inflected form asked for, when the answer is its base word — "branched" on the

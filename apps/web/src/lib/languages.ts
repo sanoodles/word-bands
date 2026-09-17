@@ -15,15 +15,17 @@ export type TargetLang = string;
 export const DEFAULT_SOURCE: SourceLang = "en";
 
 /**
- * Languages that carry defining levels, so `view=defining` is offered for them. Building
- * the levels costs a 339MB Wiktionary extract and a per-language gloss parser, so this is
- * a short list rather than all six. `bands.viewsFor` answers from the loaded artifact
- * instead; `bands.test.ts` proves the two agree.
+ * Languages that carry defining levels, so `view=defining` is offered for them.
+ * `bands.viewsFor` answers from the loaded artifact instead; `bands.test.ts` proves the
+ * two agree.
  * @spec BAND-11
  */
-export const DEFINING_LANGS: readonly SourceLang[] = ["pt"];
+export const DEFINING_LANGS: readonly SourceLang[] = ["pt", "it"];
 
 export const hasDefining = (l: SourceLang) => DEFINING_LANGS.includes(l);
+
+/** An A1 word at D7 in each language with defining levels, named by the figure's caption. */
+export const DEFINING_EXAMPLE: Partial<Record<SourceLang, string>> = { pt: "olá", it: "ciao" };
 
 export function isSourceLang(v: string): v is SourceLang {
   return (SOURCE_LANGS as readonly string[]).includes(v);

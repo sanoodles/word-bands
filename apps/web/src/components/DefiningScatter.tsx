@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useThemeToggle } from "@/app/providers";
 import Loading from "@/components/Loading";
+import { DEFINING_EXAMPLE, type SourceLang } from "@/lib/languages";
 
 /**
  * The defining view's figure: every levelled word as a point, frequency across, defining
@@ -138,7 +139,7 @@ export default function DefiningScatter({
   anchorWord,
   onSelect,
 }: {
-  source: string;
+  source: SourceLang;
   /** The looked-up word, drawn in the accent colour so it can be found in the cloud. */
   anchorWord: string | null;
   onSelect: (word: string) => void;
@@ -324,6 +325,7 @@ export default function DefiningScatter({
   };
 
   const levelled = points ? [...points.levels].filter((c) => c !== "-").length : 0;
+  const example = DEFINING_EXAMPLE[source];
 
   if (!points) {
     return <Loading className="tw-min-h-[220px] tw-justify-center" label="Loading the figure…" />;
@@ -387,8 +389,13 @@ export default function DefiningScatter({
           counts: 6k is the 6,000th commonest word, so the further right a point sits, the rarer
           it is. The stripes are the CEFR bands, named in the row beneath — A1 the first thousand
           words, C2 the rarest.{" "}
-          <span lang={source}>olá</span> is A1 vocabulary sitting at D7, which is what &ldquo;not a
-          difficulty scale&rdquo; means. Pick a point to look it up.
+          {example && (
+            <>
+              <span lang={source}>{example}</span> is A1 vocabulary sitting at D7, which is what
+              &ldquo;not a difficulty scale&rdquo; means.{" "}
+            </>
+          )}
+          Pick a point to look it up.
         </details>
       </figcaption>
     </figure>

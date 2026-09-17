@@ -628,18 +628,22 @@ describe("Workspace", () => {
 });
 
 // The defining view exists only where the levels do, and the toggle is where a learner
-// finds that out. Gated on the source language, so switching away from Portuguese has to
-// take the segment with it.
+// finds that out. Gated on the source language, so switching to a language without levels
+// has to take the segment with it.
 describe("the defining segment", () => {
   // Fondue stacks an active and an inactive copy of each label, so the radio's text reads
   // "DefiningDefining" and only the aria-label names it once. See ViewToggle.
   const toggle = () => screen.findByRole("radiogroup", { name: "Band view" });
 
   // @spec BAND-11
-  it("is offered for Portuguese", async () => {
-    window.history.replaceState(null, "", "/?source=pt&word=agua");
-    render(<Workspace />);
-    expect(within(await toggle()).getByRole("radio", { name: "Defining level" })).toBeInTheDocument();
+  it("is offered for every language with levels", async () => {
+    for (const source of DEFINING_LANGS) {
+      window.history.replaceState(null, "", `/?source=${source}`);
+      render(<Workspace />);
+      const t = await toggle();
+      expect(within(t).getByRole("radio", { name: "Defining level" }), source).toBeInTheDocument();
+      cleanup();
+    }
   });
 
   // @spec BAND-11

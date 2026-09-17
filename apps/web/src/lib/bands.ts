@@ -8,9 +8,10 @@ import es from "../../data/word-bands.es.json";
 import fr from "../../data/word-bands.fr.json";
 import de from "../../data/word-bands.de.json";
 import pt from "../../data/word-bands.pt.json";
-// The defining levels, keyed positionally against pt's `ranked`. Built outside this repo
-// from a Wiktionary extract; see the defining-vocabulary spike.
+// The defining levels, each keyed positionally against its language's `ranked`. Built outside
+// this repo from a Wiktionary extract; see the defining-vocabulary spike.
 import definingPt from "../../data/defining.pt.json";
+import definingIt from "../../data/defining.it.json";
 import it from "../../data/word-bands.it.json";
 
 export { isSourceLang } from "@/lib/languages";
@@ -128,7 +129,7 @@ const REGISTRY: Record<SourceLang, LangData> = {
   fr: load(fr),
   de: load(de),
   pt: load(pt, definingPt),
-  it: load(it),
+  it: load(it, definingIt),
 };
 
 // Rank-window views only. Every `defining` caller branches before reaching this.
@@ -143,8 +144,8 @@ export function isView(v: string): v is BandView {
 }
 
 /**
- * The views a language actually offers. `defining` needs a dictionary graph behind it, and
- * building one costs a 339MB Wiktionary extract per language, so only Portuguese has one.
+ * The views a language actually offers. `defining` needs a dictionary graph behind it, which
+ * only some languages have.
  * @spec BAND-11
  */
 export function viewsFor(source: SourceLang): BandView[] {

@@ -8,7 +8,9 @@ import formsDe from "../../data/forms.de.json";
 import formsPt from "../../data/forms.pt.json";
 import formsIt from "../../data/forms.it.json";
 import rankedPt from "../../data/word-bands.pt.json";
+import rankedIt from "../../data/word-bands.it.json";
 import definingPt from "../../data/defining.pt.json";
+import definingIt from "../../data/defining.it.json";
 
 // The committed data/word-bands.<code>.json files are the build's output and the app's
 // only corpus, so these hold whether or not anyone re-runs the build. Nothing else looks
@@ -180,16 +182,20 @@ describe("redirect targets", () => {
   });
 });
 
-// The defining levels are one character per ranked word, positional. A rebuild of
-// word-bands.pt.json that dropped or reordered a single word would slide every level onto
+// The defining levels are one character per ranked word, positional. A rebuild of a
+// word-bands.<code>.json that dropped or reordered a single word would slide every level onto
 // its neighbour and break nothing loudly, so the artifact carries a digest of the ranking
 // it was cut against. Regenerate both together with pipeline/emit_artifact.py in the
 // defining-vocabulary repo.
 describe("defining levels", () => {
   it("is keyed to the ranking it was built against", () => {
-    const digest = createHash("sha256").update(rankedPt.ranked.join("\n")).digest("hex").slice(0, 16);
-    expect(definingPt.digest).toBe(digest);
-    expect(definingPt.count).toBe(rankedPt.ranked.length);
-    expect(definingPt.levels).toHaveLength(rankedPt.ranked.length);
+    for (const [ranked, defining] of [
+      [rankedPt, definingPt], [rankedIt, definingIt],
+    ] as const) {
+      const digest = createHash("sha256").update(ranked.ranked.join("\n")).digest("hex").slice(0, 16);
+      expect(defining.digest, defining.lang).toBe(digest);
+      expect(defining.count, defining.lang).toBe(ranked.ranked.length);
+      expect(defining.levels, defining.lang).toHaveLength(ranked.ranked.length);
+    }
   });
 });

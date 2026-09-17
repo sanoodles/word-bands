@@ -36,9 +36,10 @@ learning order than any dictionary-structure metric, so the ranking rests on it 
   aren't vocabulary. A word is dropped only when a [names gazetteer](https://github.com/smashew/NameDatabases),
   the lemma list, mid-sentence casing, and how often it follows a determiner *all* agree
   it's a name; each guard rescues words the others would wrongly take.
-- **Defining levels**, for Portuguese only, measure how heavily the dictionary leans on a
-  word to define others. They are not a difficulty scale. They are computed from the
-  [Portuguese Wiktionary](https://pt.wiktionary.org/)
+- **Defining levels**, for Portuguese and Italian, measure how heavily the dictionary leans
+  on a word to define others. They are not a difficulty scale. They are computed from each
+  language's own Wiktionary, the [Portuguese](https://pt.wiktionary.org/) and the
+  [Italian](https://it.wiktionary.org/)
   ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)), extracted by
   [Wiktextract](https://kaikki.org/) (Ylonen, 2022). The definitions are read as a graph of
   which word defines which, as in

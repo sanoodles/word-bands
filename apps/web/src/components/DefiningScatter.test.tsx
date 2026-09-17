@@ -58,6 +58,15 @@ describe("DefiningScatter", () => {
     expect(fig.textContent).toContain("D1 at the top");
   });
 
+  it("names the caption's example in the active language", async () => {
+    render(<DefiningScatter source="it" anchorWord={null} onSelect={() => {}} />);
+    const fig = await screen.findByRole("figure");
+    const example = fig.querySelector("figcaption [lang]")!;
+    expect(example.textContent).toBe("ciao");
+    expect(example).toHaveAttribute("lang", "it");
+    expect(fig.textContent).toContain("ciao is A1 vocabulary sitting at D7");
+  });
+
   it("asks only the active language for its points", async () => {
     render(<DefiningScatter source="pt" anchorWord={null} onSelect={() => {}} />);
     await screen.findByRole("img");

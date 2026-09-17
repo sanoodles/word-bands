@@ -74,6 +74,7 @@ ours. `source`/`target` map onto them at that one call.
 | `scripts/build-bands.ts` | Artifact build, the `LANGS` table |
 | `data/word-bands.<code>.json` | Committed artifact, one per language |
 | `data/forms.<code>.json` | Committed artifact: inflected form -> the indexed word it belongs to |
+| `data/defining.<code>.json` | Committed artifact: one defining level per ranked word, emitted by the defining-vocabulary repo |
 
 Paths are relative to `apps/web/`.
 
@@ -393,6 +394,22 @@ threshold: en "green" at rank 909 against es 1,170 straddles the A1/A2 line at 1
 rank in the tooltip is what tells that apart from a real difference, like it "parete" at
 2,702.
 
+## Defining levels
+
+`BAND-11` to `BAND-13` are the rules. The levels are not built here. The defining-vocabulary
+repo builds them from each language's own Wiktionary and writes `data/defining.<code>.json`.
+
+| Detail | Why |
+| --- | --- |
+| Exactly seven levels | `DEFINING_BANDS`, `LEVELS` in `DefiningScatter.tsx` and the one-character level per word all assume D1–D7. The emitter refuses a language whose graph peels into any other number |
+| Portuguese and Italian only | Their dictionaries are the only ones that peel into seven. On the September 2026 extracts Spanish gives 11 levels, French 14, English 20 and German 5 |
+| The artifact is positional | It holds one level per word of `ranked`, in order. A rebuild of `word-bands.<code>.json` needs the levels emitted again, and `artifacts.test.ts` fails on the digest until they are |
+| Each language names its own example | The figure's caption names an A1 word at D7 from `DEFINING_EXAMPLE`. `bands.test.ts` checks that the claim holds |
+
+To add a language: emit its levels in the defining-vocabulary repo, add it to
+`DEFINING_LANGS` and `DEFINING_EXAMPLE`, and import its artifact in `bands.ts` and
+`artifacts.test.ts`.
+
 ## Typing a word without its diacritics
 
 `BAND-14` is the rule. A learner often has no key for `ó` or `ñ`, so `cordo` has to reach
@@ -664,10 +681,10 @@ credit, in the Sources line beneath the browser. The footer holds only the feedb
 
 | Detail | Why |
 | --- | --- |
-| The Sources line, not the footer | It already changes with the source language. Only Portuguese has defining levels, and the footer is the same in all six |
+| The Sources line, not the footer | It already changes with the source language. Only Portuguese and Italian have defining levels, and the footer is the same in all six |
 | Wiktionary is credited with its license | The levels are computed from its definitions, and its text is CC BY-SA 4.0. Whether a computed level reuses that text is a legal question. The credit answers it either way |
 | The method's works are cited, not only its data | The method is theirs: the dictionary read as a graph, its peel into k-cores, and the term "defining vocabulary" |
-| The Wiktionary is named after the source language | The spike reads that language's own edition, `ptwiktionary`. A language built from another edition needs its credit changed |
+| The Wiktionary is named after the source language | The pipeline reads each language's own edition, `ptwiktionary` and `itwiktionary`. A language built from another edition needs its credit changed |
 | Ogden's *Basic English* is not cited | The spike's README compares against it. Nothing in the method comes from it |
 | Every language credits the Leipzig Corpora | Every language's `casingFile` is a Leipzig sentences file. Display casing and the name filter both read it, and its downloads are CC BY |
 
