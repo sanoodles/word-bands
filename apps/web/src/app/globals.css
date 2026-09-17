@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Accent used to mark the active band tab and the looked-up word chip. */
+/* Accent used to mark the looked-up word: its chip, and its dot in the figure. */
 :root {
   --accent-focus: #f5c542;
 }
@@ -16,6 +16,19 @@
 
 .light .text-muted-aaa {
   color: var(--color-neutral-75);
+}
+
+/* Border marking a selected control, at WCAG 1.4.11 (AA) 3:1 against both its own
+   fill and the surface behind it — the fills alone separate by only 1.07–1.54:1, so
+   without a shape cue the state is carried by colour (1.4.1, A). Split by theme the
+   way .text-muted-aaa is: neutral-50 holds on the dark surfaces (4.9:1 on the
+   selected fill), neutral-75 on the light ones (6.4:1). */
+:root {
+  --cue-line: var(--color-neutral-50);
+}
+
+.light {
+  --cue-line: var(--color-neutral-75);
 }
 
 /* 2.5.5 Target Size (Enhanced, AAA): 44px pointer targets for the primary

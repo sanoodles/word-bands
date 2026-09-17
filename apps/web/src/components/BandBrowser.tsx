@@ -23,8 +23,10 @@ const CHIP_BASE =
 const CHIP =
   `${CHIP_BASE} tw-border-line-subtle tw-bg-surface-hover tw-text-secondary ` +
   "hover:tw-bg-surface-active hover:tw-text-primary";
+// The accent fill separates it from the other chips by only 1.42:1 in light, so the
+// border rather than the fill is what marks it there (1.4.1, 1.4.11).
 const CHIP_ANCHOR =
-  `${CHIP_BASE} tw-border-[color:var(--accent-focus)] tw-bg-[color:var(--accent-focus)] ` +
+  `${CHIP_BASE} tw-border-[color:var(--cue-line)] tw-bg-[color:var(--accent-focus)] ` +
   "tw-font-medium tw-text-[#0b1220]";
 
 const STEP =
@@ -260,11 +262,13 @@ export default function BandBrowser({
                       tabRefs.current[b.key] = node;
                     }}
                     onClick={() => pickBand(b.key)}
+                    // The border is on every tab, transparent when unselected, so
+                    // selecting one shifts nothing.
                     className={
-                      "tw-flex tw-min-h-[44px] tw-flex-col tw-items-start tw-justify-center tw-gap-0.5 tw-rounded-[8px] tw-px-3 tw-py-1.5 tw-text-left tw-transition-colors " +
+                      "tw-flex tw-min-h-[44px] tw-flex-col tw-items-start tw-justify-center tw-gap-0.5 tw-rounded-[8px] tw-border tw-px-3 tw-py-1.5 tw-text-left tw-transition-colors " +
                       (active
-                        ? "tw-bg-surface-hover tw-text-primary"
-                        : "text-muted-aaa hover:tw-bg-surface-hover hover:tw-text-primary")
+                        ? "tw-border-[color:var(--cue-line)] tw-bg-surface-hover tw-text-primary"
+                        : "tw-border-[color:transparent] text-muted-aaa hover:tw-bg-surface-hover hover:tw-text-primary")
                     }
                   >
                     <span className="tw-body-small tw-whitespace-nowrap">{b.label}</span>

@@ -28,10 +28,12 @@ export default function ThemeToggle() {
             onClick={() => setPreference(value)}
             // Narrower on a phone, where the three labels beside the masthead run
             // past the gutter; the 44px target comes from the height.
-            className={`tw-min-h-[44px] tw-rounded-large tw-px-3 min-[700px]:tw-px-4 tw-body-small tw-transition-colors ${
+            // The border is on every button, transparent when unpressed, so pressing
+            // one shifts nothing.
+            className={`tw-min-h-[44px] tw-rounded-large tw-border tw-px-3 min-[700px]:tw-px-4 tw-body-small tw-transition-colors ${
               active
-                ? "tw-bg-surface-hover tw-font-medium tw-text-primary"
-                : "tw-text-secondary hover:tw-text-primary"
+                ? "tw-border-[color:var(--cue-line)] tw-bg-surface-hover tw-font-medium tw-text-primary"
+                : "tw-border-[color:transparent] tw-text-secondary hover:tw-text-primary"
             }`}
           >
             {label}
