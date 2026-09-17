@@ -659,7 +659,7 @@ re-flows on its own when Diatype replaces the fallback.
 
 ## Credits
 
-`CREDIT-1` and `CREDIT-2` are the rules. `CorpusCredit` in `Workspace.tsx` renders every
+`CREDIT-1` to `CREDIT-3` are the rules. `CorpusCredit` in `Workspace.tsx` renders every
 credit, in the Sources line beneath the browser. The footer holds only the feedback link.
 
 | Detail | Why |
@@ -669,6 +669,7 @@ credit, in the Sources line beneath the browser. The footer holds only the feedb
 | The method's works are cited, not only its data | The method is theirs: the dictionary read as a graph, its peel into k-cores, and the term "defining vocabulary" |
 | The Wiktionary is named after the source language | The spike reads that language's own edition, `ptwiktionary`. A language built from another edition needs its credit changed |
 | Ogden's *Basic English* is not cited | The spike's README compares against it. Nothing in the method comes from it |
+| Every language credits the Leipzig Corpora | Every language's `casingFile` is a Leipzig sentences file. Display casing and the name filter both read it, and its downloads are CC BY |
 
 ## What the page says to a machine
 

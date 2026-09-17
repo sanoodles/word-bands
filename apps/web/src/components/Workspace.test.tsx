@@ -335,6 +335,15 @@ describe("Workspace", () => {
     }
   });
 
+  // @spec CREDIT-3
+  it("credits the Leipzig Corpora in every language", () => {
+    for (const source of SOURCE_LANGS) {
+      const credits = creditsFor(source);
+      expect(within(credits).getByRole("link", { name: "Leipzig Corpora" })).toBeInTheDocument();
+      cleanup();
+    }
+  });
+
   // @spec CREDIT-1
   it("credits no dictionary where a language has no defining levels", () => {
     for (const source of SOURCE_LANGS.filter((l) => !hasDefining(l))) {

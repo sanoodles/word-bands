@@ -192,7 +192,7 @@ function ViewToggle({
 
 // Data sources credited beneath the browser. All of them, in full, so the attribution
 // stays complete regardless of the active view — the ranking (frequency +
-// lemmatization), the CEFR calibration, German display casing, the defining levels with
+// lemmatization), the CEFR calibration, display casing, the defining levels with
 // the works their method follows, and the word translations.
 const CORPUS_LINK = "tw-underline hover:tw-text-primary";
 
@@ -243,15 +243,12 @@ function CorpusCredit({ source }: { source: SourceLang }) {
         CEFR-J
       </AbbrLink>{" "}
       vocabulary profile{source !== "en" ? <> — an English-derived heuristic reused for {name}</> : null}.{" "}
-      {source === "de" ? (
-        <>
-          Display casing is measured from the{" "}
-          <AbbrLink title={LEIPZIG_TITLE} href={LEIPZIG_URL}>
-            Leipzig Corpora
-          </AbbrLink>
-          .{" "}
-        </>
-      ) : null}
+      {/* @spec CREDIT-3 */}
+      Display casing is measured from the{" "}
+      <AbbrLink title={LEIPZIG_TITLE} href={LEIPZIG_URL}>
+        Leipzig Corpora
+      </AbbrLink>
+      .{" "}
       {/* @spec CREDIT-1, CREDIT-2 */}
       {hasDefining(source) ? (
         <>

@@ -196,3 +196,4 @@ The credits sit in the Sources line beneath the browser, and follow the source l
 | --- | --- |
 | CREDIT-1 | A language with defining levels credits the Wiktionary they are computed from, under its license, and Wiktextract. A language without them credits neither |
 | CREDIT-2 | A language with defining levels cites the works its method follows: Blondin Massé et al. (2008), Vincent-Lamarre et al. (2016), Seidman (1983), West & Endicott (1935) and the Longman Dictionary of Contemporary English (1978) |
+| CREDIT-3 | Every language credits the Leipzig Corpora, since every language's casing is measured from them |
