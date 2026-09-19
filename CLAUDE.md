@@ -785,14 +785,21 @@ Its honest limit is that it catches **change, not badness**. The first read is w
 problem; after that it only guards. An intended change makes it fail, and the fix is to
 re-run with `--update` and let the diff be reviewed — that reading is the whole check.
 
-### Where Fondue's markup has to be corrected
+### Where Fondue has to be corrected
 
-Both are internals, matched by structure, because the CSS module's class is a build hash.
+All are internals, matched by structure, because the CSS module's class is a build hash.
 
 | Component | What it does | What we do |
 | --- | --- | --- |
 | `SegmentedControl.Item` | Stacks an active and an inactive copy of the label to reserve the bold width, hiding neither | Pass `aria-label` — spread through, since it is not on Item's typed surface. Without it the name reads "CEFRCEFR" |
 | `TextInput.Root` | Paints the placeholder into a sibling div and leaves the native one transparent | A layout effect marks that div `aria-hidden`, or its text is read as loose content inside the search landmark |
+| `TextInput.Root` | Draws its border at half alpha, 1.77:1 on the light panel | Solid `--color-neutral-60` in `globals.css`, 3.61:1 light and 5.23:1 dark from one value |
+| `Select` options | Marks the option under the keyboard by fill alone, 1.14:1 in light | Outline it in `globals.css`. **`data-highlighted` is on every option**, downshift-style, so the selector needs `="true"` or the whole menu is outlined |
+
+The Tailwind preset replaces the outline scales with a single `DEFAULT` — 4px wide, 2px
+offset — so `tw-outline-2` and `-tw-outline-offset-2` generate nothing and the width
+silently lands on 4px. Arbitrary values are the way out:
+`tw-outline-[length:2px] tw-outline-offset-[-2px]`.
 
 ### Focus and selection in the search field
 

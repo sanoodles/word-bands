@@ -33,9 +33,23 @@
 
 /* 2.5.5 Target Size (Enhanced, AAA): 44px pointer targets for the primary
    controls. The Fondue TextInput owns its className, so size it here.
-   (Word-cloud chips stay compact — the search box is the equivalent mechanism.) */
+   (Word-cloud chips stay compact — the search box is the equivalent mechanism.)
+   Its border comes at half alpha, 1.77:1 on the light panel, under the 3:1 of
+   1.4.11 (AA). Solid neutral-60 is the same grey at 3.61:1 light and 5.23:1 dark,
+   so it needs no split by theme. */
 form[role="search"] [data-test-id="fondue-text-input"] {
   min-height: 44px;
+  border-color: var(--color-neutral-60);
+}
+
+/* Fondue marks the option under the keyboard with a fill change of 1.14:1 in light
+   and 1.54:1 in dark, under the 3:1 of 1.4.11 (AA). Draw it as a line instead, inset
+   so the row keeps its size. Matched by structure — the menu is portalled, and its
+   CSS-module class is a build hash. The ="true" is load-bearing: downshift writes
+   data-highlighted on every option, so a presence match outlines the whole menu. */
+[data-radix-popper-content-wrapper] [role="option"][data-highlighted="true"] {
+  outline: 2px solid var(--cue-line);
+  outline-offset: -2px;
 }
 
 /* Fondue paints its own placeholder in a sibling div and leaves the native

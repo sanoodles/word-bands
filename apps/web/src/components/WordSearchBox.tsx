@@ -373,9 +373,12 @@ export default function WordSearchBox({
                 id={optionId(i)}
                 role="option"
                 aria-selected={i === activeIndex}
+                // The fill alone changes by 1.14:1 in light, so the outline is what
+                // carries the highlight (1.4.11). Inset, so the row keeps its size.
                 className={`${OPTION} tw-cursor-pointer ${
                   i === activeIndex
-                    ? "tw-bg-surface-hover tw-text-primary"
+                    ? "tw-bg-surface-hover tw-text-primary tw-outline tw-outline-[length:2px] " +
+                      "tw-outline-offset-[-2px] tw-outline-[color:var(--cue-line)]"
                     : "tw-text-secondary hover:tw-bg-surface-hover hover:tw-text-primary"
                 }`}
                 // Keep focus on the input so onBlur doesn't close us before onClick.
