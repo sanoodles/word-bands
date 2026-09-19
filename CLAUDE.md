@@ -801,7 +801,8 @@ Both are internals, matched by structure, because the CSS module's class is a bu
 | The page opens with the field focused and its word selected | It lands holding a word nobody asked for, so the first keystroke means a new one |
 | A click into it selects the whole value, on the click that focuses it and on no other | Clicking in asks for a different word far more often than it edits this one, and a second click has to leave the caret where it was put |
 | Switching the source language refocuses the field and selects the default word it lands on | That word is no more asked for than the one the page opens on. On a phone this is the difference between typing and first tapping the field to raise the keyboard |
-| A swap, a clicked alternative and a chip leave focus and the selection alone | Each lands on a word the learner picked, and on a phone a keyboard would come up over the card that just answered |
+| A swap, a clicked alternative and a chip never take the field | Each lands on a word the learner picked, and on a phone a keyboard would come up over the card that just answered |
+| A clicked alternative lands on the card instead, and only where it dropped focus | Its own button is removed by the re-render the pick causes, so focus falls to `<body>`. The card is `tabIndex={-1}` for that one purpose, and it waits for the new word: the name says "Meaning of" whichever word is there, so moving early would announce the one just left |
 | The selection is re-applied after the lookup recases the word | "wasser" comes back "Wasser", which collapses the selection. Without this, half the languages open only half-ready |
 | `Workspace` bumps `reseeded`, rather than the box watching `source` for a change | A swap turns the languages over too, and that one must not take the field |
 | Fondue's `Select` anchors Radix's popover instead of triggering it | Closing the menu therefore restores focus nowhere — Radix's `triggerRef` is empty — so the field can take focus as the switch commits, with nothing to race. Settled in a browser: jsdom shows no fight either way |
@@ -811,6 +812,7 @@ Both are internals, matched by structure, because the CSS module's class is a bu
 | Widget | Contract |
 | --- | --- |
 | Band tabs | A real tablist: one tab stop, arrow keys and Home/End inside it, `aria-controls` on each tab and `role="tabpanel"` on the words below. Activation follows focus, since the band is fetched or cached by then |
+| Previous and Next | `aria-disabled`, not `disabled`, the same trade `SwapButton` makes. At a band's end the step runs out under the finger already on it, and a `disabled` button loses focus to the body as it turns |
 | Tab name | Spelled out with `aria-label`. The label and the count are separate elements and join with no separator, which read as "A1 · Beginner1,000 words" |
 | Word cloud | A `listbox` of `option`s, not a group — that is what says the arrow keys are there. The row wrappers are `role="presentation"` so the options stay owned by it |
 | `aria-setsize` / `aria-posinset` | Stated, not counted. Only the rows near the viewport are in the DOM, so a chip's place in the band cannot be inferred from it |

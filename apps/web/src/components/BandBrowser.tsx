@@ -32,7 +32,9 @@ const CHIP_ANCHOR =
 const STEP =
   "tw-flex tw-min-h-[44px] tw-flex-1 tw-items-center tw-justify-center tw-gap-1 tw-rounded-full " +
   "tw-border tw-border-line-subtle tw-px-4 tw-body-large tw-text-secondary tw-transition-colors " +
-  "hover:tw-border-line hover:tw-text-primary disabled:tw-opacity-40 disabled:hover:tw-border-line-subtle";
+  "hover:tw-border-line hover:tw-text-primary " +
+  "aria-disabled:tw-cursor-not-allowed aria-disabled:tw-opacity-40 " +
+  "aria-disabled:hover:tw-border-line-subtle aria-disabled:hover:tw-text-secondary";
 
 /**
  * Walk the band one word at a time, for phones — where reaching the next word
@@ -56,10 +58,13 @@ function StepButtons({
   const next = i < words.length - 1 ? words[i + 1] : undefined;
   return (
     <div className="tw-mb-3 tw-flex tw-gap-2 min-[700px]:tw-hidden">
+      {/* aria-disabled, not disabled: the step that runs out at a band's end would
+          otherwise turn unfocusable under the finger already on it, dropping focus to
+          the body (WCAG 2.4.3). The same trade SwapButton makes. */}
       <button
         type="button"
         className={STEP}
-        disabled={!prev}
+        aria-disabled={!prev}
         onClick={() => prev && onSelect(prev)}
         aria-label="Previous word in this band"
       >
@@ -68,7 +73,7 @@ function StepButtons({
       <button
         type="button"
         className={STEP}
-        disabled={!next}
+        aria-disabled={!next}
         onClick={() => next && onSelect(next)}
         aria-label="Next word in this band"
       >

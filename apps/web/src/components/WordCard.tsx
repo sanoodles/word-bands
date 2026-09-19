@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useId, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import CefrBadge from "@/components/CefrBadge";
 import LangSelect from "@/components/LangSelect";
 import Loading from "@/components/Loading";
@@ -295,11 +295,36 @@ export default function WordCard({
     if (status === "done" && heroTerm) onGloss?.(heroTerm);
   }, [status, heroTerm, onGloss]);
 
+  // A picked term's own button is removed by the re-render its pick causes, so focus
+  // falls to <body> (WCAG 2.4.3). Take it to the card, which is named for the word —
+  // and only once that word has landed, or the name announced is the one left behind.
+  const cardRef = useRef<HTMLElement>(null);
+  const picked = useRef<string | null>(null);
+  const pickTerm = onPickTerm
+    ? (term: string) => {
+        picked.current = term;
+        onPickTerm(term);
+      }
+    : undefined;
+  useEffect(() => {
+    if (picked.current === null) return;
+    // A lookup that never landed on the picked word leaves the move unowed, and
+    // clearing here is what keeps a stale pick from taking focus later.
+    const landed = picked.current.toLowerCase() === word.toLowerCase();
+    picked.current = null;
+    // Somewhere real already: a Tab in the meantime, or a browser that never focused
+    // the button. Either way the pick is not what put focus there.
+    if (landed && document.activeElement === document.body) cardRef.current?.focus();
+  }, [word]);
+
   return (
     // Named for AT: without the heading the card is an unlabelled box, and its live
     // region would announce a translation with no subject.
     <section
+      ref={cardRef}
       aria-label={`Meaning of ${word}`}
+      // Focusable only as a landing place for the recovery above, never in the tab order.
+      tabIndex={-1}
       className={`WordCard ${PANEL}`}
     >
       {/* Wraps on the card's own width, not the viewport's — it is also cramped in the
@@ -348,7 +373,7 @@ export default function WordCard({
                       terms={l.terms}
                       levels={levels}
                       target={target}
-                      onPick={onPickTerm}
+                      onPick={pickTerm}
                       pickHelp={pickHelp}
                     />
                   </li>
@@ -360,7 +385,7 @@ export default function WordCard({
                 terms={heroTerms}
                 levels={levels}
                 target={target}
-                onPick={onPickTerm}
+                onPick={pickTerm}
                 pickHelp={pickHelp}
               />
             )}

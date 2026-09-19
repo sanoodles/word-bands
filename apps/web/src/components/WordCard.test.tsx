@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import WordCard from "./WordCard";
 
@@ -400,6 +400,47 @@ describe("WordCard picking a translation", () => {
       "Look this word up in English, swapping the two languages.",
     );
     expect(reading()).toBe("book");
+  });
+
+  // The pick turns the pair over at once and the word lands with the lookup a tick later,
+  // which is the order the workspace does it in — and the order that matters, since the
+  // button is gone before the new word arrives.
+  function PickHost() {
+    const [pair, setPair] = useState({ source: "it", target: "en" });
+    const [word, setWord] = useState("lago");
+    return (
+      <WordCard
+        word={word}
+        forms={[word]}
+        source={pair.source}
+        target={pair.target}
+        onTargetChange={() => {}}
+        onPickTerm={(t) => {
+          setPair({ source: "en", target: "it" });
+          setTimeout(() => setWord(t), 0);
+        }}
+      />
+    );
+  }
+
+  it("takes focus to the card when the pick removes the button holding it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockGroups([{ pos: "noun", terms: ["lake", "loch"] }], "lake", { lake: A1, loch: B2 }),
+    );
+    render(<PickHost />);
+    const button = await screen.findByRole("button", { name: "loch" });
+    button.focus();
+    await userEvent.setup().click(button);
+    // Named for the word picked, not the one left behind.
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Meaning of loch" })).toHaveFocus(),
+    );
+    // A landing place only: nothing puts the card in the tab order.
+    expect(screen.getByRole("region", { name: "Meaning of loch" })).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
   });
 
   it("offers nothing to click where the workspace passes no way to pick", async () => {

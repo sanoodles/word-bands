@@ -145,13 +145,25 @@ describe("BandBrowser", () => {
     expect(onSelect).toHaveBeenCalledWith("the");
   });
 
-  it("disables the step past each end of the band", async () => {
+  // aria-disabled, so the button keeps its focus rather than dropping it to the body
+  // under a finger that is already on it (WCAG 2.4.3).
+  it("marks the step past each end of the band disabled, and leaves it focusable", async () => {
+    const onSelect = vi.fn();
     render(
-      <BandBrowser view="freq" source="en" anchorWord="the" anchorBandKey="1" onSelect={() => {}} />,
+      <BandBrowser view="freq" source="en" anchorWord="the" anchorBandKey="1" onSelect={onSelect} />,
     );
     await screen.findByRole("option", { name: "water" }); // "the" is the band's first word
-    expect(screen.getByRole("button", { name: /previous word/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /next word/i })).toBeEnabled();
+    const prev = screen.getByRole("button", { name: /previous word/i });
+    expect(prev).toHaveAttribute("aria-disabled", "true");
+    expect(prev).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /next word/i })).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+    await userEvent.click(prev);
+    expect(onSelect).not.toHaveBeenCalled();
+    prev.focus();
+    expect(prev).toHaveFocus();
   });
 
   // A hand-picked band holds no anchor, so there is nothing to step back from.
@@ -159,7 +171,10 @@ describe("BandBrowser", () => {
     const onSelect = vi.fn();
     render(<BandBrowser view="freq" source="en" anchorWord={null} anchorBandKey={null} onSelect={onSelect} />);
     await screen.findByRole("option", { name: "water" });
-    expect(screen.getByRole("button", { name: /previous word/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /previous word/i })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
     await userEvent.click(screen.getByRole("button", { name: /next word/i }));
     expect(onSelect).toHaveBeenCalledWith("the");
   });
