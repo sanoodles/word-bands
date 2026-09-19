@@ -39,10 +39,11 @@ TAB THROUGH THE PAGE
   11. Wasser, option, selected, 393 of 1000
   12. OpenSubtitles frequencies, link
   13. lemmatization list, link
-  14. CEFR-J, link
-  15. Leipzig Corpora, link
-  16. Google Translate, link
-  17. samuelgomezcrespo@gmail.com, link
+  14. ODbL 1.0, link
+  15. CEFR-J, link
+  16. Leipzig Corpora, link
+  17. Google Translate, link
+  18. samuelgomezcrespo@gmail.com, link
 
 THE WORD CLOUD — a listbox of the band's words
 ------------------------------------------------------------------------

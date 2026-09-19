@@ -335,6 +335,23 @@ describe("Workspace", () => {
     }
   });
 
+  // @spec CREDIT-4
+  it("credits the lemmatization list under its license in every language", () => {
+    for (const source of SOURCE_LANGS) {
+      const credits = creditsFor(source);
+      const link = (name: string) => within(credits).getByRole("link", { name });
+      expect(link("lemmatization list")).toHaveAttribute(
+        "href",
+        "https://github.com/michmech/lemmatization-lists",
+      );
+      expect(link("ODbL 1.0")).toHaveAttribute(
+        "href",
+        "https://opendatacommons.org/licenses/odbl/1-0/",
+      );
+      cleanup();
+    }
+  });
+
   // @spec CREDIT-3
   it("credits the Leipzig Corpora in every language", () => {
     for (const source of SOURCE_LANGS) {

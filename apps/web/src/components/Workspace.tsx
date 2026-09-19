@@ -31,6 +31,7 @@ const SUBTLEX_TITLE = "SUBTLEX-US — a US-English word-frequency database drawn
 const LEIPZIG_TITLE =
   "Leipzig Corpora Collection — sentence corpora used to measure mid-sentence capitalization";
 const CC_BY_SA_TITLE = "Creative Commons Attribution-ShareAlike 4.0";
+const ODBL_TITLE = "Open Database License 1.0";
 
 // Ancillary data sources not tied to one language's frequency list.
 const LEMMA_URL = "https://github.com/michmech/lemmatization-lists";
@@ -38,6 +39,7 @@ const LEIPZIG_URL = "https://wortschatz.uni-leipzig.de/en/download";
 const TRANSLATE_URL = "https://translate.google.com/";
 const WIKTEXTRACT_URL = "https://kaikki.org/";
 const CC_BY_SA_URL = "https://creativecommons.org/licenses/by-sa/4.0/";
+const ODBL_URL = "https://opendatacommons.org/licenses/odbl/1-0/";
 
 // The works the defining levels' method follows.
 const BLONDIN_MASSE_URL = "https://aclanthology.org/W08-2003/";
@@ -232,17 +234,24 @@ function CorpusCredit({ source }: { source: SourceLang }) {
       )}
       {source === "en" ? " (Brysbaert & New, 2009)" : null}, with inflections merged onto
       their base form via a{" "}
+      {/* @spec CREDIT-4 */}
       <a className={CORPUS_LINK} href={LEMMA_URL} target="_blank" rel="noreferrer">
         lemmatization list
-      </a>
+      </a>{" "}
+      (
+      <AbbrLink title={ODBL_TITLE} href={ODBL_URL}>
+        ODbL 1.0
+      </AbbrLink>
+      )
       {/* Spelled out, not an Abbr: a tooltip expansion is unreachable by touch, and CEFR
           is the one abbreviation the UI labels words with. */}
-      . CEFR ({CEFR_TITLE}) levels are estimated from frequency, with band
-      boundaries calibrated to the{" "}
+      . CEFR ({CEFR_TITLE}) levels are estimated from frequency. The band boundaries are
+      calibrated to the{" "}
       <AbbrLink title={CEFRJ_TITLE} href="https://www.cefr-j.org/">
         CEFR-J
       </AbbrLink>{" "}
-      vocabulary profile{source !== "en" ? <> — an English-derived heuristic reused for {name}</> : null}.{" "}
+      wordlist up to B2 and extrapolated above it
+      {source !== "en" ? <> — an English-derived heuristic reused for {name}</> : null}.{" "}
       {/* @spec CREDIT-3 */}
       Display casing is measured from the{" "}
       <AbbrLink title={LEIPZIG_TITLE} href={LEIPZIG_URL}>
