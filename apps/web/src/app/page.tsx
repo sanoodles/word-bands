@@ -49,10 +49,15 @@ export default async function Home() {
   // layout already reads cookies, so this route is dynamic either way.
   const country = (await headers()).get("x-vercel-ip-country");
   // On a phone the gutter is room taken off the content, so it stays narrow until there
-  // is some to spare. The cap itself is reasoned about above.
+  // is some to spare — vertically as well, where the top padding is blank screen above
+  // the title. The cap itself is reasoned about above.
   return (
     <>
-      <main className={`Home ${GUTTER} tw-pb-16 tw-pt-10`} id="main" tabIndex={-1}>
+      <main
+        className={`Home ${GUTTER} tw-pb-8 tw-pt-5 min-[700px]:tw-pb-16 min-[700px]:tw-pt-10`}
+        id="main"
+        tabIndex={-1}
+      >
         <header className="tw-mb-6">
           <div className="tw-mb-1 tw-flex tw-items-start tw-justify-between tw-gap-4">
             <h1 className="tw-heading-xx-large-strong">{SITE_NAME}</h1>
@@ -70,7 +75,7 @@ export default async function Home() {
           handler leaves a mailto doing nothing, and then it is still readable. A link
           inside a sentence, so the 44px target size does not apply (WCAG 2.5.8). */}
       <footer
-        className={`${GUTTER} tw-pb-12 tw-body-x-small text-muted-aaa`}
+        className={`${GUTTER} tw-pb-6 min-[700px]:tw-pb-12 tw-body-x-small text-muted-aaa`}
         style={{ lineHeight: 1.5 }}
       >
         A wrong word, a missing one, or an idea? Write to <FeedbackLink />.
