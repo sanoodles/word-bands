@@ -576,6 +576,8 @@ export default function Workspace({ country }: { country?: string | null }) {
                         <CefrBadge
                           level={{ ...info.cefr, rank: info.rank }}
                           describedBy={describedBy}
+                          // Alone in the field's own run, so no sentence exempts it.
+                          padded
                         />
                       )
                     : undefined

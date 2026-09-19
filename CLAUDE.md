@@ -717,6 +717,7 @@ re-flows on its own when Diatype replaces the fallback.
 | Hide with `visibility`, keeping the badge in the DOM | It keeps its slot, so the measurement cannot oscillate with its own answer |
 | Report `fits`, so the level lands somewhere | Hidden here it would show nowhere at all in Frequency and Defining view (1.4.10), so `Workspace` hands it to the card, which prints it beside its heading. Only then, so the level is never in both places |
 | The overlay is `pointer-events-none` except the badge | Clicking the badge puts the caret at the end of the word, which is what a click just past the text means |
+| This badge alone is `padded` | 15×14 is under the 24px of 2.5.8, and here no sentence exempts it — the badge on a translation's term is inline in one, and padding it would space the words apart. The horizontal half comes back as margin, so the run keeps its width and the badge does not move |
 
 ## Width on a phone
 

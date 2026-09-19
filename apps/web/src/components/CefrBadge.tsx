@@ -7,6 +7,10 @@ import type { WordLevel } from "@/lib/types";
 // rather than compete with them. Spacing is a margin, not a space character, and the band
 // itself is unselectable, so a copied line is the translation and nothing else
 // ("water, aqua") rather than "waterA1, aquaB2".
+// 24px around a 15x14 badge, with the horizontal half given back as margin: vertical
+// padding on an inline box overflows the line without moving anything.
+const PADDED = "tw-px-[5px] tw-py-[5px] -tw-mx-[5px]";
+
 const BADGE =
   "tw-ml-1 tw-cursor-help tw-select-none tw-align-baseline tw-tabular-nums tw-body-x-small text-muted-aaa";
 
@@ -27,10 +31,17 @@ const BADGE =
 export default function CefrBadge({
   level,
   describedBy,
+  padded = false,
 }: {
   level: WordLevel;
   /** Id of the element holding the word this level is for. */
   describedBy?: string;
+  /**
+   * Pad the hit area out to 24px (WCAG 2.5.8). For a badge standing on its own; one
+   * inside a sentence takes the inline exception, and the padding would space the words
+   * around it. The horizontal half is cancelled by margin, so the run keeps its width.
+   */
+  padded?: boolean;
 }) {
   const detail = `${level.label} · rank ${level.rank.toLocaleString()}`;
   return (
@@ -47,7 +58,7 @@ export default function CefrBadge({
           // Never Radix's: the name already says what its tooltip says. A child prop wins
           // Slot's merge, so this stands whether it points at the word or at nothing.
           aria-describedby={describedBy ?? ""}
-          className={BADGE}
+          className={padded ? `${BADGE} ${PADDED}` : BADGE}
         >
           {level.key}
         </span>
