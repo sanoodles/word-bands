@@ -204,7 +204,16 @@ export default function BandBrowser({
     view === "cefr" ? "CEFR levels" : view === "defining" ? "Defining levels" : "Frequency bands";
 
   return (
-    <div className="BandBrowser tw-rounded-x-large tw-border tw-border-line-subtle tw-bg-surface">
+    // Full-bleed on a phone: the side gutter is 12px the cloud cannot use, and this is
+    // the one block that wants every pixel of width. It gives the chips 270 -> 296 at
+    // 320px, which is 2.69 words a row rather than 2.46. The heading above keeps the
+    // gutter, so only the panel runs to the edge.
+    <div
+      className={
+        "BandBrowser -tw-mx-3 tw-border-y tw-border-line-subtle tw-bg-surface " +
+        "min-[700px]:tw-mx-0 min-[700px]:tw-rounded-x-large min-[700px]:tw-border"
+      }
+    >
       {/* Controls header: the view switch over a horizontal row of band tabs. */}
       <div className="tw-flex tw-flex-col tw-gap-3 tw-border-b tw-border-line-subtle tw-p-3 min-[700px]:tw-p-4">
         {viewControl}

@@ -674,6 +674,35 @@ re-flows on its own when Diatype replaces the fallback.
 | Hide with `visibility`, keeping the badge in the DOM | It keeps its slot, so the measurement cannot oscillate with its own answer |
 | The overlay is `pointer-events-none` except the badge | Clicking the badge puts the caret at the end of the word, which is what a click just past the text means |
 
+## Width on a phone
+
+`GUTTER` in `page.tsx` is the page's side padding — 12px on a phone, 24 at 700, 40 at 900
+— and the vertical padding beside it scales on the same breakpoint. 12px is the floor,
+not slack: at zero the panels' rounded border sits on the screen edge.
+
+The band browser is the one exception. It carries `-tw-mx-3` below 700px and drops its
+side borders and radius, so it runs edge to edge while the heading above it keeps the
+gutter. **The negative margin is the phone gutter**, in another file — change one and
+change the other, or the panel hangs off the screen.
+
+It is the only block that gets this because it is the only one that can use the width.
+Measured at 320px, against the chip cloud:
+
+| Lever | Cloud | Words a row |
+| --- | --- | --- |
+| As it was | 270px | 2.46 |
+| Chip padding `tw-px-4` → `tw-px-3` | 270px | 2.46 |
+| Page gutter 12px → 8px | 278px | 2.62 |
+| **Browser full-bleed** | **296px** | **2.69** |
+
+Chip padding buys nothing, because a row is bounded by whole chips and shaving 8px off
+each one rarely fits another. The 8px gutter was rejected on how it looks, not on the
+number: the view toggle and the section heading then sit against the screen edge.
+
+The hero panels are left inset on purpose. They hold one row each and gain nothing from
+the width, and the contrast — cards inset, the browser full width — is what marks the
+browser as the page's own surface rather than a third card.
+
 ## Credits
 
 `CREDIT-1` to `CREDIT-3` are the rules. `CorpusCredit` in `Workspace.tsx` renders every
