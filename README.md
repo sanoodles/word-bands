@@ -18,10 +18,12 @@ learning order than any dictionary-structure metric, so the ranking rests on it 
   [lemmatization list](https://github.com/michmech/lemmatization-lists), so a concept
   is one entry carrying its combined frequency.
 - **CEFR levels** (A1–C2) are derived from frequency rank, with the band boundaries
-  calibrated against the [CEFR-J](https://www.cefr-j.org/) vocabulary profile — so the
-  labels are learner-familiar while coverage stays the full vocabulary. The calibration
-  is English-derived and reused for every language as a first-order heuristic. No
-  external dictionary is required at runtime.
+  calibrated against the [CEFR-J Wordlist](https://www.cefr-j.org/) (Tono, Tokyo
+  University of Foreign Studies) — so the labels are learner-familiar while coverage
+  stays the full vocabulary. CEFR-J stops at B2, so the C1 and C2 boundaries extrapolate
+  the same doubling trend rather than resting on a source. The calibration is one English
+  measurement, reused unchanged for every language as a first-order heuristic: no language
+  has a CEFR source of its own, and no external dictionary is required at runtime.
 - **The tail is filtered.** A subtitle corpus does not trail off into rare words, it
   trails off into character names, untranslated English, misspellings and OCR debris —
   past rank 25,000 only about one word in seven is in the language's own dictionary. So

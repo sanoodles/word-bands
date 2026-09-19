@@ -135,12 +135,20 @@ lemma-merged word ranking plus the band definitions.
 | `subtlex.csv` | en | SUBTLEX-US | Curated. Its column is per-million, not a raw count |
 | `freq-<code>.txt` | es fr de pt it | hermitdave/FrequencyWords, OpenSubtitles 2018 | Take `<code>_full.txt`, not `<code>_50k.txt` |
 | `lemma-<code>.txt` | all | michmech/lemmatization-lists | Also the dictionary the filters below consult |
-| `casing-<code>.txt` | all | Leipzig Corpora *sentences* file | e.g. `deu_news_2022_1M` from `downloads.wortschatz-leipzig.de`. Named by `casingFile` |
-| `names.txt` | shared | michmech-style plain list | Personal-name gazetteer |
+| `casing-<code>.txt` | all | Leipzig Corpora *sentences* file, from `downloads.wortschatz-leipzig.de` | Named by `casingFile`. **Which corpus each language took is not recorded** — see below |
+| `names.txt` | shared | `smashew/NameDatabases` | Personal-name gazetteer, one name a line |
 | `de_DE_frami.{dic,aff}` | de | `LibreOffice/dictionaries`, `de/` — igerman98 | Hunspell spell checker. Named by `spellDict` |
 
 Take `_full.txt` because the cut belongs in code, where it is version-controlled, not in
 whichever file someone happened to download.
+
+The casing input is the one whose provenance was never written down, and it is the one that
+needs it most: the files are gitignored while the casings they produced are committed, so a
+rebuild from a different Leipzig corpus moves display casing and the name filter with
+nothing in the repo to compare against. All six on disk are 1M-sentence files, and the years
+their sentences talk about put German at 2022 and the other five at 2023 — so
+`deu_news_2022_1M` and five 2023 siblings, which is inferred and not a record. Write the
+download name here when next replacing one.
 
 The German dictionary is the one input with a **binary** behind it: `spellDict` shells out
 to `hunspell`, so that language will not build without it on `PATH`. Nothing else does,
@@ -387,6 +395,40 @@ Past C2 sits `rare` ("Rare · beyond C2"), open-ended at `max: null`.
 | `rare` past it is open-ended | It is what lets `getWord` assert a band exists at every rank — keep `max: null` on whichever band is last |
 | **German reaches it and the other five do not** | The morphology vouch buys back ~18k compounds, taking the list past 50k, while `dictGate` keeps the Romance five inside C2 |
 | Both lists are filtered to bands that hold words | An unreached `rare` renders no empty tab, so German alone shows a seventh |
+
+**No language has a CEFR source of its own.** The whole calibration is one English
+measurement, and the rest is reuse:
+
+| Element | Where it comes from |
+| --- | --- |
+| The A1 to B2 medians, A1≈635 A2≈2275 B1≈4692 B2≈8394 | The CEFR-J Wordlist, English. Which version was used at calibration time was not recorded; the medians reproduce within 8–17% against Wordlist 1.5 on the current artifact |
+| The C1 and C2 tops | Nothing external. CEFR-J stops at B2, so 25k and 50k extrapolate the doubling trend |
+| `rare` | Nothing. It is the open-ended band `getWord` needs |
+| es, fr, de, pt, it | Nothing of their own. The English thresholds apply unchanged, which is `BAND-2` |
+| CEFR itself | No vocabulary at all. The framework specifies ability, not words, so every CEFR word list is a third party's construction and there is no ground truth under the labels |
+
+**How far the reuse holds was measured once**, against the CEFR-J Wordlist 1.5 plus the
+Octanove C1/C2 profile 1.0 (`openlanguageprofiles/olp-en-cefrj`), on the 8,259 of its 8,690
+single-word headwords that the English artifact holds:
+
+| Measure | Value |
+| --- | --- |
+| Spearman ρ (frequency rank, profile level) | 0.71 |
+| The band `BAND-1` assigns is the profile's | 38% |
+| Within one band | 84% |
+| Ceiling for any one-band-per-word scheme, scored per (headword, pos) sense | 92% |
+| Refitting all five thresholds to the profile | 38% → 43%, and A2 and C1 collapse to slivers |
+
+So the thresholds are leaving almost nothing on the table — the ceiling is the signal, not
+the calibration. Both figures are floors, since error in either variable attenuates the
+correlation, and neither variable is ground truth: the rank is exact about the artifact and
+an estimate about the language. The misses are register, in both directions. The profile
+calls `volleyball`, `aeroplane`, `jewellery` and `seventy` A1 where the corpus ranks them
+past 7,000, and calls `corpse`, `convict` and `trauma` C1 where subtitles put them inside
+3,000. A1 words carrying one of the profile's syllabus-topic tags have median rank 1,154
+against 449 for the untagged, which is that difference made countable.
+
+The profiles are not committed, so this run is not reproducible from the repo.
 
 Comparing one language against another through the bands is the weaker reading. The six
 agree almost everywhere, and where they disagree it is usually a word within 20% of a
