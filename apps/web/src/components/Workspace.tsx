@@ -706,10 +706,11 @@ export default function Workspace({ country }: { country?: string | null }) {
           }
         />
 
-        {/* Data-source credits / CEFR disclaimer, under the data they describe.
-            line-height 1.5 for blocks of text (WCAG 1.4.8), capped at 80ch line length. */}
+        {/* Data-source credits / CEFR disclaimer, under the data they describe. Line
+            height 1.5 and 65ch for a block of text (WCAG 1.4.8) — `ch` is the width of
+            "0", so 80ch measured 99 characters of ordinary prose. */}
         <p
-          className="tw-mt-3 tw-max-w-[80ch] tw-body-x-small text-muted-aaa"
+          className="tw-mt-3 tw-max-w-[65ch] tw-body-x-small text-muted-aaa"
           style={{ lineHeight: 1.5 }}
         >
           Sources: <CorpusCredit source={source} />

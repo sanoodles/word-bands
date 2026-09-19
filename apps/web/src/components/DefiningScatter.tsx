@@ -19,8 +19,8 @@ import { DEFINING_EXAMPLE, type SourceLang } from "@/lib/languages";
 
 /**
  * The CEFR bands as `cefrBands` cuts them, each with the rank it tops out at; C2 runs to
- * the end of whatever the language ranks, so it has none. Drawn as the vertical stripes
- * and named under them, because a stripe nobody can name is just a shade of grey.
+ * the end of whatever the language ranks, so it has none. Marked by the vertical lines
+ * and named under them, because a band nobody can name is just a gap between two lines.
  */
 const CEFR_BANDS: { key: string; max: number | null }[] = [
   { key: "A1", max: 1000 },
@@ -423,7 +423,7 @@ export default function DefiningScatter({
           role="img"
           // The picture states a shape, and the shape is the caption. A screen reader gets
           // the claim in words; the tabs below are where it reads the words themselves.
-          aria-label={`Frequency against defining level: ${levelled.toLocaleString()} words plotted, commonest at the left, D1 at the top. The vertical stripes are the CEFR bands, A1 at the left through C2 at the right. Within any one frequency range the words still spread across every level.`}
+          aria-label={`Frequency against defining level: ${levelled.toLocaleString()} words plotted, commonest at the left, D1 at the top. The vertical lines divide the CEFR bands, A1 at the left through C2 at the right. Within any one frequency range the words still spread across every level.`}
           className="tw-block tw-h-full tw-w-full"
           onMouseMove={onMove}
           // A fingertip covers about 40px of glass and hides what is under it, so it gets
@@ -449,7 +449,15 @@ export default function DefiningScatter({
           </span>
         )}
       </div>
-      <figcaption className="tw-mt-1 tw-px-1 tw-body-x-small text-muted-aaa">
+      {/* 60ch and a 1.5 line height for a block of prose (WCAG 1.4.8): the caption ran the
+          panel's full width, 247 characters a line. `ch` is the width of "0", so it
+          measures wider than the prose it caps — 65ch still came out at 85 characters.
+          The line height is inline, because Fondue's type token sets 1.33 and a utility
+          class loses to it. */}
+      <figcaption
+        className="tw-mt-1 tw-max-w-[60ch] tw-px-1 tw-body-x-small text-muted-aaa"
+        style={{ lineHeight: 1.5 }}
+      >
         <details
           open={captionOpen}
           onToggle={(e) => setCaptionOpen(e.currentTarget.open)}
@@ -465,8 +473,8 @@ export default function DefiningScatter({
           D1 a defining vocabulary in the Longman sense — one the dictionary&rsquo;s usage reveals,
           rather than one an editor fixes in advance. The numbers across the bottom are ranks, not
           counts: 6k is the 6,000th commonest word, so the further right a point sits, the rarer
-          it is. The stripes are the CEFR bands, named in the row beneath — A1 the first thousand
-          words, C2 the rarest.{" "}
+          it is. The vertical lines divide the CEFR bands, named in the row beneath — A1 the
+          first thousand words, C2 the rarest.{" "}
           {example && (
             <>
               <span lang={source}>{example}</span> is A1 vocabulary sitting at D7, which is what
