@@ -22,7 +22,7 @@ import {
 import { sourceLang, targetLang } from "@/lib/geo";
 import { baseLang } from "@/lib/translate";
 import { pageTitle, readScenario, writeScenario } from "@/lib/scenario";
-import { PANEL, PANEL_LANG } from "@/components/panel";
+import { PANEL, PANEL_LANG, SECTION_HEADING } from "@/components/panel";
 
 // Expanded forms for the abbreviations we show (WCAG 3.1.4).
 const CEFR_TITLE = "Common European Framework of Reference for Languages";
@@ -481,10 +481,12 @@ export default function Workspace({ country }: { country?: string | null }) {
           {/* Language and word share one row at every width — the select is only wide
               enough for a code, and a phone has no line to spare for it alone. */}
           <div className="tw-flex tw-items-start tw-gap-2 min-[700px]:tw-gap-3">
-            {/* Section headings (WCAG 2.4.10) — visually hidden, structural for AT. */}
+            {/* Section headings (WCAG 2.4.10, 3.3.2). One heading over each control, so
+                the heading is also the control's visible label — the selects show a
+                code, which is their value, not their name. */}
             <section aria-labelledby="lang-heading">
-              <h2 id="lang-heading" className="visually-hidden">
-                Choose a language to study
+              <h2 id="lang-heading" className={SECTION_HEADING}>
+                Language
               </h2>
               <div className={PANEL_LANG}>
                 <SourceSelect value={source} onChange={chooseSource} />
@@ -493,7 +495,7 @@ export default function Workspace({ country }: { country?: string | null }) {
 
             {/* Whatever the select leaves, which the field then shrinks into. */}
             <section aria-labelledby="search-heading" className="tw-min-w-0 tw-grow tw-basis-0">
-              <h2 id="search-heading" className="visually-hidden">
+              <h2 id="search-heading" className={SECTION_HEADING}>
                 Look up a word
               </h2>
               <WordSearchBox
@@ -585,7 +587,7 @@ export default function Workspace({ country }: { country?: string | null }) {
       </div>
 
       <section aria-labelledby="browse-heading">
-        <h2 id="browse-heading" className="visually-hidden">
+        <h2 id="browse-heading" className={SECTION_HEADING}>
           Browse the vocabulary
         </h2>
         <BandBrowser

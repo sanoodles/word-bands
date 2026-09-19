@@ -8,12 +8,13 @@ THE OUTLINE — landmarks and headings, in the order they are met
 ------------------------------------------------------------------------
   main (unnamed)
     h1 "word-bands"
-    region "Choose a language to study"
-      h2 "Choose a language to study"
+    region "Language"
+      h2 "Language"
     region "Look up a word"
       h2 "Look up a word"
       search (unnamed)
     region "Meaning of Wasser"
+      h2 "Meaning of Wasser"
     region "Browse the vocabulary"
       h2 "Browse the vocabulary"
   contentinfo (unnamed)

@@ -14,3 +14,10 @@ export const PANEL =
  */
 export const PANEL_LANG =
   "tw-w-20 tw-shrink-0 [&_[role=combobox]]:tw-min-h-[44px] [&_[role=combobox]]:tw-text-large";
+
+/**
+ * The heading over a section, and over each of the two language selects, whose visible
+ * name is otherwise only the ISO code they hold. Quiet, so a heading on every section
+ * does not compete with the words themselves.
+ */
+export const SECTION_HEADING = "tw-mb-1.5 tw-body-small tw-font-medium text-muted-aaa";

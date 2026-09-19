@@ -707,8 +707,11 @@ tooltip is open.
 | A clickable alternative | Named by the word and nothing else, or the line stops reading as the translation. What clicking it does is a description — announced on focus, not while reading — and one element holds that sentence for every term on the card. The cost is two tab stops per badged term, the word and then its level, since the badge keeps its own focus for its rank |
 | `AbbrLink` | `title` on the `<abbr>`, and no Fondue tooltip. A Fondue one needs its own focusable trigger, which made each credit two tab stops with the same name, and it would paint a second tooltip over the native one |
 | `WordSearchBox` | Named by its section heading (`labelledBy`), not by a second copy of the same string |
+| Section headings | Visible, and every one of them is also the name of the section it opens. Nothing is hidden for assistive tech alone, so a heading cannot drift from the name it gives |
+| `WordCard` | Named by its own heading, "Meaning of <word>". The word is in the name because the live region beneath it would otherwise announce a translation with no subject, and the heading is visible because it is what starts the card's row level with the panel facing it |
 | Search help | `aria-hidden`, so it is read once as the field's description. A hidden element still contributes its text when `aria-describedby` names it directly |
 | Redirect line | `role="status"`, and the element is **always** in the DOM, empty or not. A live region inserted in the same commit as its text is announced by some readers and not others. Polite, not an alert: the word was found, and the card beside it is about to be read anyway |
+| The two language selects | The heading above each is its visible label — "Language" and "Meaning of <word>". What the trigger shows is the ISO code, which is the value, not the name |
 | Prose | A language is named in English (`englishName`) inside an English sentence. `SOURCE_LANG_META.name` is the endonym, which is the picker's job |
 
 ### The lint rule, and what it cannot see

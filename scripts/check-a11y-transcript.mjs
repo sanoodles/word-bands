@@ -344,7 +344,9 @@ async function transcribe(send, on) {
   say(`  asked for    jede`);
   say(`  announced    ${await val(`document.querySelector("[role=status]").textContent`)}`);
   say(`  the field    ${JSON.stringify(await val(`document.querySelector("form[role=search] input").value`))}`);
-  say(`  the card     ${await val(`document.querySelector("[aria-label^='Meaning of']")?.getAttribute("aria-label") ?? null`)}`);
+  // Through aria-labelledby, which is how the card is named: its own visible heading.
+  say(`  the card     ${await val(`(() => { const c = document.querySelector(".WordCard");
+    return document.getElementById(c?.getAttribute("aria-labelledby"))?.textContent.trim() ?? null; })()`)}`);
 
   // Last, because moving off A1 leaves a different band open behind it.
   rule("THE BAND TABS — one stop, arrows inside it");

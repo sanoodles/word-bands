@@ -4,7 +4,7 @@ import { Fragment, useEffect, useId, useRef, useState } from "react";
 import CefrBadge from "@/components/CefrBadge";
 import LangSelect from "@/components/LangSelect";
 import Loading from "@/components/Loading";
-import { PANEL, PANEL_LANG } from "@/components/panel";
+import { PANEL, PANEL_LANG, SECTION_HEADING } from "@/components/panel";
 import { englishName, type TargetLang } from "@/lib/languages";
 import type { WordLevel } from "@/lib/types";
 import { baseLang, type SenseGroup } from "@/lib/translate";
@@ -268,6 +268,7 @@ export default function WordCard({
   const multi = useForms(casings, source, target, translate && homograph && !pending);
   // One id for the sentence every term button points at.
   const pickHelp = useId();
+  const headingId = useId();
 
   // Both hooks park on "loading" until enabled, which is the pending frame's state.
   const status = homograph ? multi.status : single.status;
@@ -318,15 +319,19 @@ export default function WordCard({
   }, [word]);
 
   return (
-    // Named for AT: without the heading the card is an unlabelled box, and its live
-    // region would announce a translation with no subject.
+    // The heading is the name: without it the card is an unlabelled box, and its live
+    // region would announce a translation with no subject. It carries the word for the
+    // same reason, and visibly so the card's row starts level with the panel facing it.
     <section
       ref={cardRef}
-      aria-label={`Meaning of ${word}`}
+      aria-labelledby={headingId}
       // Focusable only as a landing place for the recovery above, never in the tab order.
       tabIndex={-1}
       className={`WordCard ${PANEL}`}
     >
+      <h2 id={headingId} className={SECTION_HEADING}>
+        Meaning of {word}
+      </h2>
       {/* Wraps on the card's own width, not the viewport's — it is also cramped in the
           two-column layout just past 860px. Alone on a wrapped row, justify-between
           leaves the link at the start. */}
