@@ -322,6 +322,13 @@ async function transcribe(send, on) {
     say(`  ${String(++stop).padStart(2)}. ${line}`);
   }
 
+  // The walk above starts past this one: blurring the autofocused field leaves Chrome's
+  // sequential-focus starting point on it, so the first Tab lands on what follows the
+  // field. Focused directly, then, the way the two composite widgets below are.
+  rule("THE SOURCE LANGUAGE SELECT — what it says before a pick moves focus");
+  await val(`(document.querySelector('[role=combobox][aria-label="Source language"]').focus(), true)`);
+  say(`  on focus     ${await speak()}`);
+
   rule("THE WORD CLOUD — a listbox of the band's words");
   await reset();
   await val(`(document.querySelector("[role=option][tabindex='0']").focus(), true)`);

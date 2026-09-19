@@ -45,6 +45,10 @@ TAB THROUGH THE PAGE
   17. Google Translate, link
   18. samuelgomezcrespo@gmail.com, link
 
+THE SOURCE LANGUAGE SELECT — what it says before a pick moves focus
+------------------------------------------------------------------------
+  on focus     Source language, combobox, collapsed, — Choosing a language looks up an example word in it. The search box takes focus with that word selected, so typing replaces it.
+
 THE WORD CLOUD — a listbox of the band's words
 ------------------------------------------------------------------------
   on entry     Wasser, option, selected, 393 of 1000

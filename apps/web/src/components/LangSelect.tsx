@@ -11,12 +11,15 @@ import { Select } from "@frontify/fondue/components";
  */
 export default function LangSelect<T extends string>({
   label,
+  describedBy,
   value,
   options,
   onChange,
 }: {
   /** Accessible name of the control. */
   label: string;
+  /** Element saying what a pick does, read on focus — before the pick (WCAG 3.2.2). */
+  describedBy?: string;
   value: T;
   options: { code: T; name: string }[];
   onChange: (code: T) => void;
@@ -24,6 +27,7 @@ export default function LangSelect<T extends string>({
   return (
     <Select
       aria-label={label}
+      aria-describedby={describedBy}
       value={value}
       // Fondue types the callback as a bare string; it only ever hands back a value
       // one of the items above was mounted with.

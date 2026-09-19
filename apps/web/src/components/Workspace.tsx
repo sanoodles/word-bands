@@ -91,7 +91,16 @@ function SourceSelect({
   onChange: (l: SourceLang) => void;
 }) {
   return (
-    <LangSelect label="Source language" value={value} options={SOURCE_OPTIONS} onChange={onChange} />
+    <LangSelect
+      label="Source language"
+      // A pick moves focus into the search field, which WCAG 3.2.2 allows only where the
+      // move was advised beforehand. A description is read on focus, so it arrives while
+      // the menu is still closed; the field itself is read after the move has happened.
+      describedBy="lang-help"
+      value={value}
+      options={SOURCE_OPTIONS}
+      onChange={onChange}
+    />
   );
 }
 
@@ -500,6 +509,12 @@ export default function Workspace({ country }: { country?: string | null }) {
               <div className={PANEL_LANG}>
                 <SourceSelect value={source} onChange={chooseSource} />
               </div>
+              {/* aria-hidden, like the search help below: read once as the select's
+                  description, rather than again as loose text in the section. */}
+              <p id="lang-help" className="visually-hidden" aria-hidden="true">
+                Choosing a language looks up an example word in it. The search box takes
+                focus with that word selected, so typing replaces it.
+              </p>
             </section>
 
             {/* Whatever the select leaves, which the field then shrinks into. */}

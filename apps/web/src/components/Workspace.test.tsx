@@ -209,6 +209,22 @@ describe("Workspace", () => {
     expect(box.value).toBe("hund");
   });
 
+  // The other half of the rule above: a focus move on a setting change is a change of
+  // context, and WCAG 3.2.2 allows one only where the user was advised first. The advice
+  // is read on focus, so it arrives before the menu opens — and the field cannot carry it,
+  // since it is read once the move has already happened.
+  it("says on the source select that a pick moves focus", async () => {
+    render(<Workspace />);
+    await screen.findByRole("region", { name: /meaning of water/i });
+    expect(screen.getByRole("combobox", { name: /source language/i })).toHaveAccessibleDescription(
+      /search box takes focus/i,
+    );
+    // The target pick moves nothing, so it says nothing.
+    expect(screen.getByRole("combobox", { name: /target language/i })).toHaveAccessibleDescription(
+      "",
+    );
+  });
+
   // A swap turns the languages over too, but it lands on the word the learner was reading
   // in the card rather than on a default one — so the field is left as it is, and on a
   // phone no keyboard comes up over the translation.

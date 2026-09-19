@@ -782,7 +782,7 @@ tooltip is open.
 | `WordCard` | Named by its own heading, "Meaning of <word>". The word is in the name because the live region beneath it would otherwise announce a translation with no subject, and the heading is visible because it is what starts the card's row level with the panel facing it |
 | Search help | `aria-hidden`, so it is read once as the field's description. A hidden element still contributes its text when `aria-describedby` names it directly |
 | Redirect line | `role="status"`, and the element is **always** in the DOM, empty or not. A live region inserted in the same commit as its text is announced by some readers and not others. Polite, not an alert: the word was found, and the card beside it is about to be read anyway |
-| The two language selects | The heading above each is its visible label — "Language" and "Meaning of <word>". What the trigger shows is the ISO code, which is the value, not the name |
+| The two language selects | The heading above each is its visible label — "Language" and "Meaning of <word>". What the trigger shows is the ISO code, which is the value, not the name. The source one also carries `lang-help` as its description, the advice 3.2.2 wants before the pick |
 | Prose | A language is named in English (`englishName`) inside an English sentence. `SOURCE_LANG_META.name` is the endonym, which is the picker's job |
 
 ### The lint rule, and what it cannot see
@@ -852,6 +852,7 @@ one component, and none of them was on anyone's list.
 | Post-deploy and weekly, not on a PR | It reads a deployed page, and a preview sits behind Deployment Protection, which answers a 302 to a Vercel login |
 | Names and descriptions come from Chrome; **roles and states do not** | A name is computed, and half the markup is Fondue's, so there is no reading it off the source. A role is authored — and Chrome renames them between versions (`img` became `image`), which would make this a transcript of whichever Chrome the runner shipped that week |
 | The browser's locale is pinned to `en-US` | The page formats ranks and counts with `toLocaleString()`. Unpinned, the same page reads `rank 18,422` on one machine and `18 422` on another |
+| The tab walk starts past the first three stops | Blurring the autofocused field leaves Chrome's sequential-focus starting point on it, so the first Tab lands on what follows the field — the skip link, the source select and the field itself are never walked. The source select is focused directly in a section of its own, since its description is what WCAG 3.2.2 rests on |
 | Next's dev-tools overlay is skipped in the tab walk | `next dev` serves it as a focusable custom element (`nextjs-portal`) that production never has. Without skipping it a local run differs from the deployed page by one stop, which is the whole local workflow gone. Skipped rather than stopped on, and it does not consume a stop number |
 | The desktop shape is asserted before transcribing | Below 700px the band tabs are a dropdown. A window that came up the wrong size would otherwise arrive as a pile of unexplained differences rather than as the environment being wrong |
 
@@ -882,6 +883,7 @@ silently lands on 4px. Arbitrary values are the way out:
 | The page opens with the field focused and its word selected | It lands holding a word nobody asked for, so the first keystroke means a new one |
 | A click into it selects the whole value, on the click that focuses it and on no other | Clicking in asks for a different word far more often than it edits this one, and a second click has to leave the caret where it was put |
 | Switching the source language refocuses the field and selects the default word it lands on | That word is no more asked for than the one the page opens on. On a phone this is the difference between typing and first tapping the field to raise the keyboard |
+| The source select says so first, in a description | A focus move on a setting change is a change of context, which WCAG 3.2.2 allows only where it was advised beforehand. A description is read on focus, before the menu opens; the field is read after the move has already happened. It sits on the source select alone — picking a target moves nothing |
 | A swap, a clicked alternative and a chip never take the field | Each lands on a word the learner picked, and on a phone a keyboard would come up over the card that just answered |
 | A clicked alternative lands on the card instead, and only where it dropped focus | Its own button is removed by the re-render the pick causes, so focus falls to `<body>`. The card is `tabIndex={-1}` for that one purpose, and it waits for the new word: the name says "Meaning of" whichever word is there, so moving early would announce the one just left |
 | The selection is re-applied after the lookup recases the word | "wasser" comes back "Wasser", which collapses the selection. Without this, half the languages open only half-ready |
