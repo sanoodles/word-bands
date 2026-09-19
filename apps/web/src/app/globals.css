@@ -107,14 +107,22 @@ html[data-theme="light"] body {
   outline: none;
 }
 
+/* Literal colours, not theme tokens: this sits outside ThemeProvider, so a token would
+   resolve from :root whichever theme is on. No fill holds 7:1 on its text (1.4.6) and
+   3:1 on both page backgrounds at once, so the white border draws the edge on the dark
+   page and the fill draws it on the light one. */
 .skip-link {
   position: absolute;
   left: 0.5rem;
-  top: -3rem;
+  top: -5rem;
   z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0.6rem 0.9rem;
-  background: var(--color-focus-default);
-  color: var(--color-focus-contrast);
+  background: #074a9d;
+  color: #ffffff;
+  border: 2px solid #ffffff;
   font-weight: 600;
   border-radius: var(--border-radius-large);
   text-decoration: none;
