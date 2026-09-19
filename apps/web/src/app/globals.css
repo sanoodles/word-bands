@@ -100,6 +100,13 @@ form[role="search"] div:has(> input) > div:first-child {
   color: var(--color-primary-default);
 }
 
+/* The muted code falls to 3.78:1 on the highlighted and the picked fill (1.4.3), so on
+   those rows it takes the row's own colour. */
+[role="option"][data-highlighted="true"] .lang-code,
+[role="option"][aria-selected="true"] .lang-code {
+  color: inherit;
+}
+
 html,
 body {
   margin: 0;
