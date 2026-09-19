@@ -95,6 +95,9 @@ interface Metrics {
   letter: number; // letter-spacing, added back since canvas ignores it
 }
 
+const sameMetrics = (a: Metrics, b: Metrics) =>
+  a.font === b.font && a.chromeX === b.chromeX && a.height === b.height && a.letter === b.letter;
+
 /**
  * A scrollable word cloud that virtualizes its chips: a layer can hold tens of
  * thousands of words, far too many to keep in the DOM. Chip widths are measured
@@ -141,18 +144,12 @@ export default function WordChips({
   const [viewport, setViewport] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
 
-  // Measure the chip font, chrome, and height from a hidden probe — synchronously
-  // before paint, and read the container width off the DOM — so the very first
-  // render is already virtualized and we never mount every chip at once.
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
+  // The chip font, chrome and height, read off the hidden probe.
+  const readMetrics = useCallback((): Metrics | null => {
     const probe = probeRef.current;
-    if (!el || !probe || probe.offsetHeight === 0) {
-      setMode("fallback"); // no layout (SSR/jsdom): render them all
-      return;
-    }
+    if (!probe || probe.offsetHeight === 0) return null;
     const cs = getComputedStyle(probe);
-    setMetrics({
+    return {
       font: `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`,
       chromeX:
         parseFloat(cs.paddingLeft) +
@@ -161,23 +158,42 @@ export default function WordChips({
         parseFloat(cs.borderRightWidth),
       height: probe.offsetHeight,
       letter: cs.letterSpacing === "normal" ? 0 : parseFloat(cs.letterSpacing) || 0,
-    });
+    };
+  }, []);
+
+  // Measure synchronously before paint, and read the container width off the DOM —
+  // so the very first render is already virtualized and we never mount every chip
+  // at once.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const m = readMetrics();
+    if (!el || !m) {
+      setMode("fallback"); // no layout (SSR/jsdom): render them all
+      return;
+    }
+    setMetrics(m);
     setWidth(el.clientWidth);
     setViewport(el.clientHeight);
     setMode("virtual");
-  }, []);
+  }, [readMetrics]);
 
-  // Keep width/height current as the container resizes.
+  // Keep width/height current as the container resizes, and the type metrics with
+  // them: the probe is a chip, so a text-spacing override (1.4.12) or a late font
+  // resizes it, and rows packed from the old widths clip their last chip.
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || mode !== "virtual" || typeof ResizeObserver === "undefined") return;
+    const probe = probeRef.current;
+    if (!el || !probe || mode !== "virtual" || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => {
       setWidth(el.clientWidth);
       setViewport(el.clientHeight);
+      const m = readMetrics();
+      if (m) setMetrics((prev) => (prev && sameMetrics(prev, m) ? prev : m));
     });
     ro.observe(el);
+    ro.observe(probe);
     return () => ro.disconnect();
-  }, [mode]);
+  }, [mode, readMetrics]);
 
   // Per-word pixel widths via canvas text metrics — no reflow, so measuring a
   // whole layer stays cheap. +1px absorbs sub-pixel rounding so a packed row

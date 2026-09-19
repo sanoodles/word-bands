@@ -917,6 +917,7 @@ highlighted option are drawn in.
 | Tab name | Spelled out with `aria-label`. The label and the count are separate elements and join with no separator, which read as "A1 · Beginner1,000 words" |
 | Word cloud | A `listbox` of `option`s, not a group — that is what says the arrow keys are there. The row wrappers are `role="presentation"` so the options stay owned by it |
 | `aria-setsize` / `aria-posinset` | Stated, not counted. Only the rows near the viewport are in the DOM, so a chip's place in the band cannot be inferred from it |
+| The chips' widths | Measured on a canvas from a hidden probe chip, never from the DOM, since the rows are packed before they are rendered. A `ResizeObserver` watches the probe as well as the container, so a text-spacing override (1.4.12) or a late font re-measures rather than clipping the last chip of every row |
 
 ### Crawlers and link previews
 
