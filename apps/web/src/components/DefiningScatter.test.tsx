@@ -227,9 +227,10 @@ function paints() {
 
 // The caption calls the stripes the CEFR bands, and for a while the figure never named
 // one: a reader got six shades of grey and five bare numbers that read as counts of
-// words. Both rows are labelled now, so paint once and read back what was written.
+// words. Both rows are labelled now, and the labels are HTML over the canvas, so this
+// lays the figure out and reads them back off the DOM.
 describe("the axis under the plot", () => {
-  const drawn = paints();
+  paints();
   // The ten-word fixture has no axis to speak of: every band edge falls past the end of
   // it. This one is long enough to carry all six bands, and is handed over without a
   // Response — serializing 30,000 words to JSON and back costs more than the test does.
@@ -244,18 +245,23 @@ describe("the axis under the plot", () => {
   const axis = async () => {
     render(<DefiningScatter source="pt" anchorWord={null} onSelect={() => {}} />);
     await screen.findByRole("img");
-    return (text: string) => drawn.find((d) => d.text === text)?.x ?? NaN;
+    // The label layer, not the hover label, which is the wrapper's other aria-hidden child.
+    const labels = [...document.querySelectorAll<HTMLElement>("figure div[aria-hidden] span")];
+    return {
+      written: labels.map((el) => el.textContent ?? ""),
+      at: (text: string) =>
+        parseFloat(labels.find((el) => el.textContent === text)?.style.left ?? "NaN"),
+    };
   };
 
   it("names every band, and says what the numbers along the bottom are", async () => {
-    await axis();
-    const written = drawn.map((d) => d.text);
+    const { written } = await axis();
     for (const t of ["A1", "A2", "B1", "B2", "C1", "C2", "rank", "CEFR"])
       expect(written).toContain(t);
   });
 
   it("puts each band's name inside its own stripe", async () => {
-    const at = await axis();
+    const { at } = await axis();
     const ticks = ["1k", "3k", "6k", "12k", "25k"].map(at);
     // Right of the rank that opens the band, left of the one that closes it — which is
     // also what says the axis runs commonest to rarest, A1 first and C2 last.
@@ -266,11 +272,15 @@ describe("the axis under the plot", () => {
   });
 
   it("stops the ticks at the last band's edge, not the end of the list", async () => {
-    await axis();
+    const { written } = await axis();
     // `total` is where the ranking happens to stop, not a boundary anything falls on.
-    // A Set, not the raw list: a second repaint would repeat every tick and prove nothing.
-    const ticks = drawn.map((d) => d.text).filter((t) => /^\d/.test(t));
-    expect([...new Set(ticks)]).toEqual(["1k", "3k", "6k", "12k", "25k"]);
+    expect(written.filter((t) => /^\d/.test(t))).toEqual(["1k", "3k", "6k", "12k", "25k"]);
+  });
+
+  // The levels are the other axis, and they were canvas pixels too.
+  it("names every defining level down the gutter", async () => {
+    const { written } = await axis();
+    for (const l of ["D1", "D2", "D3", "D4", "D5", "D6", "D7"]) expect(written).toContain(l);
   });
 });
 

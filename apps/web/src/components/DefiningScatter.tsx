@@ -35,6 +35,16 @@ const LEVELS = 7;
 const PAD = { top: 10, right: 12, bottom: 40, left: 38 };
 /** Point radius, and the hit radius around the pointer, in CSS pixels. */
 const DOT = 1.6;
+/**
+ * Ink alphas, per theme. A point is the one thing here that cannot simply be darkened to
+ * 3:1 (1.4.11): the cloud is the message, and at full ink the dense rows fill in solid.
+ * These are the darkest that leave the spread readable, checked by eye in both themes.
+ * `p3-states.mjs figure` recomputes its numbers from them — change both together.
+ */
+const ALPHA = {
+  point: { dark: 0.5, light: 0.72 },
+  edge: { dark: 0.55, light: 0.72 },
+};
 const HIT = { mouse: 7, finger: 22 };
 /** Whether the reader has folded the caption away. Absent until they touch it. */
 const CAPTION_KEY = "word-bands:defining-caption";
@@ -88,6 +98,76 @@ function jitter(word: string): number {
   let h = 0;
   for (let i = 0; i < word.length; i++) h = (Math.imul(h, 31) + word.charCodeAt(i)) | 0;
   return ((h >>> 0) % 1000) / 1000 - 0.5;
+}
+
+/**
+ * Every label the figure carries, as HTML over the canvas: the levels down the gutter, and
+ * under the plot the ranks the bands break at and the band names. Drawn into the canvas
+ * these were images of text — 2.29:1 in light, blind to a text-spacing override, and gone
+ * at any zoom the browser does in text alone.
+ *
+ * Positioned from the same geometry the points are, so a label sits on its own row or
+ * column whatever the figure is resized to.
+ */
+function Labels({ size, total }: { size: Plot; total: number }) {
+  const { w, h } = size;
+  const edges = [0, ...CEFR_BANDS.map((b) => b.max ?? total)];
+  const xAt = (rank: number) => xOf(rank, w, total);
+  // Everything in the gutter ends on the same line, 6px off the plot, so the corner reads
+  // as one column of labels rather than three things that happen to be on the left.
+  const gutter = PAD.left - 6;
+  const rankRow = h - PAD.bottom + 5;
+  const bandRow = rankRow + 14;
+  const label = "tw-absolute tw-whitespace-nowrap tw-body-x-small text-muted-aaa";
+  const atRight = { transform: "translateX(-100%)" };
+  return (
+    // Names the rows it is made of; the canvas beside it carries the whole claim.
+    <div aria-hidden="true" className="tw-pointer-events-none tw-absolute tw-inset-0">
+      {Array.from({ length: LEVELS }, (_, i) => i + 1).map((l) => (
+        <span
+          key={l}
+          className={label}
+          style={{ left: gutter, top: yOf(l, 0, h), transform: "translate(-100%, -50%)" }}
+        >
+          D{l}
+        </span>
+      ))}
+      {/* Every break but the last: the right edge is wherever the list ends, not a
+          boundary. The gutter names the row, because "6k" alone reads as a quantity of
+          something — it is a place in the order, which is the whole of what the axis says. */}
+      <span className={label} style={{ left: gutter, top: rankRow, ...atRight }}>
+        rank
+      </span>
+      {edges.slice(1, -1).map((r) => (
+        <span
+          key={r}
+          className={label}
+          style={{ left: xAt(r), top: rankRow, transform: "translateX(-50%)" }}
+        >
+          {r >= 1000 ? `${r / 1000}k` : r}
+        </span>
+      ))}
+      <span className={label} style={{ left: gutter, top: bandRow, ...atRight }}>
+        CEFR
+      </span>
+      {/* Heavier than the row above, which is the pair's order: the band name is what ties
+          a stripe to the CEFR tab. Weight rather than a second colour, so both rows can
+          hold 7:1 (1.4.6). */}
+      {CEFR_BANDS.map((b, i) => (
+        <span
+          key={b.key}
+          className={`${label} tw-font-medium`}
+          style={{
+            left: (xAt(edges[i]!) + xAt(edges[i + 1]!)) / 2,
+            top: bandRow,
+            transform: "translateX(-50%)",
+          }}
+        >
+          {b.key}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -158,6 +238,8 @@ export default function DefiningScatter({
   const [hover, setHover] = useState<{ word: string; x: number; y: number } | null>(null);
   // Plot geometry, kept from the last paint so hit-testing measures against what is drawn.
   const plot = useRef<Plot | null>(null);
+  // The same geometry as state, because the labels are HTML and render from it.
+  const [size, setSize] = useState<Plot | null>(null);
   // How close a pointer has to land, set on pointerdown: the click event itself is a plain
   // MouseEvent in some browsers, with no pointer type left on it to read.
   const reach = useRef(HIT.mouse);
@@ -206,63 +288,38 @@ export default function DefiningScatter({
     ctx.clearRect(0, 0, w, h);
 
     const ink = getComputedStyle(canvas).color;
-    const faint = resolvedTheme === "dark" ? "rgba(255,255,255,.055)" : "rgba(0,0,0,.045)";
+    const dark = resolvedTheme === "dark";
     const accent =
       getComputedStyle(document.documentElement).getPropertyValue("--accent-focus").trim() ||
       "#f5c542";
     const total = points.words.length;
 
-    // CEFR stripes, alternating, so a vertical slice of near-equal frequency is visible
-    // without a control to narrow one.
+    // CEFR bands, drawn as the line between one and the next rather than as alternating
+    // fills: the fill was a 1.10:1 shade, and what it was for is the boundary.
     const edges = [0, ...CEFR_BANDS.map((b) => b.max ?? total)];
     const xAt = (rank: number) => xOf(rank, w, total);
-    for (let i = 0; i < CEFR_BANDS.length; i++) {
-      if (i % 2 === 0) continue;
-      const x0 = xAt(edges[i]!);
-      ctx.fillStyle = faint;
-      ctx.fillRect(x0, PAD.top, xAt(edges[i + 1]!) - x0, h - PAD.top - PAD.bottom);
-    }
-
-    // Level labels down the left edge. Everything in the gutter — these and the two row
-    // names below — ends on the same line, 6px off the plot, so the corner reads as one
-    // column of labels rather than three things that happen to be on the left.
-    const gutter = PAD.left - 6;
-    ctx.fillStyle = ink;
-    ctx.globalAlpha = 0.55;
-    ctx.font = "11px ui-sans-serif, system-ui, sans-serif";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    for (let l = 1; l <= LEVELS; l++) ctx.fillText(`D${l}`, gutter, yOf(l, 0, h));
-
-    // Two rows under the plot: the ranks the stripes break at, then each stripe's band.
-    // The gutter names both, because "6k" on its own reads as a quantity of something.
-    // It is a place in the order, and the order is the whole of what the axis says.
-    const rankRow = h - PAD.bottom + 5;
-    const bandRow = rankRow + 14;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    // Every break but the last: the right edge is wherever the list ends, not a boundary.
+    ctx.strokeStyle = ink;
+    ctx.globalAlpha = dark ? ALPHA.edge.dark : ALPHA.edge.light;
+    ctx.lineWidth = 1;
     for (let i = 1; i < edges.length - 1; i++) {
-      const r = edges[i]!;
-      ctx.fillText(r >= 1000 ? `${r / 1000}k` : String(r), xAt(r), rankRow);
+      // Half-pixel, or a 1px line straddles two columns and renders as a 2px grey smear.
+      const x = Math.round(xAt(edges[i]!)) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x, PAD.top);
+      ctx.lineTo(x, h - PAD.bottom);
+      ctx.stroke();
     }
-    // Stronger than the row above: the band name is what ties a stripe to the CEFR tab.
-    ctx.globalAlpha = 0.75;
-    CEFR_BANDS.forEach((b, i) => {
-      ctx.fillText(b.key, (xAt(edges[i]!) + xAt(edges[i + 1]!)) / 2, bandRow);
-    });
-    ctx.globalAlpha = 0.55;
-    ctx.textAlign = "right";
-    ctx.fillText("rank", gutter, rankRow);
-    ctx.fillText("CEFR", gutter, bandRow);
     ctx.globalAlpha = 1;
+
+    // Every label is HTML over the canvas (see `Labels`): drawn here they were images of
+    // text — 2.29:1 in light, ignoring a text-spacing override, and unscalable.
 
     // The points. One ink colour, not a ramp per level: the y position already encodes the
     // level, and the pale end of a ramp disappears against the ground.
     const anchor = anchorWord?.toLowerCase() ?? null;
     let anchorAt: [number, number] | null = null;
     ctx.fillStyle = ink;
-    ctx.globalAlpha = resolvedTheme === "dark" ? 0.38 : 0.3;
+    ctx.globalAlpha = dark ? ALPHA.point.dark : ALPHA.point.light;
     for (let i = 0; i < total; i++) {
       const c = points.levels[i]!;
       if (c === "-") continue;
@@ -281,8 +338,14 @@ export default function DefiningScatter({
       ctx.beginPath();
       ctx.arc(anchorAt[0], anchorAt[1], 4, 0, Math.PI * 2);
       ctx.fill();
+      // The accent is 1.62:1 on the light ground, so the edge is what finds it there.
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
     plot.current = { w, h };
+    // The labels are laid out from the same geometry, in HTML.
+    setSize((prev) => (prev && prev.w === w && prev.h === h ? prev : { w, h }));
   }, [points, resolvedTheme, anchorWord]);
 
   useEffect(() => {
@@ -372,6 +435,7 @@ export default function DefiningScatter({
           onClick={onPick}
           style={{ cursor: hover ? "pointer" : "default" }}
         />
+        {size && points && <Labels size={size} total={points.words.length} />}
         {hover && (
           <span
             aria-hidden

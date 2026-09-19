@@ -922,11 +922,22 @@ highlighted option are drawn in.
 | `aria-setsize` / `aria-posinset` | Stated, not counted. Only the rows near the viewport are in the DOM, so a chip's place in the band cannot be inferred from it |
 | The chips' widths | Measured on a canvas from a hidden probe chip, never from the DOM, since the rows are packed before they are rendered. A `ResizeObserver` watches the probe as well as the container, so a text-spacing override (1.4.12) or a late font re-measures rather than clipping the last chip of every row |
 
-### The figure's hover label
+### The figure
 
-`DefiningScatter` names the point under the pointer in a small label, which covers the
-points around it — so WCAG 1.4.13 asks that it be dismissible and hoverable, and it is
-neither by default.
+`DefiningScatter` paints the points, the band edges and the anchor dot into a canvas.
+Everything else over it is HTML.
+
+| Rule | Why |
+| --- | --- |
+| Every label is HTML over the canvas | Drawn into it they were images of text: 2.29:1 in light, blind to a text-spacing override (1.4.12), and unscalable (1.4.9). They lay out from the same geometry the points do, off the `size` state `paint` sets |
+| Both label rows take `text-muted-aaa` | 7.26:1 light and 7.54:1 dark, so 1.4.6 holds on both. The band name is the heavier of the two by weight rather than by a second colour, since a second colour is what cost the row above its contrast |
+| The ink alphas live in `ALPHA`, and `p3-states.mjs` holds a copy | A canvas has no computed style to read, so the probe recomputes the numbers from those alphas. The two must move together |
+| The points are 3.14:1 light and 4.03:1 dark | The darkest that leaves the cloud readable. The figure's whole claim is density, and at full ink the dense rows fill in solid — so this one is judged by eye as well as measured |
+| The bands are edges, not fills | The alternating fill was 1.10:1, a shade nobody could see; the boundary is what it was for. A half-pixel offset keeps the line 1px rather than a 2px smear |
+| The anchor dot carries a ring | `#f5c542` is 1.62:1 on the light ground. The dot is 11.65:1 in dark and needs nothing there, but the ring is drawn in both so one path draws it |
+
+The hover label names the point under the pointer, and covers the points around it — so
+WCAG 1.4.13 asks that it be dismissible and hoverable, and it is neither by default.
 
 | Rule | Why |
 | --- | --- |
