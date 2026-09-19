@@ -712,8 +712,9 @@ re-flows on its own when Diatype replaces the fallback.
 | `TEXT_INSET` mirrors where Fondue starts the text | 1px root border plus 12px input padding. That CSS module's class is a build hash, so it cannot be read |
 | Pass `badge` only while the field still holds the resolved word | Pressed against the text, a stale level reads as a claim about what is being typed |
 | Stand down whenever the spinner is up | They share that strip of the box, and mid-lookup the level is unknown anyway |
-| Hide it when the word leaves no room | 27-char German at a 250px phone field. `fits` compares the overlay's scroll and client widths |
+| Hide it when the word leaves no room | 27-char German at a 250px phone field. `fits` compares the overlay's scroll and client widths, and re-measures on a resize as well as on a new value |
 | Hide with `visibility`, keeping the badge in the DOM | It keeps its slot, so the measurement cannot oscillate with its own answer |
+| Report `fits`, so the level lands somewhere | Hidden here it would show nowhere at all in Frequency and Defining view (1.4.10), so `Workspace` hands it to the card, which prints it beside its heading. Only then, so the level is never in both places |
 | The overlay is `pointer-events-none` except the badge | Clicking the badge puts the caret at the end of the word, which is what a click just past the text means |
 
 ## Width on a phone
@@ -779,7 +780,7 @@ tooltip is open.
 | `AbbrLink` | `title` on the `<abbr>`, and no Fondue tooltip. A Fondue one needs its own focusable trigger, which made each credit two tab stops with the same name, and it would paint a second tooltip over the native one |
 | `WordSearchBox` | Named by its section heading (`labelledBy`), not by a second copy of the same string |
 | Section headings | Visible, and every one of them is also the name of the section it opens. Nothing is hidden for assistive tech alone, so a heading cannot drift from the name it gives |
-| `WordCard` | Named by its own heading, "Meaning of <word>". The word is in the name because the live region beneath it would otherwise announce a translation with no subject, and the heading is visible because it is what starts the card's row level with the panel facing it |
+| `WordCard` | Named by its own heading, "Meaning of <word>". The word is in the name because the live region beneath it would otherwise announce a translation with no subject, and the heading is visible because it is what starts the card's row level with the panel facing it. The level, where the card carries it, sits beside that heading and not inside it — it belongs to the word, not to the card |
 | Search help | `aria-hidden`, so it is read once as the field's description. A hidden element still contributes its text when `aria-describedby` names it directly |
 | Redirect line | `role="status"`, and the element is **always** in the DOM, empty or not. A live region inserted in the same commit as its text is announced by some readers and not others. Polite, not an alert: the word was found, and the card beside it is about to be read anyway |
 | The two language selects | The heading above each is its visible label — "Language" and "Meaning of <word>". What the trigger shows is the ISO code, which is the value, not the name. The source one also carries `lang-help` as its description, the advice 3.2.2 wants before the pick |

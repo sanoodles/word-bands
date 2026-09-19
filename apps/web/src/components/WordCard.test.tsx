@@ -443,6 +443,38 @@ describe("WordCard picking a translation", () => {
     );
   });
 
+  // At 320px a long German word fills the search field and the badge there is hidden,
+  // which in Frequency and Defining view left the level showing nowhere (WCAG 1.4.10).
+  // The workspace hands it here instead, and only then.
+  it("shows the word's own level beside the heading when the field cannot", async () => {
+    vi.stubGlobal("fetch", mockGroups([{ pos: "noun", terms: ["speed"] }], "speed", {}));
+    render(
+      <WordCard
+        word="Geschwindigkeit"
+        level={B2}
+        forms={["Geschwindigkeit"]}
+        source="de"
+        target="en"
+        onTargetChange={() => {}}
+      />,
+    );
+    const badge = await screen.findByRole("img", { name: B2.label + " · rank 9,002" });
+    // Beside the heading, not inside it: the heading alone is the card's name.
+    expect(screen.getByRole("region", { name: "Meaning of Geschwindigkeit" })).toBeInTheDocument();
+    // And it says which word the level is for.
+    const described = badge.getAttribute("aria-describedby");
+    expect(document.getElementById(described!)).toHaveTextContent("Geschwindigkeit");
+  });
+
+  it("keeps the heading bare where the field shows the level itself", async () => {
+    vi.stubGlobal("fetch", mockGroups([{ pos: "noun", terms: ["water"] }], "water", {}));
+    render(
+      <WordCard word="Wasser" forms={["Wasser"]} source="de" target="en" onTargetChange={() => {}} />,
+    );
+    await screen.findByText("water");
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
   it("offers nothing to click where the workspace passes no way to pick", async () => {
     vi.stubGlobal("fetch", mockGroups([{ pos: "noun", terms: ["river"] }], "river", { river: A1 }));
     render(

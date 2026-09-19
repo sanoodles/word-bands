@@ -440,6 +440,9 @@ export default function Workspace({ country }: { country?: string | null }) {
 
   // The translation's leading term, reported by the card — what a swap lands on.
   const [glossTerm, setGlossTerm] = useState<string | null>(null);
+  // Whether the search field has room for the word's level beside it. Where it has not,
+  // the card shows the level instead, so a narrow screen never loses it (WCAG 1.4.10).
+  const [badgeFits, setBadgeFits] = useState(true);
   const canSwap = isSourceLang(target) && target !== source;
 
   // Study `to`, translating back into the language just left. Both languages move with
@@ -550,6 +553,7 @@ export default function Workspace({ country }: { country?: string | null }) {
                       )
                     : undefined
                 }
+                onBadgeFit={setBadgeFits}
               />
               {/* Context-sensitive help for the field (WCAG 3.3.5). aria-hidden so it is
                   read once, as the field's description — a hidden paragraph referenced by
@@ -601,6 +605,13 @@ export default function Workspace({ country }: { country?: string | null }) {
         {(info || loading) && (
           <WordCard
             word={info?.word ?? query}
+            // Only where the field has no room for it, and only while it is this word's
+            // level: the same condition the field's own badge is given under.
+            level={
+              info && !badgeFits && query.trim().toLowerCase() === info.word.toLowerCase()
+                ? { ...info.cefr, rank: info.rank }
+                : undefined
+            }
             forms={info?.forms ?? null}
             source={source}
             target={target}

@@ -231,6 +231,7 @@ function Terms({
 /** The looked-up word and its translation. */
 export default function WordCard({
   word,
+  level,
   forms,
   source,
   target,
@@ -239,6 +240,11 @@ export default function WordCard({
   onPickTerm,
 }: {
   word: string;
+  /**
+   * The word's own CEFR level, shown beside the heading. Passed only where the search
+   * field cannot show it, so the level is never printed twice (WCAG 1.4.10).
+   */
+  level?: WordLevel | undefined;
   /**
    * The word's casings, or null while the lookup is still in flight — which
    * renders this exact frame with the translation pending, so the card is already
@@ -269,6 +275,7 @@ export default function WordCard({
   // One id for the sentence every term button points at.
   const pickHelp = useId();
   const headingId = useId();
+  const wordId = `${headingId}-word`;
 
   // Both hooks park on "loading" until enabled, which is the pending frame's state.
   const status = homograph ? multi.status : single.status;
@@ -329,9 +336,17 @@ export default function WordCard({
       tabIndex={-1}
       className={`WordCard ${PANEL}`}
     >
-      <h2 id={headingId} className={SECTION_HEADING}>
-        Meaning of {word}
-      </h2>
+      {/* The badge sits beside the heading, never inside it: the heading is the card's
+          name, and the level belongs to the word rather than to the card. */}
+      <div className="tw-flex tw-items-baseline tw-gap-1">
+        <h2 id={headingId} className={SECTION_HEADING}>
+          Meaning of{" "}
+          <span id={wordId} lang={source}>
+            {word}
+          </span>
+        </h2>
+        {level && <CefrBadge level={level} describedBy={wordId} />}
+      </div>
       {/* Wraps on the card's own width, not the viewport's — it is also cramped in the
           two-column layout just past 860px. Alone on a wrapped row, justify-between
           leaves the link at the start. */}

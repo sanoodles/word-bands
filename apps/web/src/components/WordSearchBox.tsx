@@ -42,6 +42,7 @@ export default function WordSearchBox({
   autoFocus = false,
   reseeded = 0,
   badge,
+  onBadgeFit,
 }: {
   value: string;
   onValueChange: (value: string) => void;
@@ -71,6 +72,8 @@ export default function WordSearchBox({
    * what it is a badge *of* when focus lands on it alone.
    */
   badge?: ((describedBy: string) => ReactNode) | undefined;
+  /** Whether that badge fits beside the word. A long word in a narrow field leaves no room. */
+  onBadgeFit?: ((fits: boolean) => void) | undefined;
 }) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -101,6 +104,18 @@ export default function WordSearchBox({
   useEffect(() => {
     void document.fonts?.ready.then(measure);
   }, [measure]);
+  // The field's own width is the other half of the answer, and it moves with the viewport.
+  useEffect(() => {
+    const el = overlayRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure, badge]);
+  // So the level can be shown elsewhere while there is no room for it here (WCAG 1.4.10).
+  useEffect(() => {
+    onBadgeFit?.(fits);
+  }, [fits, onBadgeFit]);
 
   // Fondue paints the placeholder into a sibling div (see globals.css) and hides it from
   // no one, so its text was read as loose content inside the search landmark. Matched by
