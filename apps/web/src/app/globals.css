@@ -31,6 +31,13 @@
   --cue-line: var(--color-neutral-75);
 }
 
+/* The focus ring takes the same line, Fondue's own rings included (1.4.11, 2.4.13).
+   On the provider's element as well as :root, since that is where Fondue sets it. */
+:root,
+.fondue-theme-provider {
+  --color-focus-default: var(--cue-line);
+}
+
 /* 2.5.5 Target Size (Enhanced, AAA): 44px pointer targets for the primary
    controls. The Fondue TextInput owns its className, so size it here.
    (Word-cloud chips stay compact — the search box is the equivalent mechanism.)
@@ -110,15 +117,17 @@ html[data-theme="light"] body {
   background-color: var(--color-neutral-05);
 }
 
-/* A single, consistent keyboard focus indicator (WCAG 2.4.7), on the Fondue focus token. */
+/* One focus indicator for the page (2.4.7), in two lines so no fill swallows both. */
 :focus-visible {
   outline: 2px solid var(--color-focus-default);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-surface-default);
 }
 
-/* Programmatic focus from the skip link; no page-wide ring. */
+/* Programmatic focus from the skip link; no page-wide ring, and no inner line either. */
 #main:focus {
   outline: none;
+  box-shadow: none;
 }
 
 /* Literal colours, not theme tokens: this sits outside ThemeProvider, so a token would

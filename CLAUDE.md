@@ -862,7 +862,8 @@ re-run with `--update` and let the diff be reviewed — that reading is the whol
 
 ### Where Fondue has to be corrected
 
-All are internals, matched by structure, because the CSS module's class is a build hash.
+All are internals. The first four are matched by structure, because the CSS module's
+class is a build hash; the last has a literal class to name.
 
 | Component | What it does | What we do |
 | --- | --- | --- |
@@ -870,11 +871,27 @@ All are internals, matched by structure, because the CSS module's class is a bui
 | `TextInput.Root` | Paints the placeholder into a sibling div and leaves the native one transparent | A layout effect marks that div `aria-hidden`, or its text is read as loose content inside the search landmark |
 | `TextInput.Root` | Draws its border at half alpha, 1.77:1 on the light panel | Solid `--color-neutral-60` in `globals.css`, 3.61:1 light and 5.23:1 dark from one value |
 | `Select` options | Marks the option under the keyboard by fill alone, 1.14:1 in light | Outline it in `globals.css`. **`data-highlighted` is on every option**, downshift-style, so the selector needs `="true"` or the whole menu is outlined |
+| `ThemeProvider` | Sets `--color-focus-default` on its own element, so the same token set on `<html>` reaches nothing inside it | Set it on `.fondue-theme-provider` as well — a literal class in Fondue's markup beside the hashed theme one, so this is the one correction here matched by name |
 
 The Tailwind preset replaces the outline scales with a single `DEFAULT` — 4px wide, 2px
 offset — so `tw-outline-2` and `-tw-outline-offset-2` generate nothing and the width
 silently lands on 4px. Arbitrary values are the way out:
 `tw-outline-[length:2px] tw-outline-offset-[-2px]`.
+
+### The focus ring
+
+`--cue-line` draws it, and `--color-focus-default` is redefined to that so Fondue's own
+rings take it too. The blue those shipped with read 3.01:1 on a white panel and 2.83:1 on
+the light page, under the 3:1 of 1.4.11 and 2.4.13; the grey clears 3:1 on every surface
+of its own theme, because it is the same theme-split line the selected tab and the
+highlighted option are drawn in.
+
+| Detail | Why |
+| --- | --- |
+| Two lines, the surface inside and the focus colour outside | The shape Fondue already draws. It is what makes the ring visible over a filled control — the fill cannot swallow both lines at once |
+| The token, not the rules | Every ring in Fondue's stylesheet reads `--color-focus-default`, in 44 places, all of them an outline or a box-shadow. Overriding rules instead meant chasing one component at a time, and the segmented control was still blue after the first pass |
+| `#main` silences both | It takes programmatic focus from the skip link, and a ring around the whole page is not what that means |
+| Measured by `p2-focus.mjs` | Its `ringContrast` read the outline only, so a Fondue ring drawn as a box-shadow reported `null`. It reads both now, plus `ringSelfContrast`, the two lines against each other |
 
 ### Focus and selection in the search field
 
