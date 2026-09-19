@@ -361,7 +361,6 @@ export default function WordSearchBox({
             id={listboxId}
             role="listbox"
             aria-label="Word suggestions"
-            lang={source}
             className="tw-absolute tw-inset-x-0 tw-top-full tw-z-20 tw-mt-1 tw-max-h-64 tw-overflow-auto tw-rounded-large tw-border tw-border-line-subtle tw-bg-surface tw-py-1 tw-shadow-mid"
           >
             {suggestions.map((w, i) => (
@@ -373,6 +372,8 @@ export default function WordSearchBox({
                 id={optionId(i)}
                 role="option"
                 aria-selected={i === activeIndex}
+                // On the option, not on the listbox, whose own name is English (3.1.2).
+                lang={source}
                 // The fill alone changes by 1.14:1 in light, so the outline is what
                 // carries the highlight (1.4.11). Inset, so the row keeps its size.
                 className={`${OPTION} tw-cursor-pointer ${

@@ -584,7 +584,9 @@ export default function Workspace({ country }: { country?: string | null }) {
           <p role="status">
             {!error && info?.from && (
               <span className="tw-mt-3 tw-block tw-body-medium tw-text-weak">
-                Showing <b>{info.word}</b>, the base form of “{info.from}”.
+                {/* The two words are the source language inside an English sentence. */}
+                Showing <b lang={source}>{info.word}</b>, the base form of{" "}
+                “<span lang={source}>{info.from}</span>”.
               </span>
             )}
           </p>

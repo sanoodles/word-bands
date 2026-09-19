@@ -42,6 +42,8 @@ export default function CefrBadge({
           tabIndex={0}
           role="img"
           aria-label={detail}
+          // The name is English prose, and a translation's terms sit in a lang span.
+          lang="en"
           // Never Radix's: the name already says what its tooltip says. A child prop wins
           // Slot's merge, so this stands whether it points at the word or at nothing.
           aria-describedby={describedBy ?? ""}

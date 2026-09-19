@@ -353,6 +353,8 @@ export default function WordChips({
         className={isAnchor ? anchorClass : chipClass}
         role="option"
         aria-selected={isAnchor}
+        // On the chip, not on the listbox: the listbox's own name is English (3.1.2).
+        lang={lang}
         // The DOM holds only the rows near the viewport, so the set size and this
         // chip's place in it have to be stated rather than counted.
         aria-setsize={words.length}
@@ -426,7 +428,6 @@ export default function WordChips({
         className={CLOUD}
         role="listbox"
         aria-label={label}
-        lang={lang}
       >
         {/* Hidden probe: the source of truth for chip font and height. */}
         <span

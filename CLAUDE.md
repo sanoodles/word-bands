@@ -784,6 +784,7 @@ tooltip is open.
 | Redirect line | `role="status"`, and the element is **always** in the DOM, empty or not. A live region inserted in the same commit as its text is announced by some readers and not others. Polite, not an alert: the word was found, and the card beside it is about to be read anyway |
 | The two language selects | The heading above each is its visible label — "Language" and "Meaning of <word>". What the trigger shows is the ISO code, which is the value, not the name. The source one also carries `lang-help` as its description, the advice 3.2.2 wants before the pick |
 | Prose | A language is named in English (`englishName`) inside an English sentence. `SOURCE_LANG_META.name` is the endonym, which is the picker's job |
+| `lang` | On the foreign word, never on the box around it (3.1.2). A listbox's own name is English, so `lang` there marks "Words in A1 · Beginner" and "Word suggestions" as German too — it sits on each option instead. `CefrBadge` carries `lang="en"`, because its name is English prose inside a translation's `lang` span |
 
 ### The lint rule, and what it cannot see
 
