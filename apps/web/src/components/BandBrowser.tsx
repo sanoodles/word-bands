@@ -286,9 +286,9 @@ export default function BandBrowser({
                     }
                   >
                     <span className="tw-body-small tw-whitespace-nowrap">{b.label}</span>
-                    {/* Count inherits the tab's text color so it stays ≥7:1 in every
-                        state, active or not (WCAG 1.4.6). */}
-                    <span className="tw-tabular-nums tw-body-x-small tw-opacity-90">
+                    {/* Count inherits the tab's colour, and nothing dims it: the 90%
+                        opacity it carried took it to 5.61:1 (WCAG 1.4.6). */}
+                    <span className="tw-tabular-nums tw-body-x-small">
                       {b.count.toLocaleString()} words
                     </span>
                   </button>

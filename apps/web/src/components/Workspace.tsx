@@ -597,7 +597,7 @@ export default function Workspace({ country }: { country?: string | null }) {
           </div>
 
           {error && (
-            <p id="lookup-error" className="tw-mt-3 tw-body-medium tw-text-error" role="alert">
+            <p id="lookup-error" className="tw-mt-3 tw-body-medium text-error-aaa" role="alert">
               {error}
               {nearMatch && (
                 <>

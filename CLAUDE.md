@@ -882,6 +882,19 @@ offset — so `tw-outline-2` and `-tw-outline-offset-2` generate nothing and the
 silently lands on 4px. Arbitrary values are the way out:
 `tw-outline-[length:2px] tw-outline-offset-[-2px]`.
 
+### Quiet text
+
+Two tiers under the primary text, and both hold 7:1 (1.4.6) on every surface they land
+on — a panel, the page, a chip fill.
+
+| Detail | Why |
+| --- | --- |
+| Light collapses secondary into muted | Fondue's secondary is 4.97:1 on a chip there. `neutral-80` is the step that clears 7:1 on all four light surfaces at once, so both tiers take it and the page keeps two steps rather than three |
+| Dark keeps both | Its secondary is 8.5:1 on a chip and 13:1 on a panel already, so darkening it would flatten the page for nothing |
+| `--color-secondary-default` is redefined, not the classes | Every `tw-text-secondary` in the app and inside Fondue reads it, and 47 of its 48 uses in that stylesheet are `color`. Set on `.fondue-theme-provider` for the reason the focus ring is |
+| The error colour is a class of ours, not a token override | `--color-error-default` fills and outlines as well as colouring text, so overriding it would move the fills under other text. `.text-error-aaa` is 8.53:1 light and 10.73:1 dark |
+| Nothing is dimmed with opacity | The band count carried `tw-opacity-90`, which took it to 5.61:1 under a tab that was itself fine |
+
 ### The focus ring
 
 `--cue-line` draws it, and `--color-focus-default` is redefined to that so Fondue's own

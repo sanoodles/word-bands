@@ -7,15 +7,37 @@
   --accent-focus: #f5c542;
 }
 
-/* Muted text at WCAG 1.4.6 (Enhanced, AAA) 7:1 in both themes. Fondue's low-contrast
-   token is only ~5.2:1; neutral-50 gives ~7.5:1 on the dark surface but just ~2.5:1
-   on the light one, so light mode steps down to neutral-75 (~7.3:1) — still subdued. */
-.text-muted-aaa {
-  color: var(--color-neutral-50);
+/* Both quiet text tiers at WCAG 1.4.6 (Enhanced, AAA) 7:1, on every surface either one
+   lands on — a panel, the page, a chip fill. Light collapses the two into one value:
+   Fondue's secondary is 4.97:1 on a chip there, and neutral-80 is the step that clears
+   7:1 on all of them at once. Dark keeps both, since its secondary is 8.5:1 on a chip
+   already and darkening it would only flatten the page. */
+:root {
+  --text-secondary-aaa: var(--color-neutral-30);
+  --text-muted-aaa: var(--color-neutral-50);
+  --text-error-aaa: var(--color-error-30);
 }
 
-.light .text-muted-aaa {
-  color: var(--color-neutral-75);
+.light {
+  --text-secondary-aaa: var(--color-neutral-80);
+  --text-muted-aaa: var(--color-neutral-80);
+  --text-error-aaa: var(--color-error-75);
+}
+
+/* On the provider's element as well as :root, since that is where Fondue sets it. */
+:root,
+.fondue-theme-provider {
+  --color-secondary-default: var(--text-secondary-aaa);
+}
+
+.text-muted-aaa {
+  color: var(--text-muted-aaa);
+}
+
+/* Fondue's own error colour is 4.80:1 in light and 6.97:1 in dark — not its token, so
+   the class is ours rather than an override: the same token fills and outlines things. */
+.text-error-aaa {
+  color: var(--text-error-aaa);
 }
 
 /* Border marking a selected control, at WCAG 1.4.11 (AA) 3:1 against both its own
