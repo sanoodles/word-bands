@@ -52,6 +52,20 @@ const SEIDMAN_URL = "https://doi.org/10.1016/0378-8733(83)90028-X";
 const SOURCE_KEY = "word-bands:source";
 const TARGET_KEY = "word-bands:target";
 
+// What the typeahead would have offered for a word the dictionary does not hold. The
+// suggest index folds diacritics, so this is what answers a spelling typed without them.
+async function nearestWord(term: string, source: SourceLang): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/suggest?q=${encodeURIComponent(term)}&source=${source}`);
+    if (!res.ok) return null;
+    const words = (await res.json()) as string[];
+    const first = words[0];
+    return first && first.toLowerCase() !== term ? first : null;
+  } catch {
+    return null; // offline: the message stands on its own
+  }
+}
+
 const browserLang = () =>
   baseLang(typeof navigator !== "undefined" ? navigator.language : "en");
 
@@ -114,6 +128,10 @@ const SWAP =
   "aria-disabled:hover:tw-border-line-subtle aria-disabled:hover:tw-text-secondary";
 
 const SOURCE_NAMES = SOURCE_LANGS.map((c) => SOURCE_LANG_META[c].name).join(", ");
+
+// Underlined standing, unlike a term on the card: this one is the only way out of the
+// message it sits in, so it has to read as something to press.
+const NEAR_MATCH = "tw-cursor-pointer tw-font-medium tw-underline tw-underline-offset-4";
 
 /**
  * Study what you were translating into. Only the six indexed languages can be a source,
@@ -351,6 +369,10 @@ export default function Workspace({ country }: { country?: string | null }) {
   const [query, setQuery] = useState(() => initial.word ?? SOURCE_LANG_META[source].defaultWord);
   const [info, setInfo] = useState<WordBands | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The nearest word the corpus does hold, offered inside a failed lookup's message
+  // (WCAG 3.3.3). Typing folds diacritics, so "cordon" reaches "cordón" — Enter does not,
+  // which is exactly the miss this answers.
+  const [nearMatch, setNearMatch] = useState<string | null>(null);
   // Starts true: the effect below looks the initial word up on mount straight away.
   const [loading, setLoading] = useState(true);
   // CEFR by default: a level is what a learner acts on, frequency the detail behind it.
@@ -378,9 +400,11 @@ export default function Workspace({ country }: { country?: string | null }) {
         const res = await fetch(`/api/word/${encodeURIComponent(term)}?source=${source}`);
         if (!res.ok) {
           setError(`"${term}" is not in this dictionary`);
+          setNearMatch(await nearestWord(term, source));
           return;
         }
         setError(null);
+        setNearMatch(null);
         const found = (await res.json()) as WordBands;
         setInfo(found);
         // Echo the corpus's display casing ("Plädoyer"), not the lowercased lookup key
@@ -533,7 +557,10 @@ export default function Workspace({ country }: { country?: string | null }) {
                 // Named by the heading above it rather than by a second copy of the same
                 // string, which would then be free to drift from it.
                 labelledBy="search-heading"
-                describedBy="search-help"
+                // The error's id leads, so the field says what is wrong before it says
+                // what it is for (3.3.1).
+                describedBy={error ? "lookup-error search-help" : "search-help"}
+                invalid={!!error}
                 placeholder="look up a word…"
                 busy={loading}
                 // The one thing the page is for: it opens ready to be typed into.
@@ -568,8 +595,28 @@ export default function Workspace({ country }: { country?: string | null }) {
           </div>
 
           {error && (
-            <p className="tw-mt-3 tw-body-medium tw-text-error" role="alert">
+            <p id="lookup-error" className="tw-mt-3 tw-body-medium tw-text-error" role="alert">
               {error}
+              {nearMatch && (
+                <>
+                  {". Did you mean "}
+                  {/* Named by the word alone; the sentence around it says what the click
+                      does. Enter looks up what was typed, so this is the way to the
+                      spelling the typeahead was offering. */}
+                  <button
+                    type="button"
+                    lang={source}
+                    className={NEAR_MATCH}
+                    onClick={() => {
+                      setQuery(nearMatch);
+                      void lookup(nearMatch, source);
+                    }}
+                  >
+                    {nearMatch}
+                  </button>
+                  {"?"}
+                </>
+              )}
             </p>
           )}
           {/* @spec FORM-5, FORM-6

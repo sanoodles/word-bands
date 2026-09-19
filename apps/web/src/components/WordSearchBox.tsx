@@ -43,6 +43,7 @@ export default function WordSearchBox({
   reseeded = 0,
   badge,
   onBadgeFit,
+  invalid = false,
 }: {
   value: string;
   onValueChange: (value: string) => void;
@@ -74,6 +75,8 @@ export default function WordSearchBox({
   badge?: ((describedBy: string) => ReactNode) | undefined;
   /** Whether that badge fits beside the word. A long word in a narrow field leaves no room. */
   onBadgeFit?: ((fits: boolean) => void) | undefined;
+  /** The last lookup found nothing, so the field holds a word this dictionary lacks. */
+  invalid?: boolean;
 }) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -301,6 +304,10 @@ export default function WordSearchBox({
           sized in globals.css. */}
       <div ref={wrapRef} className="tw-relative tw-w-fit [&_input]:tw-text-x-large">
         <TextInput.Root
+          // Fondue's own error state, because it hard-codes aria-invalid from it — and
+          // it stands down whenever the spinner is up, as the badge does, since the two
+          // share that strip of the box and a word in flight is not yet a miss.
+          status={invalid && !loading && !busy ? "error" : "neutral"}
           // TextInput.Root forwards unknown props to its <input> but omits the
           // combobox ARIA from its typed surface; attach them via a plain spread.
           {...({

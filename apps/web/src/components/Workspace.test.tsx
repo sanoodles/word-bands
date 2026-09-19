@@ -44,7 +44,8 @@ function mockFetch(levels?: Record<string, Level>) {
     if (u.includes("/api/word/")) {
       const path = new URL(u, "http://localhost").pathname;
       const word = decodeURIComponent(path.split("/api/word/")[1]!);
-      if (word === "missing") return new Response("no", { status: 404 });
+      // "cordon" is the accentless spelling: the typeahead reaches "cordón", Enter does not.
+      if (word === "missing" || word === "cordon") return new Response("no", { status: 404 });
       // An inflected form answers with its base word, and says which form was asked for.
       const redirect = word === "branched";
       const display = redirect ? "branch" : DISPLAY[word] ?? word;
@@ -73,7 +74,12 @@ function mockFetch(levels?: Record<string, Level>) {
     }
     if (u.includes("/api/suggest")) {
       const q = new URL(u, "http://localhost").searchParams.get("q") ?? "";
-      const matches = ["care", "cat", "carbon"].filter((w) => w.startsWith(q.toLowerCase()));
+      // The real index folds diacritics off its entries, which is what lets a word
+      // typed without them be found (BAND-14).
+      const fold = (w: string) => w.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+      const matches = ["care", "cat", "carbon", "cordón"].filter((w) =>
+        fold(w).startsWith(fold(q)),
+      );
       return new Response(JSON.stringify(matches), { status: 200 });
     }
     return new Response("no", { status: 404 });
@@ -170,6 +176,41 @@ describe("Workspace", () => {
 
     await user.type(screen.getByRole("combobox", { name: /look up a word/i }), "x");
     expect(screen.queryByRole("img", { name: /A1/ })).not.toBeInTheDocument();
+  });
+
+  // Enter looks a word up exactly as typed, so an accentless spelling misses where the
+  // typeahead would have reached the word (BAND-14). The miss is where the spelling gets
+  // offered back (WCAG 3.3.3), and the field says it holds a word the list lacks (3.3.1).
+  it("offers the near match inside the error, and looks it up when pressed", async () => {
+    const user = userEvent.setup();
+    render(<Workspace />);
+    const box = screen.getByRole("combobox", { name: /look up a word/i });
+    await screen.findByRole("region", { name: /meaning of water/i });
+    await user.clear(box);
+    await user.type(box, "cordon{Enter}");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent('"cordon" is not in this dictionary. Did you mean cordón?');
+    await waitFor(() => expect(box).toHaveAttribute("aria-invalid", "true"));
+    expect(box.getAttribute("aria-describedby")).toContain(alert.id);
+
+    await user.click(within(alert).getByRole("button", { name: "cordón" }));
+    expect(await screen.findByRole("region", { name: /meaning of cordón/i })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(box).toHaveAttribute("aria-invalid", "false");
+  });
+
+  // Nothing to suggest: the message stands on its own rather than inventing a word.
+  it("offers nothing where the corpus has no near match", async () => {
+    const user = userEvent.setup();
+    render(<Workspace />);
+    await screen.findByRole("region", { name: /meaning of water/i });
+    const box = screen.getByRole("combobox", { name: /look up a word/i });
+    await user.clear(box);
+    await user.type(box, "missing{Enter}");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent('"missing" is not in this dictionary');
+    expect(within(alert).queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("shows no level at all when the lookup fails", async () => {

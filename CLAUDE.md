@@ -466,6 +466,7 @@ To add a language: emit its levels in the defining-vocabulary repo, add it to
 | The index folds only the two letters it is keyed on, and skips ASCII | Every API route loads the six lists. Folding every word there costs about 70ms of cold start, and this about 20ms. A query then folds one letter at a time, 0.2ms at worst |
 | The query is composed first | A pasted decomposed `có` would otherwise carry its accent as a letter of its own |
 | Enter does not fold | `/api/word` looks up the spelling as typed, so `cordon` answers 404 |
+| The 404 offers the folded spelling back | "Did you mean cordón?", as a button in the error (3.3.3). The suggest index is what answers it, so the offer is whatever the typeahead was already showing — the rule above stands, and the miss is no longer a dead end |
 
 | Known cost | Detail |
 | --- | --- |
