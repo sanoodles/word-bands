@@ -294,6 +294,16 @@ export default function DefiningScatter({
     return () => ro.disconnect();
   }, [paint]);
 
+  // Escape dismisses the label without moving the pointer, which WCAG 1.4.13 asks of
+  // anything that covers other content — and this one covers the points around it.
+  const showing = hover !== null;
+  useEffect(() => {
+    if (!showing) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setHover(null);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showing]);
+
   /** Where in the plot an event landed. */
   const at = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -341,6 +351,9 @@ export default function DefiningScatter({
           "tw-relative tw-h-[min(52svh,360px)] tw-w-full tw-text-secondary " +
           "min-[700px]:tw-h-[420px] min-[1200px]:tw-h-[480px] min-[1600px]:tw-h-[540px]"
         }
+        // On the wrapper, not the canvas: the label is inside it, so moving the pointer
+        // onto the label is not leaving the figure (WCAG 1.4.13).
+        onMouseLeave={() => setHover(null)}
       >
         <canvas
           ref={canvasRef}
@@ -350,7 +363,6 @@ export default function DefiningScatter({
           aria-label={`Frequency against defining level: ${levelled.toLocaleString()} words plotted, commonest at the left, D1 at the top. The vertical stripes are the CEFR bands, A1 at the left through C2 at the right. Within any one frequency range the words still spread across every level.`}
           className="tw-block tw-h-full tw-w-full"
           onMouseMove={onMove}
-          onMouseLeave={() => setHover(null)}
           // A fingertip covers about 40px of glass and hides what is under it, so it gets
           // a target that size; a mouse keeps the small one, so what the label names stays
           // what the click takes.
@@ -363,7 +375,9 @@ export default function DefiningScatter({
         {hover && (
           <span
             aria-hidden
-            className="tw-pointer-events-none tw-absolute tw-z-10 tw-rounded tw-border tw-border-line-subtle tw-bg-surface tw-px-2 tw-py-1 tw-body-x-small tw-text-primary tw-shadow"
+            // Takes the pointer rather than passing it through: hit-testing the canvas
+            // under the label renamed it to whichever point it covered (WCAG 1.4.13).
+            className="tw-absolute tw-z-10 tw-rounded tw-border tw-border-line-subtle tw-bg-surface tw-px-2 tw-py-1 tw-body-x-small tw-text-primary tw-shadow"
             style={tipStyle(hover, wrapRef.current?.clientWidth ?? 0)}
             lang={source}
           >

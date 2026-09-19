@@ -921,6 +921,18 @@ highlighted option are drawn in.
 | `aria-setsize` / `aria-posinset` | Stated, not counted. Only the rows near the viewport are in the DOM, so a chip's place in the band cannot be inferred from it |
 | The chips' widths | Measured on a canvas from a hidden probe chip, never from the DOM, since the rows are packed before they are rendered. A `ResizeObserver` watches the probe as well as the container, so a text-spacing override (1.4.12) or a late font re-measures rather than clipping the last chip of every row |
 
+### The figure's hover label
+
+`DefiningScatter` names the point under the pointer in a small label, which covers the
+points around it — so WCAG 1.4.13 asks that it be dismissible and hoverable, and it is
+neither by default.
+
+| Rule | Why |
+| --- | --- |
+| Escape clears it | Dismissible without moving the pointer. The listener is on the document, since the canvas is not focusable |
+| The label takes pointer events | `pointer-events: none` let the canvas hit-test *through* it, so moving onto the label renamed it to whichever point it covered |
+| The wrapper owns `mouseleave`, not the canvas | The label is a sibling of the canvas inside that wrapper, so moving onto the label leaves the canvas — on the canvas the handler dismissed the very label it was meant to keep |
+
 ### Crawlers and link previews
 
 `lib/site.ts` holds the three values, and `layout.tsx`, `page.tsx`, `robots.ts`,
