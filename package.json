@@ -26,7 +26,7 @@
     "a11y:update": "node scripts/check-a11y-transcript.mjs --update"
   },
   "devDependencies": {
-    "turbo": "^2.10.12",
+    "turbo": "^2.11.1",
     "typescript": "^5.9.2"
   }
 }
