@@ -877,6 +877,7 @@ class is a build hash; the last has a literal class to name.
 | `TextInput.Root` | Paints the placeholder into a sibling div and leaves the native one transparent | A layout effect marks that div `aria-hidden`, or its text is read as loose content inside the search landmark |
 | `TextInput.Root` | Draws its border at half alpha, 1.77:1 on the light panel | Solid `--color-neutral-60` in `globals.css`, 3.61:1 light and 5.23:1 dark from one value |
 | `Select` options | Marks the option under the keyboard by fill alone, 1.14:1 in light | Outline it in `globals.css`. **`data-highlighted` is on every option**, downshift-style, so the selector needs `="true"` or the whole menu is outlined |
+| `SegmentedControl.Root` | Ships its segments at 34px, under 2.5.5's 44 | `min-height: 46px` on the group, never on a segment. The group is a grid whose row the segments **and the selected-state indicator** share, so sizing a segment leaves the indicator behind at 34 and the control stops reading as one piece. 46 rather than 44 because the group's own 1px border sits outside the row |
 | `ThemeProvider` | Sets `--color-focus-default` on its own element, so the same token set on `<html>` reaches nothing inside it | Set it on `.fondue-theme-provider` as well — a literal class in Fondue's markup beside the hashed theme one, so this is the one correction here matched by name |
 
 The Tailwind preset replaces the outline scales with a single `DEFAULT` — 4px wide, 2px
@@ -911,6 +912,31 @@ highlighted option are drawn in.
 | The token, not the rules | Every ring in Fondue's stylesheet reads `--color-focus-default`, in 44 places, all of them an outline or a box-shadow. Overriding rules instead meant chasing one component at a time, and the segmented control was still blue after the first pass |
 | `#main` silences both | It takes programmatic focus from the skip link, and a ring around the whole page is not what that means |
 | Measured by `p2-focus.mjs` | Its `ringContrast` read the outline only, so a Fondue ring drawn as a box-shadow reported `null`. It reads both now, plus `ringSelfContrast`, the two lines against each other |
+
+### Target size
+
+Every control the page owns is at least 44px, which is WCAG 2.5.5 (Enhanced, AAA). The
+word chips are where that costs something and the cost was taken: 40 to 44px is about one
+row fewer per screen, on the one control the page has hundreds of.
+
+| Control | Where its 44 comes from |
+| --- | --- |
+| Word chips | `CHIP_BASE`. Width needs no minimum — `tw-px-4` alone puts the narrowest chip at 46 |
+| The search field | `min-height` on Fondue's `TextInput` root, in `globals.css` |
+| The view toggle | `min-height: 46px` on the **group**, in `globals.css` — see the Fondue table |
+| Select options | `min-height` on `[role="option"]` inside the popper. They are already a centred flex row, so nothing else moves |
+| The figure's caption toggle | 13px of padding on an 18px line. Padding rather than a height, so it stays centred and a wrapped line still grows |
+| The skip link, Previous and Next, the band tabs, the card's link | Already 44 or over |
+
+What is left under 44 is left on purpose, and the probe still lists it:
+
+| Left at | Why it is not a failure |
+| --- | --- |
+| The native `<input>`, 42 | The frame around it is the target, and that is 44. The 2 is its border, top and bottom |
+| A translation's terms and their badges, 24 and 14 | **Inline** — they sit in a sentence, which 2.5.5 exempts. Padding them would space the words apart |
+| Every credit and the feedback link, 14 | Inline in their own paragraph, same exemption |
+| The badge in the search field, 24 | It activates the field it sits in rather than anything of its own. 24 is 2.5.8's floor, which is what it was sized to |
+| The figure's points, 14 for a mouse | 44 for touch already. Spacing thousands of points 44 apart is the one thing that would destroy the figure, and the cloud below browses the same words |
 
 ### Focus and selection in the search field
 

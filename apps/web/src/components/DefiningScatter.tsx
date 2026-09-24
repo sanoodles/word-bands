@@ -465,7 +465,9 @@ export default function DefiningScatter({
         >
           {/* The axes and the one thing a reader gets wrong stay out of the fold: a figure
               that silently reads as easy-to-hard is worse than one nobody expands. */}
-          <summary className="tw-cursor-pointer tw-py-1.5 marker:tw-text-current">
+          {/* 13px of padding on an 18px line is 44, the target of 2.5.5 — set as padding
+              rather than a height so it stays centred and a wrapped line still grows. */}
+          <summary className="tw-cursor-pointer tw-py-[13px] marker:tw-text-current">
             Commonest words at the left, defining level up — not a difficulty scale
           </summary>
           {levelled.toLocaleString()} words. D1 at the top is the core the dictionary defines

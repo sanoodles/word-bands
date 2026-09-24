@@ -60,15 +60,31 @@
   --color-focus-default: var(--cue-line);
 }
 
-/* 2.5.5 Target Size (Enhanced, AAA): 44px pointer targets for the primary
-   controls. The Fondue TextInput owns its className, so size it here.
-   (Word-cloud chips stay compact — the search box is the equivalent mechanism.)
+/* 2.5.5 Target Size (Enhanced, AAA): 44px pointer targets for the primary controls.
+   The Fondue parts own their className, so they are sized here, by structure — their
+   CSS-module classes are build hashes. The frame is the target the pointer has: the
+   native input inside it measures 42, which is the frame's 1px border top and bottom.
    Its border comes at half alpha, 1.77:1 on the light panel, under the 3:1 of
    1.4.11 (AA). Solid neutral-60 is the same grey at 3.61:1 light and 5.23:1 dark,
    so it needs no split by theme. */
 form[role="search"] [data-test-id="fondue-text-input"] {
   min-height: 44px;
   border-color: var(--color-neutral-60);
+}
+
+/* The view toggle's segments, 34px as Fondue ships them. Sized on the group, not on
+   the segments: the group is a grid whose row the segments and the selected-state
+   indicator both take, and sizing a segment leaves that indicator behind at 34. 46
+   rather than 44, because the group's own 1px border top and bottom is outside the
+   row — so the segments themselves land on 44. */
+[role="radiogroup"] {
+  min-height: 46px;
+}
+
+/* Every select's options, 34px as Fondue ships them. They are already a centred flex
+   row, so a minimum height alone keeps the label where it was. */
+[data-radix-popper-content-wrapper] [role="option"] {
+  min-height: 44px;
 }
 
 /* Fondue marks the option under the keyboard with a fill change of 1.14:1 in light

@@ -15,10 +15,12 @@ import WordChips from "@/components/WordChips";
 import type { Band, BandSummary, BandView } from "@/lib/types";
 
 // Word pills, painted with Fondue tokens; the anchor variant marks the looked-up word.
-// Sized for comfortable scanning of dozens of words at a time (bigger hit target
-// and readable type, not the minimal 24px pill).
+// 44px, the pointer target of WCAG 2.5.5 (Enhanced, AAA). The cost is real and was
+// taken on purpose: a taller chip shows fewer words per screen, and this is the one
+// control the page has hundreds of. Width needs no minimum — tw-px-4 alone puts the
+// narrowest German chip ("hi", "je") at 46px.
 const CHIP_BASE =
-  "tw-inline-flex tw-items-center tw-min-h-[40px] tw-rounded-full tw-border tw-px-4 tw-py-2 " +
+  "tw-inline-flex tw-items-center tw-min-h-[44px] tw-rounded-full tw-border tw-px-4 tw-py-2 " +
   "tw-body-large tw-transition-colors";
 const CHIP =
   `${CHIP_BASE} tw-border-line-subtle tw-bg-surface-hover tw-text-secondary ` +
