@@ -46,6 +46,8 @@ export interface WordBands {
 export interface BandSummary {
   key: string;
   label: string;
+  /** Spelled out, where the visible label is an abbreviation ("D1"). Absent otherwise. */
+  name?: string;
   /** Number of words in the band. */
   count: number;
 }

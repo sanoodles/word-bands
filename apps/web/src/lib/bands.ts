@@ -30,15 +30,18 @@ interface BandDef {
  * core the dictionary explains everything else with; D7 is never used to define anything.
  * `none` is not a level, it is the absence of one, and it is a third of the list.
  */
-const DEFINING_BANDS: { key: string; label: string }[] = [
-  { key: "D1", label: "D1" },
-  { key: "D2", label: "D2" },
-  { key: "D3", label: "D3" },
-  { key: "D4", label: "D4" },
-  { key: "D5", label: "D5" },
-  { key: "D6", label: "D6" },
-  { key: "D7", label: "D7" },
-  { key: "none", label: "No level" },
+// `name` spells the tab out (WCAG 3.1.4): eight tabs reading "D1" to "D7" fit the row
+// only as abbreviations, and the glossary under the credits carries the expansion for
+// everyone else.
+const DEFINING_BANDS: { key: string; label: string; name: string }[] = [
+  { key: "D1", label: "D1", name: "Defining level 1" },
+  { key: "D2", label: "D2", name: "Defining level 2" },
+  { key: "D3", label: "D3", name: "Defining level 3" },
+  { key: "D4", label: "D4", name: "Defining level 4" },
+  { key: "D5", label: "D5", name: "Defining level 5" },
+  { key: "D6", label: "D6", name: "Defining level 6" },
+  { key: "D7", label: "D7", name: "Defining level 7" },
+  { key: "none", label: "No level", name: "No defining level" },
 ];
 const DEFINING_BY_KEY = new Map(DEFINING_BANDS.map((b) => [b.key, b]));
 const definingKey = (c: string) => (c === "-" ? "none" : `D${c}`);
@@ -249,6 +252,7 @@ export function getBandSummary(source: SourceLang, view: BandView): BandSummary[
     return DEFINING_BANDS.map((b) => ({
       key: b.key,
       label: b.label,
+      name: b.name,
       count: def.byKey.get(b.key)?.length ?? 0,
     })).filter((b) => b.count > 0);
   }

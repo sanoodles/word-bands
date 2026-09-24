@@ -418,6 +418,38 @@ describe("Workspace", () => {
     }
   });
 
+  // WCAG 3.1.4: an <abbr title> reaches neither touch nor the keyboard, and Chrome
+  // leaves it out of the link's name — so the expansion has to be visible text.
+  it("expands every abbreviation it uses in the sentence itself", () => {
+    const credits = creditsFor("pt");
+    for (const expansion of [
+      "Common European Framework of Reference for Languages",
+      "the Open Database License",
+      "a Japanese version, which splits the levels more finely",
+      "Creative Commons Attribution-ShareAlike",
+    ])
+      expect(credits).toHaveTextContent(expansion);
+    expect(credits.querySelector("abbr")).toBeNull();
+    cleanup();
+  });
+
+  // WCAG 3.1.3: the terms a learner has no reason to know.
+  it("defines its unusual words beneath the credits", () => {
+    for (const source of SOURCE_LANGS) {
+      window.history.replaceState(null, "", `/?source=${source}`);
+      render(<Workspace />);
+      const glossary = screen.getByText("What these words mean").closest("details")!;
+      for (const term of ["Lemmatization list", "Display casing", "Frequency rank"])
+        expect(within(glossary).getByText(term)).toBeInTheDocument();
+      // The two that only mean anything where the levels exist.
+      const defining = ["Defining vocabulary", "K-core decomposition"];
+      for (const term of defining)
+        if (hasDefining(source)) expect(within(glossary).getByText(term)).toBeInTheDocument();
+        else expect(within(glossary).queryByText(term)).toBeNull();
+      cleanup();
+    }
+  });
+
   it("keeps every credit in this tab, so Back restores the scenario", () => {
     for (const source of SOURCE_LANGS) {
       const credits = creditsFor(source);

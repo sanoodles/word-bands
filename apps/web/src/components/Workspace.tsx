@@ -24,14 +24,12 @@ import { baseLang } from "@/lib/translate";
 import { pageTitle, readScenario, writeScenario } from "@/lib/scenario";
 import { PANEL, PANEL_LANG, SECTION_HEADING } from "@/components/panel";
 
-// Expanded forms for the abbreviations we show (WCAG 3.1.4).
+// Expanded forms for the abbreviations we show (WCAG 3.1.4). Each reads inside the
+// sentence right after its abbreviation, so none of them repeats it or its version.
 const CEFR_TITLE = "Common European Framework of Reference for Languages";
-const CEFRJ_TITLE = "CEFR-J — a Japanese adaptation of the CEFR for finer levelling";
-const SUBTLEX_TITLE = "SUBTLEX-US — a US-English word-frequency database drawn from film subtitles";
-const LEIPZIG_TITLE =
-  "Leipzig Corpora Collection — sentence corpora used to measure mid-sentence capitalization";
-const CC_BY_SA_TITLE = "Creative Commons Attribution-ShareAlike 4.0";
-const ODBL_TITLE = "Open Database License 1.0";
+const CEFRJ_TITLE = "a Japanese version, which splits the levels more finely";
+const CC_BY_SA_TITLE = "Creative Commons Attribution-ShareAlike";
+const ODBL_TITLE = "Open Database License";
 
 // Ancillary data sources not tied to one language's frequency list.
 const LEMMA_URL = "https://github.com/michmech/lemmatization-lists";
@@ -209,8 +207,7 @@ function ViewToggle({
               </SegmentedControl.Item>
             </Tooltip.Trigger>
             <Tooltip.Content>
-              How heavily the dictionary leans on the word to define others — its own defining
-              vocabulary
+              How often the dictionary uses the word to explain other words
             </Tooltip.Content>
           </Tooltip.Root>
         )}
@@ -228,21 +225,49 @@ function ViewToggle({
 const CORPUS_LINK = "tw-underline hover:tw-text-primary";
 
 /**
- * An abbreviation that is also a link — which every one of ours is. `title` on the
- * <abbr> is the whole mechanism: it draws the browser's own tooltip on hover, and it
- * sits in the accessibility tree whether or not anything is open or focused.
- *
- * No Fondue tooltip here, unlike elsewhere. One needs its own focusable trigger, which
- * made each credit two tab stops carrying the same name, and it would paint a second
- * tooltip over the native one saying the same words.
+ * The terms the page uses that a learner has no reason to know (WCAG 3.1.3). Folded,
+ * because it answers a question most readers never ask, and sitting under the credits
+ * because that is the block the terms come from.
  */
-function AbbrLink({ title, href, children }: { title: string; href: string; children: ReactNode }) {
+function Glossary({ source }: { source: SourceLang }) {
   return (
-    <a className={CORPUS_LINK} href={href}>
-      <abbr title={title} className="tw-cursor-help tw-decoration-dotted">
-        {children}
-      </abbr>
-    </a>
+    <details className="tw-mt-1 tw-max-w-[65ch] tw-body-x-small text-muted-aaa">
+      {/* 13px of padding on an 18px line is the 44px target of WCAG 2.5.5. */}
+      <summary className="tw-cursor-pointer tw-py-[13px] marker:tw-text-current">
+        What these words mean
+      </summary>
+      <dl className="tw-m-0" style={{ lineHeight: 1.5 }}>
+        <dt className="tw-font-medium">Lemmatization list</dt>
+        <dd className="tw-mb-2 tw-ml-0">
+          A list of which words are forms of which. It is what puts “ran” under “run”, so
+          the two count as one word here.
+        </dd>
+        <dt className="tw-font-medium">Display casing</dt>
+        <dd className="tw-mb-2 tw-ml-0">
+          Whether a word takes a capital letter. We measure it from how the corpus writes
+          the word in the middle of a sentence.
+        </dd>
+        <dt className="tw-font-medium">Frequency rank</dt>
+        <dd className="tw-mb-2 tw-ml-0">
+          A word’s place in the list, most common first. Rank 1 is the commonest word.
+        </dd>
+        {hasDefining(source) ? (
+          <>
+            <dt className="tw-font-medium">Defining vocabulary</dt>
+            <dd className="tw-mb-2 tw-ml-0">
+              The words a dictionary uses to write its own entries. D1 is the core of that
+              set. D7 is never used to explain anything.
+            </dd>
+            <dt className="tw-font-medium">K-core decomposition</dt>
+            <dd className="tw-mb-2 tw-ml-0">
+              How the seven levels are worked out. It reads the dictionary as a network of
+              which word explains which, then peels it one layer at a time. Each layer is
+              one level.
+            </dd>
+          </>
+        ) : null}
+      </dl>
+    </details>
   );
 }
 
@@ -251,41 +276,35 @@ function CorpusCredit({ source }: { source: SourceLang }) {
   const name = englishName(source);
   return (
     <>
+      {/* Every abbreviation here expands in the sentence itself (WCAG 3.1.4). A title on
+          an <abbr> reaches neither touch nor the keyboard, and Chrome leaves it out of
+          the link's name — so it was a mechanism for nobody. */}
       Word frequencies from{" "}
-      {source === "en" ? (
-        <AbbrLink title={SUBTLEX_TITLE} href={corpus.url}>
-          SUBTLEX-US
-        </AbbrLink>
-      ) : (
-        <a className={CORPUS_LINK} href={corpus.url}>
-          {corpus.name}
-        </a>
-      )}
-      {source === "en" ? " (Brysbaert & New, 2009)" : null}, with inflections merged onto
-      their base form via a{" "}
+      <a className={CORPUS_LINK} href={corpus.url}>
+        {source === "en" ? "SUBTLEX-US" : corpus.name}
+      </a>
+      {source === "en" ? " (US-English word frequencies from film subtitles; Brysbaert & New, 2009)" : null}
+      , with inflections merged onto their base form via a{" "}
       {/* @spec CREDIT-4 */}
       <a className={CORPUS_LINK} href={LEMMA_URL}>
         lemmatization list
       </a>{" "}
       (
-      <AbbrLink title={ODBL_TITLE} href={ODBL_URL}>
+      <a className={CORPUS_LINK} href={ODBL_URL}>
         ODbL 1.0
-      </AbbrLink>
-      )
-      {/* Spelled out, not an Abbr: a tooltip expansion is unreachable by touch, and CEFR
-          is the one abbreviation the UI labels words with. */}
-      . CEFR ({CEFR_TITLE}) levels are estimated from frequency. The band boundaries are
-      calibrated to the{" "}
-      <AbbrLink title={CEFRJ_TITLE} href="https://www.cefr-j.org/">
+      </a>
+      , the {ODBL_TITLE}). CEFR ({CEFR_TITLE}) levels are estimated from frequency. The
+      band boundaries are calibrated to the{" "}
+      <a className={CORPUS_LINK} href="https://www.cefr-j.org/">
         CEFR-J
-      </AbbrLink>{" "}
-      wordlist up to B2 and extrapolated above it
+      </a>{" "}
+      ({CEFRJ_TITLE}) wordlist up to B2 and extrapolated above it
       {source !== "en" ? <> — an English-derived heuristic reused for {name}</> : null}.{" "}
       {/* @spec CREDIT-3 */}
       Display casing is measured from the{" "}
-      <AbbrLink title={LEIPZIG_TITLE} href={LEIPZIG_URL}>
+      <a className={CORPUS_LINK} href={LEIPZIG_URL}>
         Leipzig Corpora
-      </AbbrLink>
+      </a>
       .{" "}
       {/* @spec CREDIT-1, CREDIT-2 */}
       {hasDefining(source) ? (
@@ -295,10 +314,10 @@ function CorpusCredit({ source }: { source: SourceLang }) {
             {name} Wiktionary
           </a>{" "}
           (
-          <AbbrLink title={CC_BY_SA_TITLE} href={CC_BY_SA_URL}>
+          <a className={CORPUS_LINK} href={CC_BY_SA_URL}>
             CC BY-SA 4.0
-          </AbbrLink>
-          ), extracted by{" "}
+          </a>
+          , {CC_BY_SA_TITLE}), extracted by{" "}
           <a className={CORPUS_LINK} href={WIKTEXTRACT_URL}>
             Wiktextract
           </a>{" "}
@@ -712,6 +731,7 @@ export default function Workspace({ country }: { country?: string | null }) {
         >
           Sources: <CorpusCredit source={source} />
         </p>
+        <Glossary source={source} />
       </section>
     </div>
   );

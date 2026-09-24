@@ -759,6 +759,8 @@ credit, in the Sources line beneath the browser. The footer holds only the feedb
 | Wiktionary is credited with its license | The levels are computed from its definitions, and its text is CC BY-SA 4.0. Whether a computed level reuses that text is a legal question. The credit answers it either way |
 | The method's works are cited, not only its data | The method is theirs: the dictionary read as a graph, its peel into k-cores, and the term "defining vocabulary" |
 | The Wiktionary is named after the source language | The pipeline reads each language's own edition, `ptwiktionary` and `itwiktionary`. A language built from another edition needs its credit changed |
+| The credits read at grade 12 and that is fine | WCAG 3.1.5 measures **after removing proper names and titles**, and the credits are mostly those — the citations, the licenses and "Common European Framework of Reference for Languages". Stripped, they read 7.6 and 8.0, inside the criterion's lower-secondary band. `readability.py` prints both columns; read `bare`. No rewrite of ours moves the other one |
+| The unusual words are defined under the credits | `Glossary`, a folded list (3.1.3). Folded because it answers a question most readers never ask; under the credits because that is the block the terms come from. The two defining-vocabulary entries render only where a language has levels |
 | Every credit opens in this tab | The whole scenario rides in the query string, so Back restores the word, view and band the reader left. A new tab buys nothing Back does not, and 6 to 12 of them would each owe a warning (3.2.5) |
 | Ogden's *Basic English* is not cited | The spike's README compares against it. Nothing in the method comes from it |
 | Every language credits the Leipzig Corpora | Every language's `casingFile` is a Leipzig sentences file. Display casing and the name filter both read it, and its downloads are CC BY |
@@ -781,7 +783,7 @@ tooltip is open.
 | `SwapButton` | Same trade: disabled, the reason why is in the name, not only in the tooltip |
 | A clickable alternative | Named by the word and nothing else, or the line stops reading as the translation. What clicking it does is a description — announced on focus, not while reading — and one element holds that sentence for every term on the card. The cost is two tab stops per badged term, the word and then its level, since the badge keeps its own focus for its rank |
 | The card's Google Translate link | Named by the word it opens and the language it opens it in, behind the visible text so speech input still reaches it (2.5.3). The one new-tab link on the page, and that it opens one is a **description**: what activating it does, announced on focus, while the name stays what it is for |
-| `AbbrLink` | `title` on the `<abbr>`, and no Fondue tooltip. A Fondue one needs its own focusable trigger, which made each credit two tab stops with the same name, and it would paint a second tooltip over the native one |
+| Abbreviations in the credits | Expanded in the sentence, never in a `title`. Chrome puts an `<abbr title>` in no name at all, and neither touch nor the keyboard can reach it — so it was a mechanism for nobody (3.1.4). The `<abbr>` markup went with it, and the lint rule below stays as a guard |
 | `WordSearchBox` | Named by its section heading (`labelledBy`), not by a second copy of the same string |
 | Section headings | Visible, and every one of them is also the name of the section it opens. Nothing is hidden for assistive tech alone, so a heading cannot drift from the name it gives |
 | `WordCard` | Named by its own heading, "Meaning of <word>". The word is in the name because the live region beneath it would otherwise announce a translation with no subject, and the heading is visible because it is what starts the card's row level with the panel facing it. The level, where the card carries it, sits beside that heading and not inside it — it belongs to the word, not to the card |
@@ -800,7 +802,7 @@ and it runs in the pre-push hook and in `pr.yml` alongside the typecheck.
 | --- | --- |
 | `recommended`, not `strict` | `strict` withdraws the escape hatches this app uses on purpose — among them `<ul role="listbox">` with `<li role="option">`, which is the ARIA combobox pattern as the APG writes it |
 | Two rules added on top | `control-has-associated-label` and `anchor-ambiguous-text`, both off in `recommended` and both on the subject of every control saying something |
-| `<abbr>` needs a `title` | A `no-restricted-syntax` selector. There is no `jsx-a11y` rule for it, and the failure it guards already happened here: the expansion was passed to a wrapper and never reached the element |
+| `<abbr>` needs a `title` | A `no-restricted-syntax` selector. There is no `jsx-a11y` rule for it, and the failure it guards already happened here: the expansion was passed to a wrapper and never reached the element. Nothing uses `<abbr>` any more, so it guards rather than checks |
 | Unused disables are errors | An exemption that outlives its reason is a finding of its own |
 
 Six places disable a rule inline, each with the reason above it. Four are the same two
@@ -958,7 +960,7 @@ What is left under 44 is left on purpose, and the probe still lists it:
 | --- | --- |
 | Band tabs | A real tablist: one tab stop, arrow keys and Home/End inside it, `aria-controls` on each tab and `role="tabpanel"` on the words below. Activation follows focus, since the band is fetched or cached by then |
 | Previous and Next | `aria-disabled`, not `disabled`, the same trade `SwapButton` makes. At a band's end the step runs out under the finger already on it, and a `disabled` button loses focus to the body as it turns |
-| Tab name | Spelled out with `aria-label`. The label and the count are separate elements and join with no separator, which read as "A1 · Beginner1,000 words" |
+| Tab name | Spelled out with `aria-label`. The label and the count are separate elements and join with no separator, which read as "A1 · Beginner1,000 words". A band whose visible label is an abbreviation carries a `name` too, so "D1" is called "Defining level 1" (3.1.4) — eight of those fit the row only abbreviated, and the glossary carries the expansion for everyone else |
 | Word cloud | A `listbox` of `option`s, not a group — that is what says the arrow keys are there. The row wrappers are `role="presentation"` so the options stay owned by it |
 | `aria-setsize` / `aria-posinset` | Stated, not counted. Only the rows near the viewport are in the DOM, so a chip's place in the band cannot be inferred from it |
 | The chips' widths | Measured on a canvas from a hidden probe chip, never from the DOM, since the rows are packed before they are rendered. A `ResizeObserver` watches the probe as well as the container, so a text-spacing override (1.4.12) or a late font re-measures rather than clipping the last chip of every row |

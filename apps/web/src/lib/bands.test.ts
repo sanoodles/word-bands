@@ -259,6 +259,27 @@ describe("the defining view", () => {
     expect(none("it")).toBe(11558);
   });
 
+  // WCAG 3.1.4: eight tabs reading "D1" to "D7" fit the row only as abbreviations, so
+  // each carries a spelled-out name for the tab to be called by.
+  it("spells out every defining band, and abbreviates none of the others", () => {
+    for (const lang of DEFINING_LANGS) {
+      const bands = getBandSummary(lang, "defining");
+      expect(bands.map((b) => b.name), lang).toEqual([
+        "Defining level 1",
+        "Defining level 2",
+        "Defining level 3",
+        "Defining level 4",
+        "Defining level 5",
+        "Defining level 6",
+        "Defining level 7",
+        "No defining level",
+      ]);
+    }
+    // The CEFR and frequency labels are words already, so they carry no second name.
+    for (const view of ["cefr", "freq"] as const)
+      expect(getBandSummary("pt", view).every((b) => b.name === undefined), view).toBe(true);
+  });
+
   // D1 is the core the dictionary explains everything else with, so it is tiny and its
   // words are the commonest ones. `john` is in the list and has no level at all.
   it("answers a word with its level", () => {

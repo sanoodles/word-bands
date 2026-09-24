@@ -271,8 +271,9 @@ export default function BandBrowser({
                     aria-selected={active}
                     aria-controls={panelId}
                     // The two lines below join with no separator in the name computation
-                    // ("A1 · Beginner1,000 words"), so the name is spelled out instead.
-                    aria-label={`${b.label}, ${b.count.toLocaleString()} words`}
+                    // ("A1 · Beginner1,000 words"), so the name is spelled out instead —
+                    // and with it whichever labels are abbreviations ("D1").
+                    aria-label={`${b.name ?? b.label}, ${b.count.toLocaleString()} words`}
                     tabIndex={active ? 0 : -1}
                     ref={(node) => {
                       tabRefs.current[b.key] = node;
