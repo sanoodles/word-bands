@@ -230,13 +230,19 @@ const CORPUS_LINK = "tw-underline hover:tw-text-primary";
  * because that is the block the terms come from.
  */
 function Glossary({ source }: { source: SourceLang }) {
+  // Line height inline, on the whole block: Fondue's x-small token sets 1.33 and a
+  // utility class loses to it — which is 1.4.8 for the prose, and 2px off the summary's
+  // 44px target for the control.
   return (
-    <details className="tw-mt-1 tw-max-w-[65ch] tw-body-x-small text-muted-aaa">
+    <details
+      className="tw-mt-1 tw-max-w-[65ch] tw-body-x-small text-muted-aaa"
+      style={{ lineHeight: 1.5 }}
+    >
       {/* 13px of padding on an 18px line is the 44px target of WCAG 2.5.5. */}
       <summary className="tw-cursor-pointer tw-py-[13px] marker:tw-text-current">
         What these words mean
       </summary>
-      <dl className="tw-m-0" style={{ lineHeight: 1.5 }}>
+      <dl className="tw-m-0">
         <dt className="tw-font-medium">Lemmatization list</dt>
         <dd className="tw-mb-2 tw-ml-0">
           A list of which words are forms of which. It is what puts “ran” under “run”, so
