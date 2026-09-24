@@ -29,6 +29,9 @@ const JUMP =
   "tw-absolute tw-bottom-3 tw-right-4 tw-z-10 tw-inline-flex tw-min-h-[44px] tw-max-w-[calc(100%-2rem)] " +
   "tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-line tw-bg-surface tw-px-4 " +
   "tw-body-small tw-text-secondary tw-shadow-big tw-transition-colors hover:tw-bg-surface-hover hover:tw-text-primary";
+// The strip of cloud the button covers: its 44px height plus the 12px of tw-bottom-3.
+// Keyboard scrolling keeps the focused row clear of it — change one and change this.
+const JUMP_STRIP = 56;
 
 /**
  * Greedy line-break: pack chips into rows that fit `containerWidth`, always at
@@ -69,6 +72,34 @@ export function anchorOffscreen(
   if (anchorTop + stride <= scrollTop) return "above";
   if (anchorTop >= scrollTop + viewport) return "below";
   return null;
+}
+
+/**
+ * Where the scroller has to land for row `[top, top + stride)` to be fully in view and
+ * clear of the floating button, or null when it already is.
+ *
+ * A chip can sit under that button without being out of view at all, so the usable
+ * bottom stops above it. Whether it shows is asked at the scroll this move is about to
+ * make rather than the one it is leaving: stepping past the anchor is the very move
+ * that summons the button over the chip landing there.
+ */
+export function scrollToRow(
+  top: number,
+  stride: number,
+  scrollTop: number,
+  viewport: number,
+  anchorTop: number | null,
+  jumpStrip = JUMP_STRIP,
+): number | null {
+  if (stride <= 0 || viewport <= 0) return null;
+  if (top < scrollTop) return top;
+  const bottom = top + stride;
+  const next = Math.max(scrollTop, bottom - viewport);
+  const shows = anchorOffscreen(anchorTop, stride, next, viewport) !== null;
+  // Never inset so far that the row itself no longer fits: a phone-height cloud is
+  // only a few rows tall to begin with.
+  const usable = shows ? Math.max(viewport - jumpStrip, stride) : viewport;
+  return bottom > scrollTop + usable ? bottom - usable : null;
 }
 
 // The row holding word `idx`: the last row whose start index is <= idx.
@@ -214,6 +245,9 @@ export default function WordChips({
   );
   const stride = (metrics?.height ?? 0) + GAP;
   const anchorIndex = anchor ? words.indexOf(anchor) : -1;
+  // Read twice: by the keyboard scroll below, to know whether the button is in its way,
+  // and by the render, to know whether to offer it at all.
+  const anchorTop = rows && anchorIndex >= 0 ? rowOfIndex(rows, anchorIndex) * stride : null;
 
   // The chip that carries the roving tabindex (the cloud's single tab stop).
   // Clamped so it stays valid while `words` is between bands.
@@ -281,14 +315,18 @@ export default function WordChips({
       if (word !== undefined) selectTimer.current = setTimeout(() => onPick(word), SELECT_DEBOUNCE);
       const el = scrollRef.current;
       if (el && mode === "virtual" && rows && stride > 0) {
-        const top = rowOfIndex(rows, idx) * stride;
-        const bottom = top + stride;
-        if (top < el.scrollTop) el.scrollTop = top;
-        else if (bottom > el.scrollTop + el.clientHeight) el.scrollTop = bottom - el.clientHeight;
+        const to = scrollToRow(
+          rowOfIndex(rows, idx) * stride,
+          stride,
+          el.scrollTop,
+          el.clientHeight,
+          anchorTop,
+        );
+        if (to !== null) el.scrollTop = to;
         setScrollTop(el.scrollTop);
       }
     },
-    [mode, rows, stride, words, onPick, cancelSelect],
+    [mode, rows, stride, words, onPick, cancelSelect, anchorTop],
   );
 
   const onKeyDown = useCallback(
@@ -426,12 +464,7 @@ export default function WordChips({
 
   // Offered only while the anchored word is scrolled out of sight: a band runs to
   // hundreds of rows, so once it is off-screen there is no finding it by hand.
-  const lost = anchorOffscreen(
-    rows && anchorIndex >= 0 ? rowOfIndex(rows, anchorIndex) * stride : null,
-    stride,
-    scrollTop,
-    viewport,
-  );
+  const lost = anchorOffscreen(anchorTop, stride, scrollTop, viewport);
 
   return (
     <div className="tw-relative">

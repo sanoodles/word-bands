@@ -936,6 +936,7 @@ highlighted option are drawn in.
 | Word cloud | A `listbox` of `option`s, not a group — that is what says the arrow keys are there. The row wrappers are `role="presentation"` so the options stay owned by it |
 | `aria-setsize` / `aria-posinset` | Stated, not counted. Only the rows near the viewport are in the DOM, so a chip's place in the band cannot be inferred from it |
 | The chips' widths | Measured on a canvas from a hidden probe chip, never from the DOM, since the rows are packed before they are rendered. A `ResizeObserver` watches the probe as well as the container, so a text-spacing override (1.4.12) or a late font re-measures rather than clipping the last chip of every row |
+| The "Back to" button and the keyboard | `scrollToRow` stops the cloud's usable bottom above the button while it shows, so a focused chip is never under it (2.4.12). A chip can sit under it while fully in view, so a plain scroll-into-view does not reach this. `JUMP_STRIP` is that footprint — the button's height plus its offset, and it has to move when `JUMP` does. Whether the button shows is asked at the scroll the move is about to make, since stepping past the anchor is the move that summons it |
 
 ### The figure
 

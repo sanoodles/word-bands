@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import WordChips, { anchorOffscreen, packRows } from "./WordChips";
+import WordChips, { anchorOffscreen, packRows, scrollToRow } from "./WordChips";
 
 describe("packRows", () => {
   it("packs as many chips per row as fit the width", () => {
@@ -47,6 +47,58 @@ describe("anchorOffscreen", () => {
     expect(anchorOffscreen(null, 40, 500, 200)).toBeNull();
     expect(anchorOffscreen(400, 0, 0, 200)).toBeNull(); // rows not measured yet
     expect(anchorOffscreen(400, 40, 0, 0)).toBeNull(); // no viewport (SSR/jsdom)
+  });
+});
+
+describe("scrollToRow", () => {
+  // 200px of viewport, 40px rows, a 56px button strip. The anchor sits at the top,
+  // so it is out of view — and the button showing — from scrollTop 40 on.
+  const to = (top: number, scrollTop: number, anchorTop: number | null = 0) =>
+    scrollToRow(top, 40, scrollTop, 200, anchorTop, 56);
+
+  it("leaves a row that is already clear alone", () => {
+    expect(to(0, 0)).toBeNull();
+    expect(to(40, 0)).toBeNull();
+  });
+
+  it("scrolls a row above the fold to the top", () => {
+    expect(to(40, 200)).toBe(40);
+  });
+
+  it("lands a row below the fold flush with the bottom while no button shows", () => {
+    // An anchor at 80 is still in view at the 40 this lands on, so nothing floats
+    // over the chip and it takes the whole viewport.
+    expect(to(200, 0, 80)).toBe(40);
+  });
+
+  it("insets the step that scrolls the anchor out from under the reader", () => {
+    // Landing flush at 40 is exactly where an anchor at 0 stops being visible, so the
+    // button arrives over the chip that just landed. It has to clear it in the same move.
+    expect(to(200, 0)).toBe(240 - (200 - 56));
+  });
+
+  it("keeps the row clear of the button once the anchor is gone", () => {
+    // Landing flush would put scrollTop at 240, where the anchor is long out of view.
+    expect(to(400, 100)).toBe(440 - (200 - 56));
+  });
+
+  it("moves a row that is in view but under the button", () => {
+    // Row 400 with scrollTop 240 is fully visible — and sitting in the bottom strip.
+    expect(to(400, 240)).toBe(440 - (200 - 56));
+  });
+
+  it("insets nothing when there is no anchor to lose", () => {
+    expect(to(400, 100, null)).toBe(240);
+  });
+
+  it("never insets so far that the row stops fitting", () => {
+    // A 60px viewport is shorter than the 56px strip: the row still lands flush.
+    expect(scrollToRow(400, 40, 100, 60, 0, 56)).toBe(400);
+  });
+
+  it("does nothing before the cloud is measured", () => {
+    expect(scrollToRow(400, 0, 0, 200, 0, 56)).toBeNull();
+    expect(scrollToRow(400, 40, 0, 0, 0, 56)).toBeNull();
   });
 });
 
