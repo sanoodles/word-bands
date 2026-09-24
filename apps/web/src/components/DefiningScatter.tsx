@@ -60,10 +60,6 @@ function readCaptionPref(): boolean | null {
 const wideEnoughForCaption = () =>
   typeof window !== "undefined" && window.matchMedia("(min-width: 700px)").matches;
 
-/** Rough height of the pointer cursor's glyph, and of the hover label. */
-const CURSOR = 22;
-const TIP_H = 26;
-
 interface Points {
   /** One char per ranked word: its level as a base-36 digit, or "-" for a word with no level. */
   levels: string;
@@ -204,19 +200,15 @@ export function nearestWord(
 }
 
 /**
- * Where the hover label sits relative to the cursor. Above it, not below: a cursor's
- * hotspot is its top-left corner and the glyph hangs down and to the right of that, so
- * anything placed below-right is drawn under the cursor itself. The pointer cursor this
- * canvas switches to is the bigger of the two, about 22px tall, which is what CURSOR
- * clears. Flips below only in the top strip, where there is no room above.
+ * Where the hover label sits: above the cursor at every height, since a cursor hangs below
+ * its hotspot by however large it is set. On the top row that runs the label past the plot.
  */
 export function tipStyle(hover: { x: number; y: number }, wrapWidth: number): React.CSSProperties {
   const flipX = hover.x > wrapWidth * 0.66;
-  const flipY = hover.y < CURSOR + TIP_H;
   return {
     left: hover.x + (flipX ? -8 : 8),
-    top: hover.y + (flipY ? CURSOR : -8),
-    transform: `${flipX ? "translateX(-100%)" : ""} ${flipY ? "" : "translateY(-100%)"}`.trim(),
+    top: hover.y - 8,
+    transform: `${flipX ? "translateX(-100%) " : ""}translateY(-100%)`,
   };
 }
 

@@ -95,34 +95,24 @@ describe("DefiningScatter", () => {
   });
 });
 
-// The label sat below-right of the cursor and the cursor covered it — a cursor's hotspot
-// is its top-left corner, so the glyph occupies exactly the space below and right of the
-// point it reports. Above by default, and only below where there is no room above.
+// The Breeze hand at size 48 reaches 41px below its hotspot and 3px above it, so the only
+// side a cursor of any size leaves clear is up.
 describe("the hover label's placement", () => {
   const W = 900;
+  const GLYPH_UP = 3;
 
-  it("sits above the cursor, clear of the glyph", () => {
-    const st = tipStyle({ x: 100, y: 200 }, W);
-    expect(st.transform).toContain("translateY(-100%)");
-    expect(Number(st.top)).toBeLessThan(200);
-  });
-
-  it("flips below only in the top strip", () => {
-    const st = tipStyle({ x: 100, y: 4 }, W);
-    expect(st.transform ?? "").not.toContain("translateY");
-    // Below the cursor's glyph, not overlapping it.
-    expect(Number(st.top)).toBeGreaterThanOrEqual(4 + 22);
+  it("sits above the cursor's glyph at every height, the top row included", () => {
+    for (const y of [4, 200]) {
+      const st = tipStyle({ x: 100, y }, W);
+      // translateY(-100%) makes `top` the label's bottom edge.
+      expect(st.transform).toContain("translateY(-100%)");
+      expect(Number(st.top)).toBeLessThan(y - GLYPH_UP);
+    }
   });
 
   it("flips left near the right edge so it cannot run off", () => {
     expect(tipStyle({ x: 880, y: 200 }, W).transform).toContain("translateX(-100%)");
     expect(tipStyle({ x: 100, y: 200 }, W).transform ?? "").not.toContain("translateX");
-  });
-
-  it("can flip on both axes at once", () => {
-    const st = tipStyle({ x: 880, y: 4 }, W);
-    expect(st.transform).toContain("translateX(-100%)");
-    expect(st.transform).not.toContain("translateY");
   });
 });
 

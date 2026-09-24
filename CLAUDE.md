@@ -1143,6 +1143,7 @@ WCAG 1.4.13 asks that it be dismissible and hoverable, and it is neither by defa
 | Escape clears it | Dismissible without moving the pointer. The listener is on the document, since the canvas is not focusable |
 | The label takes pointer events | `pointer-events: none` let the canvas hit-test *through* it, so moving onto the label renamed it to whichever point it covered |
 | The wrapper owns `mouseleave`, not the canvas | The label is a sibling of the canvas inside that wrapper, so moving onto the label leaves the canvas — on the canvas the handler dismissed the very label it was meant to keep |
+| Above the cursor at every height, D1 included | A cursor hangs below its hotspot by as much as its size. The Breeze hand at 48 reaches 41px down and 3px up, so a label below it is covered at any size guessed. On D1 the label rises past the plot's top edge, over the panel padding above it, so nothing above the figure may clip it |
 
 ### Crawlers and link previews
 
