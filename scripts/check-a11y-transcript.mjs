@@ -163,11 +163,12 @@ async function transcribe(send, on) {
     return r.result;
   };
   const val = async (e) => (await js(e)).value;
-  const key = async (k, code, vk) => {
+  const key = async (k, code, vk, modifiers = 0) => {
     for (const type of ["rawKeyDown", "keyUp"])
-      await send("Input.dispatchKeyEvent", { type, key: k, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+      await send("Input.dispatchKeyEvent", { type, key: k, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, modifiers });
     await sleep(250);
   };
+  const SHIFT = 8;
   // Settle waits key on the page, never on a number of seconds, so a slow cold start reads
   // the same as a warm one instead of transcribing a half-built page — or, worse, a control
   // one keystroke ahead of the panel it just changed.
@@ -307,9 +308,17 @@ async function transcribe(send, on) {
 
   // Tab moves focus and activates nothing, so this leaves the page as it found it.
   rule("TAB THROUGH THE PAGE");
-  await val(`(document.activeElement?.blur(), true)`);
-  for (let i = 0, stop = 0; i < 30; i++) {
-    await key("Tab", "Tab", 9);
+  // The walk has to start above the first stop, and blurring the autofocused field does not
+  // put it there: Chrome leaves its sequential-focus starting point on the blurred element,
+  // so the first Tab lands on what follows the field and the four stops before it go
+  // unwalked. `#main` is where a click on empty page space lands, since it covers the whole
+  // page, and the skip link is the one focusable the body holds before it — so stepping back
+  // once from `#main` reaches the top of the page whatever else moves.
+  await val(`(document.getElementById("main").focus(), window.scrollTo(0, 0), true)`);
+  await key("Tab", "Tab", 9, SHIFT);
+  for (let i = 0, stop = 0; i < 40; i++) {
+    // The step back above already landed on the first stop, so a stop is read and then left.
+    if (i) await key("Tab", "Tab", 9);
     // `next dev` serves its own dev-tools overlay as a focusable custom element that
     // production never has, so without this a local run differs from the deployed page by
     // one stop and the check is useless as a pre-push read. Skipped rather than stopped
@@ -321,13 +330,6 @@ async function transcribe(send, on) {
     if (line === null) break;
     say(`  ${String(++stop).padStart(2)}. ${line}`);
   }
-
-  // The walk above starts past this one: blurring the autofocused field leaves Chrome's
-  // sequential-focus starting point on it, so the first Tab lands on what follows the
-  // field. Focused directly, then, the way the two composite widgets below are.
-  rule("THE SOURCE LANGUAGE SELECT — what it says before a pick moves focus");
-  await val(`(document.querySelector('[role=combobox][aria-label="Source language"]').focus(), true)`);
-  say(`  on focus     ${await speak()}`);
 
   rule("THE WORD CLOUD — a listbox of the band's words");
   await reset();

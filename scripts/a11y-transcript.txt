@@ -26,29 +26,31 @@ READING THE TRANSLATION, rather than tabbing to it
 
 TAB THROUGH THE PAGE
 ------------------------------------------------------------------------
-   1. A1 · Beginner · rank 393, img, — Wasser
-   2. Swap the source and target languages, button
-   3. Target language, combobox, collapsed
-   4. water, button, — Look this word up in English, swapping the two languages.
-   5. A1 · Beginner · rank 391, img, — water
-   6. aqua, button, — Look this word up in English, swapping the two languages.
-   7. C1 · Advanced · rank 18,422, img, — aqua
-   8. Google Translate: Wasser in English, link, — Opens in a new tab.
-   9. CEFR, radio, checked, — Common European Framework of Reference for Languages (CEFR) level
-  10. A1 · Beginner, 1,000 words, tab, selected
-  11. Wasser, option, selected, 393 of 1000
-  12. OpenSubtitles frequencies, link
-  13. lemmatization list, link
-  14. ODbL 1.0, link
-  15. CEFR-J, link
-  16. Leipzig Corpora, link
-  17. Google Translate, link
-  18. What these words mean, button
-  19. samuelgomezcrespo@gmail.com, link
-
-THE SOURCE LANGUAGE SELECT — what it says before a pick moves focus
-------------------------------------------------------------------------
-  on focus     Source language, combobox, collapsed, — Choosing a language looks up an example word in it. The search box takes focus with that word selected, so typing replaces it.
+   1. Skip to content, link
+   2. Light, button
+   3. Dark, button
+   4. System, button, pressed
+   5. Source language, combobox, collapsed, — Choosing a language looks up an example word in it. The search box takes focus with that word selected, so typing replaces it.
+   6. Look up a word, combobox, collapsed, — Type a German word to see its frequency and CEFR level. It is looked up as soon as you stop typing; press Enter or choose a suggestion to look one up at once.
+   7. A1 · Beginner · rank 393, img, — Wasser
+   8. Swap the source and target languages, button
+   9. Target language, combobox, collapsed
+  10. water, button, — Look this word up in English, swapping the two languages.
+  11. A1 · Beginner · rank 391, img, — water
+  12. aqua, button, — Look this word up in English, swapping the two languages.
+  13. C1 · Advanced · rank 18,422, img, — aqua
+  14. Google Translate: Wasser in English, link, — Opens in a new tab.
+  15. CEFR, radio, checked, — Common European Framework of Reference for Languages (CEFR) level
+  16. A1 · Beginner, 1,000 words, tab, selected
+  17. Wasser, option, selected, 393 of 1000
+  18. OpenSubtitles frequencies, link
+  19. lemmatization list, link
+  20. ODbL 1.0, link
+  21. CEFR-J, link
+  22. Leipzig Corpora, link
+  23. Google Translate, link
+  24. What these words mean, button
+  25. samuelgomezcrespo@gmail.com, link
 
 THE WORD CLOUD — a listbox of the band's words
 ------------------------------------------------------------------------
