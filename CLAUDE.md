@@ -759,6 +759,7 @@ credit, in the Sources line beneath the browser. The footer holds only the feedb
 | Wiktionary is credited with its license | The levels are computed from its definitions, and its text is CC BY-SA 4.0. Whether a computed level reuses that text is a legal question. The credit answers it either way |
 | The method's works are cited, not only its data | The method is theirs: the dictionary read as a graph, its peel into k-cores, and the term "defining vocabulary" |
 | The Wiktionary is named after the source language | The pipeline reads each language's own edition, `ptwiktionary` and `itwiktionary`. A language built from another edition needs its credit changed |
+| Every credit opens in this tab | The whole scenario rides in the query string, so Back restores the word, view and band the reader left. A new tab buys nothing Back does not, and 6 to 12 of them would each owe a warning (3.2.5) |
 | Ogden's *Basic English* is not cited | The spike's README compares against it. Nothing in the method comes from it |
 | Every language credits the Leipzig Corpora | Every language's `casingFile` is a Leipzig sentences file. Display casing and the name filter both read it, and its downloads are CC BY |
 
@@ -779,6 +780,7 @@ tooltip is open.
 | `CefrBadge` | The band and rank are the name; the word they belong to is the description. `aria-describedby` is always ours, never Radix's — the name already says what its tooltip says. In the search field the description points at the `invisible` mirror of the value, which Chrome reads because a directly-referenced node counts even when hidden |
 | `SwapButton` | Same trade: disabled, the reason why is in the name, not only in the tooltip |
 | A clickable alternative | Named by the word and nothing else, or the line stops reading as the translation. What clicking it does is a description — announced on focus, not while reading — and one element holds that sentence for every term on the card. The cost is two tab stops per badged term, the word and then its level, since the badge keeps its own focus for its rank |
+| The card's Google Translate link | Named by the word it opens and the language it opens it in, behind the visible text so speech input still reaches it (2.5.3). The one new-tab link on the page, and that it opens one is a **description**: what activating it does, announced on focus, while the name stays what it is for |
 | `AbbrLink` | `title` on the `<abbr>`, and no Fondue tooltip. A Fondue one needs its own focusable trigger, which made each credit two tab stops with the same name, and it would paint a second tooltip over the native one |
 | `WordSearchBox` | Named by its section heading (`labelledBy`), not by a second copy of the same string |
 | Section headings | Visible, and every one of them is also the name of the section it opens. Nothing is hidden for assistive tech alone, so a heading cannot drift from the name it gives |

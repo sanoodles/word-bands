@@ -67,6 +67,28 @@ describe("WordCard language selector", () => {
     expect(link.getAttribute("href")).toContain("translate.google.com");
   });
 
+  // A word of its own: glossCache is module-level and keyed source:target:word, so a
+  // render here would otherwise answer a later test's stub from this one's response.
+  it("names the translate link by what it opens, and describes the new tab", () => {
+    render(
+      <WordCard
+        word="Regenschirm"
+        forms={["Regenschirm"]}
+        source="de"
+        target="en"
+        onTargetChange={() => {}}
+      />,
+    );
+    // The word is what the link is for (2.4.9); the visible text leads it, so speech
+    // input still reaches the link by what it says (2.5.3).
+    const link = screen.getByRole("link", { name: "Google Translate: Regenschirm in English" });
+    expect(link).toHaveTextContent(/^Google Translate/);
+    // What activating it does is a description, announced on focus, so the name stays
+    // the purpose.
+    const help = document.getElementById(link.getAttribute("aria-describedby") ?? "");
+    expect(help).toHaveTextContent("Opens in a new tab.");
+  });
+
   it("translates the word into the target language", async () => {
     render(<WordCard word="water" forms={["water"]} source="en" target="es" onTargetChange={() => {}} />);
     expect(selector()).toHaveTextContent(/español/i);

@@ -274,6 +274,7 @@ export default function WordCard({
   const multi = useForms(casings, source, target, translate && homograph && !pending);
   // One id for the sentence every term button points at.
   const pickHelp = useId();
+  const newTabHelp = useId();
   const headingId = useId();
   const wordId = `${headingId}-word`;
 
@@ -425,6 +426,12 @@ export default function WordCard({
             Look this word up in {englishName(target)}, swapping the two languages.
           </p>
         )}
+        {/* The one new-tab link on the page. A description, not part of the name: what
+            activating it does, announced on focus, while the name stays what it is for.
+            aria-hidden for the reason the sentence above is. */}
+        <p id={newTabHelp} className="visually-hidden" aria-hidden="true">
+          Opens in a new tab.
+        </p>
         {/* 44px target (WCAG 2.5.5). */}
         <a
           href={translateHref(word, source, target)}
@@ -432,6 +439,10 @@ export default function WordCard({
           // clearing window.name) — accepted, for its pronunciation audio.
           target="_blank"
           rel="noopener noreferrer"
+          // The visible text leads, so speech input still reaches it (2.5.3); the word
+          // and the language behind it are what the link is for (2.4.9).
+          aria-label={`Google Translate: ${word} in ${englishName(target)}`}
+          aria-describedby={newTabHelp}
           className="tw-inline-flex tw-min-h-[44px] tw-shrink-0 tw-items-center tw-justify-center tw-gap-1 tw-rounded-full tw-border tw-border-line-subtle tw-px-4 tw-py-1.5 tw-body-large tw-text-secondary tw-no-underline hover:tw-border-line hover:tw-text-primary"
         >
           Google Translate <span aria-hidden="true">↗</span>

@@ -418,6 +418,16 @@ describe("Workspace", () => {
     }
   });
 
+  it("keeps every credit in this tab, so Back restores the scenario", () => {
+    for (const source of SOURCE_LANGS) {
+      const credits = creditsFor(source);
+      const links = within(credits).getAllByRole("link");
+      expect(links.length).toBeGreaterThan(0);
+      for (const link of links) expect(link).not.toHaveAttribute("target");
+      cleanup();
+    }
+  });
+
   // @spec CREDIT-1
   it("credits no dictionary where a language has no defining levels", () => {
     for (const source of SOURCE_LANGS.filter((l) => !hasDefining(l))) {

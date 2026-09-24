@@ -33,7 +33,7 @@ TAB THROUGH THE PAGE
    5. A1 · Beginner · rank 391, img, — water
    6. aqua, button, — Look this word up in English, swapping the two languages.
    7. C1 · Advanced · rank 18,422, img, — aqua
-   8. Google Translate, link
+   8. Google Translate: Wasser in English, link, — Opens in a new tab.
    9. CEFR, radio, checked, — Common European Framework of Reference for Languages (CEFR) level
   10. A1 · Beginner, 1,000 words, tab, selected
   11. Wasser, option, selected, 393 of 1000

@@ -223,6 +223,8 @@ function ViewToggle({
 // stays complete regardless of the active view — the ranking (frequency +
 // lemmatization), the CEFR calibration, display casing, the defining levels with
 // the works their method follows, and the word translations.
+// Same tab, not a new one: the whole scenario rides in the query string, so Back
+// restores the word, view and band the reader left.
 const CORPUS_LINK = "tw-underline hover:tw-text-primary";
 
 /**
@@ -236,7 +238,7 @@ const CORPUS_LINK = "tw-underline hover:tw-text-primary";
  */
 function AbbrLink({ title, href, children }: { title: string; href: string; children: ReactNode }) {
   return (
-    <a className={CORPUS_LINK} href={href} target="_blank" rel="noreferrer">
+    <a className={CORPUS_LINK} href={href}>
       <abbr title={title} className="tw-cursor-help tw-decoration-dotted">
         {children}
       </abbr>
@@ -255,14 +257,14 @@ function CorpusCredit({ source }: { source: SourceLang }) {
           SUBTLEX-US
         </AbbrLink>
       ) : (
-        <a className={CORPUS_LINK} href={corpus.url} target="_blank" rel="noreferrer">
+        <a className={CORPUS_LINK} href={corpus.url}>
           {corpus.name}
         </a>
       )}
       {source === "en" ? " (Brysbaert & New, 2009)" : null}, with inflections merged onto
       their base form via a{" "}
       {/* @spec CREDIT-4 */}
-      <a className={CORPUS_LINK} href={LEMMA_URL} target="_blank" rel="noreferrer">
+      <a className={CORPUS_LINK} href={LEMMA_URL}>
         lemmatization list
       </a>{" "}
       (
@@ -289,12 +291,7 @@ function CorpusCredit({ source }: { source: SourceLang }) {
       {hasDefining(source) ? (
         <>
           Defining levels are computed from the{" "}
-          <a
-            className={CORPUS_LINK}
-            href={`https://${source}.wiktionary.org/`}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a className={CORPUS_LINK} href={`https://${source}.wiktionary.org/`}>
             {name} Wiktionary
           </a>{" "}
           (
@@ -302,20 +299,20 @@ function CorpusCredit({ source }: { source: SourceLang }) {
             CC BY-SA 4.0
           </AbbrLink>
           ), extracted by{" "}
-          <a className={CORPUS_LINK} href={WIKTEXTRACT_URL} target="_blank" rel="noreferrer">
+          <a className={CORPUS_LINK} href={WIKTEXTRACT_URL}>
             Wiktextract
           </a>{" "}
           (Ylonen, 2022). The definitions are read as a graph of which word defines which, as
           in{" "}
-          <a className={CORPUS_LINK} href={BLONDIN_MASSE_URL} target="_blank" rel="noreferrer">
+          <a className={CORPUS_LINK} href={BLONDIN_MASSE_URL}>
             Blondin Massé et al. (2008)
           </a>{" "}
           and{" "}
-          <a className={CORPUS_LINK} href={VINCENT_LAMARRE_URL} target="_blank" rel="noreferrer">
+          <a className={CORPUS_LINK} href={VINCENT_LAMARRE_URL}>
             Vincent-Lamarre et al. (2016)
           </a>
           . The levels come from that graph&rsquo;s k-core decomposition (
-          <a className={CORPUS_LINK} href={SEIDMAN_URL} target="_blank" rel="noreferrer">
+          <a className={CORPUS_LINK} href={SEIDMAN_URL}>
             Seidman, 1983
           </a>
           ). Restricted defining vocabularies go back to West &amp; Endicott (1935) and the{" "}
@@ -323,7 +320,7 @@ function CorpusCredit({ source }: { source: SourceLang }) {
         </>
       ) : null}
       Word translations come from{" "}
-      <a className={CORPUS_LINK} href={TRANSLATE_URL} target="_blank" rel="noreferrer">
+      <a className={CORPUS_LINK} href={TRANSLATE_URL}>
         Google Translate
       </a>
       .
