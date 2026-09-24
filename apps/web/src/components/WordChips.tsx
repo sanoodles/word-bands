@@ -12,6 +12,11 @@ import {
 } from "react";
 
 const GAP = 8; // tw-gap-2, in px — the space between chips, horizontally and between rows
+// How far a focus ring reaches past its chip: --cue-line's 2px outline at 2px offset.
+// The scroller clips anything outside it, so the rows are inset by this much and the
+// packed width loses twice it. GAP must stay at least 2 × RING, or the rings of two
+// rows meet — and a row's footprint stops fitting inside one `stride`.
+const RING = 4;
 const OVERSCAN = 4; // extra rows kept mounted above and below the viewport
 const SELECT_DEBOUNCE = 300; // ms to settle on a chip before keyboard nav looks it up
 
@@ -240,7 +245,7 @@ export default function WordChips({
   }, [words, metrics]);
 
   const rows = useMemo(
-    () => (widths && width > 0 ? packRows(widths, width) : null),
+    () => (widths && width > 0 ? packRows(widths, width - RING * 2) : null),
     [widths, width],
   );
   const stride = (metrics?.height ?? 0) + GAP;
@@ -446,15 +451,23 @@ export default function WordChips({
         <div
           key={start}
           role="presentation"
-          className="tw-absolute tw-left-0 tw-right-0 tw-flex tw-gap-2"
-          style={{ top: r * stride }}
+          className="tw-absolute tw-flex tw-gap-2"
+          // Inset by the ring, so the first row and the first chip of every row keep
+          // theirs. Row r's ring still spans [r * stride, (r + 1) * stride), which is
+          // what the scroll and the virtualizer window both assume.
+          style={{ top: r * stride + RING, left: RING, right: RING }}
         >
           {words.slice(start, end).map((w, i) => chip(w, start + i))}
         </div>
       );
     });
     content = (
-      <div role="presentation" className="tw-relative" style={{ height: rows.length * stride - GAP }}>
+      <div
+        role="presentation"
+        className="tw-relative"
+        // The last row's ring, not its chip, is what the scroller has to reach.
+        style={{ height: rows.length * stride - GAP + RING * 2 }}
+      >
         {rowEls}
       </div>
     );
