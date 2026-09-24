@@ -716,6 +716,7 @@ re-flows on its own when Diatype replaces the fallback.
 | Hide it when the word leaves no room | 27-char German at a 250px phone field. `fits` compares the overlay's scroll and client widths, and re-measures on a resize as well as on a new value |
 | Hide with `visibility`, keeping the badge in the DOM | It keeps its slot, so the measurement cannot oscillate with its own answer |
 | Report `fits`, so the level lands somewhere | Hidden here it would show nowhere at all in Frequency and Defining view (1.4.10), so `Workspace` hands it to the card, which prints it beside its heading. Only then, so the level is never in both places |
+| Under forced colours the overlay is not rendered at all | Forced colours fill every box with `Canvas` **at paint time**, so the overlay covers the word it exists to measure — while `getComputedStyle` still reports the transparent fill we asked for, which is what makes it hard to see. Nothing author-side takes it back reliably, so `useForcedColors` drops the overlay and reports `fits` false, and the level leaves by the route the row above already built |
 | The overlay is `pointer-events-none` except the badge | Clicking the badge puts the caret at the end of the word, which is what a click just past the text means |
 | This badge alone is `padded` | 15×14 is under the 24px of 2.5.8, and here no sentence exempts it — the badge on a translation's term is inline in one, and padding it would space the words apart. The horizontal half comes back as margin, so the run keeps its width and the badge does not move |
 

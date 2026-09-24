@@ -25,6 +25,29 @@ const SUGGEST_DEBOUNCE_MS = 500;
 const TEXT_INSET = 13;
 
 /**
+ * Whether the reader is in forced colours (Windows High Contrast and its like).
+ *
+ * The badge overlay cannot survive it. Forced colours fill every box with `Canvas` at
+ * paint time, so the overlay — which spans the field and exists only to put the badge
+ * after the text — paints over the word itself, and `getComputedStyle` still reports the
+ * transparent fill we asked for. Nothing author-side takes it back reliably, so the
+ * overlay is not rendered there and the level goes where a word too long for the field
+ * already sends it: beside the card's heading.
+ */
+function useForcedColors() {
+  const [forced, setForced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia?.("(forced-colors: active)");
+    if (!mq) return;
+    const read = () => setForced(mq.matches);
+    read();
+    mq.addEventListener("change", read);
+    return () => mq.removeEventListener("change", read);
+  }, []);
+  return forced;
+}
+
+/**
  * A word-lookup field with a debounced (500ms) typeahead dropdown backed by
  * /api/suggest. Controlled: the parent owns the text `value`; `onSubmit` fires
  * when a word is committed — a suggestion picked, Enter, the form submitted, or
@@ -97,6 +120,10 @@ export default function WordSearchBox({
   const wrapRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [fits, setFits] = useState(true);
+  const forced = useForcedColors();
+  // The overlay is gone under forced colours, so there is no room for the badge there
+  // whatever the measurement below last said.
+  const showBadge = fits && !forced;
   // Hidden, the badge keeps its slot, so the measurement can't oscillate with the answer.
   const measure = useCallback(() => {
     const el = overlayRef.current;
@@ -117,8 +144,8 @@ export default function WordSearchBox({
   }, [measure, badge]);
   // So the level can be shown elsewhere while there is no room for it here (WCAG 1.4.10).
   useEffect(() => {
-    onBadgeFit?.(fits);
-  }, [fits, onBadgeFit]);
+    onBadgeFit?.(showBadge);
+  }, [showBadge, onBadgeFit]);
 
   // Fondue paints the placeholder into a sibling div (see globals.css) and hides it from
   // no one, so its text was read as loose content inside the search landmark. Matched by
@@ -340,7 +367,7 @@ export default function WordSearchBox({
             two share the same strip of the box, and mid-lookup the level is unknown
             anyway. The mirror is `invisible` rather than hidden text, so it takes the
             text's exact width while staying out of the accessibility tree. */}
-        {badge && !loading && !busy && (
+        {badge && !loading && !busy && !forced && (
           <div
             ref={overlayRef}
             className="tw-pointer-events-none tw-absolute tw-inset-y-0 tw-flex tw-items-center tw-overflow-hidden tw-text-x-large"
@@ -356,7 +383,7 @@ export default function WordSearchBox({
                   caret where a click past the word means. The keyboard has End. */}
               {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
               <span
-                className={`tw-pointer-events-auto ${fits ? "" : "tw-invisible"}`}
+                className={`tw-pointer-events-auto ${showBadge ? "" : "tw-invisible"}`}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   caretToEnd();

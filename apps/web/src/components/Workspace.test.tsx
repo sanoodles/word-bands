@@ -168,6 +168,28 @@ describe("Workspace", () => {
     expect(within(search).getByRole("img", { name: "A1 · Beginner · rank 1" })).toBeInTheDocument();
   });
 
+  // Forced colours fill every box at paint time, including the overlay the badge rides
+  // in — which then covers the word it exists to measure. The overlay goes, and the level
+  // takes the route a word too long for the field already takes.
+  it("moves the level out of the field under forced colours", async () => {
+    vi.stubGlobal("matchMedia", (media: string) => ({
+      media,
+      matches: media.includes("forced-colors"),
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      onchange: null,
+      dispatchEvent: () => false,
+    }));
+    render(<Workspace />);
+    const card = await screen.findByRole("region", { name: /meaning of water/i });
+    const badge = { name: "A1 · Beginner · rank 1" };
+    // Still said once, and still said.
+    expect(within(card).getByRole("img", badge)).toBeInTheDocument();
+    expect(within(screen.getByRole("search")).queryByRole("img", badge)).toBeNull();
+  });
+
   // Sitting against the text, a stale level reads as a claim about what is being typed.
   it("withholds the level the moment the field stops holding that word", async () => {
     const user = userEvent.setup();
