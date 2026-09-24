@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DefiningScatter, { nearestWord, tipStyle } from "./DefiningScatter";
+import type { SourceLang } from "@/lib/languages";
 
 // `paint` bails on the zero-size wrap that jsdom reports, before it reaches the context
 // stub in test/setup.ts. That is the point: everything outside the canvas — the label, the
@@ -9,7 +10,15 @@ import DefiningScatter, { nearestWord, tipStyle } from "./DefiningScatter";
 // up without anything ever being drawn.
 const points = {
   levels: "11-3" + "7".repeat(6),
+  levelCount: 7,
   words: ["o", "que", "john", "água", "olá", "uau", "a", "b", "c", "d"],
+};
+
+/** Fourteen levels, as French peels into: past D9 a level is a base-36 digit. */
+const fourteen = {
+  levels: "1e-3" + "e".repeat(6),
+  levelCount: 14,
+  words: ["il", "le", "new", "eau", "allô", "ouais", "a", "b", "c", "d"],
 };
 
 /** jsdom has no layout, so the caption's width test has to be told the answer. */
@@ -65,6 +74,18 @@ describe("DefiningScatter", () => {
     expect(example.textContent).toBe("ciao");
     expect(example).toHaveAttribute("lang", "it");
     expect(fig.textContent).toContain("ciao is A1 vocabulary sitting at D7");
+  });
+
+  // @spec BAND-15
+  it("names the language's own bottom level", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify(fourteen), { status: 200 })),
+    );
+    render(<DefiningScatter source="fr" anchorWord={null} onSelect={() => {}} />);
+    const fig = await screen.findByRole("figure");
+    expect(fig.textContent).toContain("D14 at the bottom is never used in a definition");
+    expect(fig.textContent).toContain("allô is A1 vocabulary sitting at D14");
   });
 
   it("asks only the active language for its points", async () => {
@@ -236,21 +257,23 @@ describe("the axis under the plot", () => {
   // Response — serializing 30,000 words to JSON and back costs more than the test does.
   const wide = {
     levels: "1".repeat(30_000),
+    levelCount: 7,
     words: Array.from({ length: 30_000 }, (_, i) => `w${i}`),
   };
-  beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => wide })));
-  });
+  const serve = (p: typeof wide) =>
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => p })));
+  beforeEach(() => serve(wide));
 
-  const axis = async () => {
-    render(<DefiningScatter source="pt" anchorWord={null} onSelect={() => {}} />);
+  const axis = async (source: SourceLang = "pt") => {
+    render(<DefiningScatter source={source} anchorWord={null} onSelect={() => {}} />);
     await screen.findByRole("img");
     // The label layer, not the hover label, which is the wrapper's other aria-hidden child.
     const labels = [...document.querySelectorAll<HTMLElement>("figure div[aria-hidden] span")];
+    const find = (text: string) => labels.find((el) => el.textContent === text)?.style;
     return {
       written: labels.map((el) => el.textContent ?? ""),
-      at: (text: string) =>
-        parseFloat(labels.find((el) => el.textContent === text)?.style.left ?? "NaN"),
+      at: (text: string) => parseFloat(find(text)?.left ?? "NaN"),
+      top: (text: string) => parseFloat(find(text)?.top ?? "NaN"),
     };
   };
 
@@ -281,6 +304,17 @@ describe("the axis under the plot", () => {
   it("names every defining level down the gutter", async () => {
     const { written } = await axis();
     for (const l of ["D1", "D2", "D3", "D4", "D5", "D6", "D7"]) expect(written).toContain(l);
+  });
+
+  // @spec BAND-15
+  it("draws a row for each of the language's own levels", async () => {
+    serve({ ...wide, levelCount: 14 });
+    const { written, top } = await axis("fr");
+    const rows = written.filter((t) => /^D\d+$/.test(t));
+    expect(rows).toEqual(Array.from({ length: 14 }, (_, i) => `D${i + 1}`));
+    // Evenly spaced from the top down, so D14 sits below D13 and not off the plot.
+    expect(top("D14")).toBeGreaterThan(top("D13"));
+    expect(top("D14")).toBeLessThan(H);
   });
 });
 

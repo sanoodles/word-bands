@@ -1,6 +1,6 @@
 import "server-only";
 import type { Band, BandSummary, BandView, WordBands, WordLevel } from "@/lib/types";
-import type { SourceLang } from "@/lib/languages";
+import { definingLevel, type SourceLang } from "@/lib/languages";
 // The per-language word-bands artifacts (built by scripts/build-bands.ts). Imported
 // directly so Next bundles them into the API functions — each file is small.
 import en from "../../data/word-bands.en.json";
@@ -12,6 +12,7 @@ import pt from "../../data/word-bands.pt.json";
 // this repo from a Wiktionary extract; see the defining-vocabulary spike.
 import definingPt from "../../data/defining.pt.json";
 import definingIt from "../../data/defining.it.json";
+import definingFr from "../../data/defining.fr.json";
 import it from "../../data/word-bands.it.json";
 
 export { isSourceLang } from "@/lib/languages";
@@ -24,31 +25,44 @@ interface BandDef {
   max: number | null;
 }
 
+interface DefiningBand {
+  key: string;
+  label: string;
+  name: string;
+}
+
 /**
- * D1-D7 plus the words the dictionary graph never placed. Unlike `freq` and `cefr` this is
- * not a rank window — a level is a property of the word, so a band here is a set. D1 is the
- * core the dictionary explains everything else with; D7 is never used to define anything.
- * `none` is not a level, it is the absence of one, and it is a third of the list.
+ * D1 to Dn plus the words the dictionary graph never placed, where n is however many levels
+ * the language's dictionary peels into. Unlike `freq` and `cefr` this is not a rank window —
+ * a level is a property of the word, so a band here is a set. D1 is the core the dictionary
+ * explains everything else with; Dn is never used to define anything. `none` is not a
+ * level, it is the absence of one, and in Portuguese it is a fifth of the list.
+ * @spec BAND-15
  */
-// `name` spells the tab out (WCAG 3.1.4): eight tabs reading "D1" to "D7" fit the row
-// only as abbreviations, and the glossary under the credits carries the expansion for
-// everyone else.
-const DEFINING_BANDS: { key: string; label: string; name: string }[] = [
-  { key: "D1", label: "D1", name: "Defining level 1" },
-  { key: "D2", label: "D2", name: "Defining level 2" },
-  { key: "D3", label: "D3", name: "Defining level 3" },
-  { key: "D4", label: "D4", name: "Defining level 4" },
-  { key: "D5", label: "D5", name: "Defining level 5" },
-  { key: "D6", label: "D6", name: "Defining level 6" },
-  { key: "D7", label: "D7", name: "Defining level 7" },
-  { key: "none", label: "No level", name: "No defining level" },
-];
-const DEFINING_BY_KEY = new Map(DEFINING_BANDS.map((b) => [b.key, b]));
-const definingKey = (c: string) => (c === "-" ? "none" : `D${c}`);
+// `name` spells the tab out (WCAG 3.1.4): the defining tabs fit only as abbreviations, and
+// the glossary under the credits carries the expansion for everyone else.
+function definingBands(levelCount: number): Map<string, DefiningBand> {
+  const bands: DefiningBand[] = Array.from({ length: levelCount }, (_, i) => ({
+    key: `D${i + 1}`,
+    label: `D${i + 1}`,
+    name: `Defining level ${i + 1}`,
+  }));
+  bands.push({ key: "none", label: "No level", name: "No defining level" });
+  return new Map(bands.map((b) => [b.key, b]));
+}
+
+const definingKey = (c: string) => {
+  const level = definingLevel(c);
+  return level === null ? "none" : `D${level}`;
+};
 
 interface DefiningData {
-  /** One char per ranked word: "1"-"7" for D1-D7, "-" for a word with no level. */
+  /** One char per ranked word: its level as a base-36 digit, "-" for a word with no level. */
   levels: string;
+  /** How many levels the dictionary peels into, the deepest level found in `levels`. */
+  levelCount: number;
+  /** D1 to Dn, then `none`, in tab order. */
+  bands: Map<string, DefiningBand>;
   /** Band key -> `ranked` indices, frequency order. */
   byKey: Map<string, number[]>;
 }
@@ -63,14 +77,17 @@ function loadDefining(ranked: string[], raw: { count: number; levels: string }):
     throw new Error(`defining artifact holds ${raw.count} words against ${ranked.length} ranked`);
   }
   const byKey = new Map<string, number[]>();
+  let levelCount = 0;
   // Filled in frequency order, so each band's words come out ranked without a sort.
   ranked.forEach((_, i) => {
-    const k = definingKey(raw.levels[i]!);
+    const c = raw.levels[i]!;
+    levelCount = Math.max(levelCount, definingLevel(c) ?? 0);
+    const k = definingKey(c);
     const b = byKey.get(k);
     if (b) b.push(i);
     else byKey.set(k, [i]);
   });
-  return { levels: raw.levels, byKey };
+  return { levels: raw.levels, levelCount, bands: definingBands(levelCount), byKey };
 }
 
 interface LangData {
@@ -129,7 +146,7 @@ function load(
 const REGISTRY: Record<SourceLang, LangData> = {
   en: load(en),
   es: load(es),
-  fr: load(fr),
+  fr: load(fr, definingFr),
   de: load(de),
   pt: load(pt, definingPt),
   it: load(it, definingIt),
@@ -173,7 +190,7 @@ export function getWord(source: SourceLang, word: string): WordBands | null {
     cefr: { key: cefr.key, label: cefr.label },
     // Every word in a language that has levels lands in a band, `none` included, so the
     // browser always has a tab to open. Absent entirely where the language has none.
-    ...(d.defining ? { defining: { ...DEFINING_BY_KEY.get(definingKey(d.defining.levels[rank - 1]!))! } } : {}),
+    ...(d.defining ? { defining: { ...d.defining.bands.get(definingKey(d.defining.levels[rank - 1]!))! } } : {}),
   };
 }
 
@@ -232,11 +249,15 @@ export function getLevel(target: SourceLang, word: string): WordLevel | null {
  *
  * This is the one place the whole ranking goes to the client — about 165KB gzipped — so it
  * is served on its own route and fetched only when the defining view is opened.
- * @spec BAND-13
+ * @spec BAND-13, BAND-15
  */
-export function getDefiningPoints(source: SourceLang): { levels: string; words: string[] } | null {
+export function getDefiningPoints(
+  source: SourceLang,
+): { levels: string; levelCount: number; words: string[] } | null {
   const d = REGISTRY[source];
-  return d.defining ? { levels: d.defining.levels, words: d.ranked } : null;
+  return d.defining
+    ? { levels: d.defining.levels, levelCount: d.defining.levelCount, words: d.ranked }
+    : null;
 }
 
 /**
@@ -249,7 +270,7 @@ export function getBandSummary(source: SourceLang, view: BandView): BandSummary[
   if (view === "defining") {
     const def = d.defining;
     if (!def) return [];
-    return DEFINING_BANDS.map((b) => ({
+    return [...def.bands.values()].map((b) => ({
       key: b.key,
       label: b.label,
       name: b.name,
@@ -268,7 +289,7 @@ export function getBand(source: SourceLang, view: BandView, key: string): Band |
   const d = REGISTRY[source];
   if (view === "defining") {
     const idx = d.defining?.byKey.get(key);
-    const def = DEFINING_BY_KEY.get(key);
+    const def = d.defining?.bands.get(key);
     if (!idx || !def) return null;
     return { key: def.key, label: def.label, words: idx.map((i) => d.ranked[i]!) };
   }

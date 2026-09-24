@@ -112,8 +112,10 @@ and reused for every language.
 
 The `defining` view is the exception: a defining level is a property of the word, measured
 from how often a dictionary reaches for it when defining others, so its bands are sets
-rather than rank windows. It needs a dictionary graph per language, and only Portuguese and
-Italian have one, which is why it is the one view a language can lack.
+rather than rank windows. It needs a dictionary graph per language, and only Portuguese,
+Italian and French have one, which is why it is the one view a language can lack. How many
+levels a graph peels into is a property of that dictionary, so each language has its own
+count.
 
 | ID | Rule |
 | --- | --- |
@@ -131,6 +133,7 @@ Italian have one, which is why it is the one view a language can lack.
 | BAND-12 | In the `defining` view every word falls in a band, the ones with no level in `none` |
 | BAND-13 | The defining figure's data carries one level per ranked word, and is served only for a language that has levels |
 | BAND-14 | In typeahead a letter typed without a diacritic also matches that letter with any diacritic, and a letter typed with one matches only itself. The exact match it leads with is exact in its diacritics too |
+| BAND-15 | The `defining` view offers every level its language's dictionary peels into, D1 to Dn, and the figure draws one row per level. n is the language's own |
 
 ## FILTER — what the artifacts hold
 

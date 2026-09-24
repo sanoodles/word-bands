@@ -9,8 +9,10 @@ import formsPt from "../../data/forms.pt.json";
 import formsIt from "../../data/forms.it.json";
 import rankedPt from "../../data/word-bands.pt.json";
 import rankedIt from "../../data/word-bands.it.json";
+import rankedFr from "../../data/word-bands.fr.json";
 import definingPt from "../../data/defining.pt.json";
 import definingIt from "../../data/defining.it.json";
+import definingFr from "../../data/defining.fr.json";
 
 // The committed data/word-bands.<code>.json files are the build's output and the app's
 // only corpus, so these hold whether or not anyone re-runs the build. Nothing else looks
@@ -220,7 +222,7 @@ describe("redirect targets", () => {
 describe("defining levels", () => {
   it("is keyed to the ranking it was built against", () => {
     for (const [ranked, defining] of [
-      [rankedPt, definingPt], [rankedIt, definingIt],
+      [rankedPt, definingPt], [rankedIt, definingIt], [rankedFr, definingFr],
     ] as const) {
       const digest = createHash("sha256").update(ranked.ranked.join("\n")).digest("hex").slice(0, 16);
       expect(defining.digest, defining.lang).toBe(digest);

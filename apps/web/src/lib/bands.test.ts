@@ -8,7 +8,13 @@ import {
   getWord,
   viewsFor,
 } from "@/lib/bands";
-import { DEFINING_EXAMPLE, DEFINING_LANGS, hasDefining, SOURCE_LANGS } from "@/lib/languages";
+import {
+  DEFINING_EXAMPLE,
+  DEFINING_LANGS,
+  DEFINING_LEVEL_COUNT,
+  hasDefining,
+  SOURCE_LANGS,
+} from "@/lib/languages";
 
 // German carries display casing (nouns/names capitalized) while lookups stay
 // case-insensitive; other languages are unaffected. See scripts/build-bands.ts.
@@ -227,6 +233,10 @@ describe("typeahead", () => {
 // A defining level says how heavily the dictionary leans on a word when defining others,
 // which is not a rank window and not a learning order. It exists only for DEFINING_LANGS.
 describe("the defining view", () => {
+  /** 1 to n, for the language's own count of levels. */
+  const levelsOf = (lang: Parameters<typeof getBandSummary>[0]) =>
+    Array.from({ length: DEFINING_LEVEL_COUNT[lang]! }, (_, i) => i + 1);
+
   // @spec BAND-11
   it("is offered by exactly the languages that carry levels", () => {
     for (const lang of SOURCE_LANGS) {
@@ -242,8 +252,8 @@ describe("the defining view", () => {
   });
 
   // The other two views are total because every rank falls in a window. This one is total
-  // only because `none` is offered as a band — a third of the list has no level. A level
-  // the bands do not name would drop its words from the sum.
+  // only because `none` is offered as a band — a fifth of the list in Portuguese has no
+  // level. A level the bands do not name would drop its words from the sum.
   // @spec BAND-12
   it("puts every word in a band, the unlevelled ones in `none`", () => {
     for (const lang of DEFINING_LANGS) {
@@ -251,27 +261,38 @@ describe("the defining view", () => {
       const sum = (v: Parameters<typeof getBandSummary>[1]) =>
         getBandSummary(lang, v).reduce((n, b) => n + b.count, 0);
       expect(sum("defining"), lang).toBe(sum("freq"));
-      expect(bands.map((b) => b.key), lang).toEqual(["D1", "D2", "D3", "D4", "D5", "D6", "D7", "none"]);
+      expect(bands.map((b) => b.key), lang).toEqual([...levelsOf(lang).map((l) => `D${l}`), "none"]);
     }
     const none = (lang: Parameters<typeof getBandSummary>[0]) =>
       getBandSummary(lang, "defining").find((b) => b.key === "none")?.count;
     expect(none("pt")).toBe(6330);
     expect(none("it")).toBe(5886);
+    expect(none("fr")).toBe(976);
   });
 
-  // WCAG 3.1.4: eight tabs reading "D1" to "D7" fit the row only as abbreviations, so
-  // each carries a spelled-out name for the tab to be called by.
+  // A wordier dictionary peels further, so each language has its own count.
+  // Past D9 a level is a base-36 digit: D14 is stored as "e".
+  // @spec BAND-15
+  it("offers as many levels as the language's dictionary peels into", () => {
+    for (const lang of DEFINING_LANGS) {
+      const levels = getBandSummary(lang, "defining").filter((b) => b.key !== "none");
+      expect(levels.map((b) => b.key), lang).toEqual(levelsOf(lang).map((l) => `D${l}`));
+      expect(getDefiningPoints(lang)!.levelCount, lang).toBe(DEFINING_LEVEL_COUNT[lang]);
+    }
+    expect(getDefiningPoints("pt")!.levelCount).toBe(7);
+    expect(getDefiningPoints("fr")!.levelCount).toBe(14);
+    expect(getBand("fr", "defining", "D14")!.words).toHaveLength(9554);
+    expect(getBand("fr", "defining", "D15")).toBeNull();
+    expect(getBand("pt", "defining", "D8")).toBeNull();
+  });
+
+  // WCAG 3.1.4: the defining tabs fit only as abbreviations, so each carries a
+  // spelled-out name for the tab to be called by.
   it("spells out every defining band, and abbreviates none of the others", () => {
     for (const lang of DEFINING_LANGS) {
       const bands = getBandSummary(lang, "defining");
       expect(bands.map((b) => b.name), lang).toEqual([
-        "Defining level 1",
-        "Defining level 2",
-        "Defining level 3",
-        "Defining level 4",
-        "Defining level 5",
-        "Defining level 6",
-        "Defining level 7",
+        ...levelsOf(lang).map((l) => `Defining level ${l}`),
         "No defining level",
       ]);
     }
@@ -289,17 +310,23 @@ describe("the defining view", () => {
     expect(getWord("it", "acqua")?.defining?.key).toBe("D2");
     expect(getWord("it", "essere")?.defining?.key).toBe("D1");
     expect(getWord("it", "max")?.defining?.key).toBe("none");
+    expect(getWord("fr", "eau")?.defining?.key).toBe("D3");
+    expect(getWord("fr", "être")?.defining?.key).toBe("D1");
+    expect(getWord("fr", "new")?.defining?.key).toBe("none");
+    // The dictionary spells it only with the ligature, so the other spelling takes its level.
+    expect(getWord("fr", "coeur")?.defining?.key).toBe(getWord("fr", "cœur")?.defining?.key);
+    expect(getWord("fr", "oeil")?.defining?.key).toBe("D4");
   });
 
   // The scale measures what the dictionary leans on, not what a learner meets first, and
   // each language's example is the word that proves the two come apart: A1 vocabulary at
-  // D7, because no definition is ever written in terms of "hello". The figure's caption
-  // makes this claim, so every language it can be shown for has to back it.
+  // the bottom level, because no definition is ever written in terms of "hello". The
+  // figure's caption makes this claim, so every language it can be shown for has to back it.
   it("does not order words by difficulty", () => {
     for (const lang of DEFINING_LANGS) {
       const example = DEFINING_EXAMPLE[lang]!;
       expect(getWord(lang, example)?.cefr.key, example).toBe("A1");
-      expect(getWord(lang, example)?.defining?.key, example).toBe("D7");
+      expect(getWord(lang, example)?.defining?.key, example).toBe(`D${DEFINING_LEVEL_COUNT[lang]}`);
     }
   });
 
@@ -317,6 +344,8 @@ describe("the defining view", () => {
     expect(levelled("pt")).toHaveLength(22293);
     expect(getDefiningPoints("it")!.words).toHaveLength(27416);
     expect(levelled("it")).toHaveLength(21530);
+    expect(getDefiningPoints("fr")!.words).toHaveLength(28788);
+    expect(levelled("fr")).toHaveLength(27812);
     expect(getDefiningPoints("en")).toBeNull();
   });
 
@@ -327,5 +356,8 @@ describe("the defining view", () => {
     const d1It = getBand("it", "defining", "D1")!;
     expect(d1It.words).toHaveLength(366);
     expect(d1It.words.slice(0, 4)).toEqual(["essere", "e", "il", "avere"]);
+    const d1Fr = getBand("fr", "defining", "D1")!;
+    expect(d1Fr.words).toHaveLength(76);
+    expect(d1Fr.words.slice(0, 4)).toEqual(["il", "le", "être", "avoir"]);
   });
 });

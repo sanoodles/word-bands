@@ -568,19 +568,23 @@ rank in the tooltip is what tells that apart from a real difference, like it "pa
 
 ## Defining levels
 
-`BAND-11` to `BAND-13` are the rules. The levels are not built here. The defining-vocabulary
-repo builds them from each language's own Wiktionary and writes `data/defining.<code>.json`.
+`BAND-11` to `BAND-13` and `BAND-15` are the rules. The levels are not built here. The
+defining-vocabulary repo builds them from each language's own Wiktionary and writes
+`data/defining.<code>.json`.
 
 | Detail | Why |
 | --- | --- |
-| Exactly seven levels | `DEFINING_BANDS`, `LEVELS` in `DefiningScatter.tsx` and the one-character level per word all assume D1–D7. The emitter refuses a language whose graph peels into any other number |
-| Portuguese and Italian only | Their dictionaries are the only ones that peel into seven. On the September 2026 extracts Spanish gives 11 levels, French 14, English 20 and German 5 |
+| A level count per language (`BAND-15`) | The count is how far the peel goes, and a dictionary whose definitions use more words peels further. Links per word run from 10.7 in German to 30.2 in English, and the counts run from 5 to 20 with them. One count for every language would mean merging or splitting levels, and then a level stops being one round of the peel |
+| `DEFINING_LEVEL_COUNT` holds the count for the client | The glossary names the bottom level and has no data to read it from. `bands` reads the count off the artifact instead, and `bands.test.ts` proves the two agree |
+| One base-36 digit per level | The artifact keeps one character per word, so D10 to D14 are `a` to `e`, and a language under ten levels reads as plain digits. `definingLevel` decodes it |
+| Portuguese, Italian and French | French has the best coverage of the rest: 97% of its list has a level. Spanish peels into 11 levels, and its top two hold 30 words and 4. German peels into 5, with 64% of its words in the bottom one. English peels into 20, and tracks plain frequency most closely |
 | The artifact is positional | It holds one level per word of `ranked`, in order. A rebuild of `word-bands.<code>.json` needs the levels emitted again, and `artifacts.test.ts` fails on the digest until they are |
-| Each language names its own example | The figure's caption names an A1 word at D7 from `DEFINING_EXAMPLE`. `bands.test.ts` checks that the claim holds |
+| Each language names its own example | The figure's caption names an A1 word at the bottom level from `DEFINING_EXAMPLE`. `bands.test.ts` checks that the claim holds. French takes `allô`, because `bonjour` sits at D12 and `salut` at D10 |
+| `coeur` has the level of `cœur` | The French list holds 21 words in both spellings, and the dictionary writes only the ligature. The emitter gives the `oe` spelling its twin's level, or `oeil` at rank 257 would have none |
 
 To add a language: emit its levels in the defining-vocabulary repo, add it to
-`DEFINING_LANGS` and `DEFINING_EXAMPLE`, and import its artifact in `bands.ts` and
-`artifacts.test.ts`.
+`DEFINING_LEVEL_COUNT` with its count and to `DEFINING_EXAMPLE`, and import its artifact in
+`bands.ts` and `artifacts.test.ts`.
 
 ## Typing a word without its diacritics
 
@@ -894,10 +898,10 @@ credit, in the Sources line beneath the browser. The footer holds only the feedb
 
 | Detail | Why |
 | --- | --- |
-| The Sources line, not the footer | It already changes with the source language. Only Portuguese and Italian have defining levels, and the footer is the same in all six |
+| The Sources line, not the footer | It already changes with the source language. Only Portuguese, Italian and French have defining levels, and the footer is the same in all six |
 | Wiktionary is credited with its license | The levels are computed from its definitions, and its text is CC BY-SA 4.0. Whether a computed level reuses that text is a legal question. The credit answers it either way |
 | The method's works are cited, not only its data | The method is theirs: the dictionary read as a graph, its peel into k-cores, and the term "defining vocabulary" |
-| The Wiktionary is named after the source language | The pipeline reads each language's own edition, `ptwiktionary` and `itwiktionary`. A language built from another edition needs its credit changed |
+| The Wiktionary is named after the source language | The pipeline reads each language's own edition: `ptwiktionary`, `itwiktionary` and `frwiktionary`. A language built from another edition needs its credit changed |
 | The credits read at grade 12 and that is fine | WCAG 3.1.5 measures **after removing proper names and titles**, and the credits are mostly those — the citations, the licenses and "Common European Framework of Reference for Languages". Stripped, they read 7.6 and 8.0, inside the criterion's lower-secondary band. `readability.py` prints both columns; read `bare`. No rewrite of ours moves the other one |
 | The unusual words are defined under the credits | `Glossary`, a folded list (3.1.3). Folded because it answers a question most readers never ask; under the credits because that is the block the terms come from. The two defining-vocabulary entries render only where a language has levels |
 | Every credit opens in this tab | The whole scenario rides in the query string, so Back restores the word, view and band the reader left. A new tab buys nothing Back does not, and 6 to 12 of them would each owe a warning (3.2.5) |
@@ -1110,7 +1114,7 @@ Two ways of reaching 44 that do not:
 | --- | --- |
 | Band tabs | A real tablist: one tab stop, arrow keys and Home/End inside it, `aria-controls` on each tab and `role="tabpanel"` on the words below. Activation follows focus, since the band is fetched or cached by then |
 | Previous and Next | `aria-disabled`, not `disabled`, the same trade `SwapButton` makes. At a band's end the step runs out under the finger already on it, and a `disabled` button loses focus to the body as it turns |
-| Tab name | Spelled out with `aria-label`. The label and the count are separate elements and join with no separator, which read as "A1 · Beginner1,000 words". A band whose visible label is an abbreviation carries a `name` too, so "D1" is called "Defining level 1" (3.1.4) — eight of those fit the row only abbreviated, and the glossary carries the expansion for everyone else |
+| Tab name | Spelled out with `aria-label`. The label and the count are separate elements and join with no separator, which read as "A1 · Beginner1,000 words". A band whose visible label is an abbreviation carries a `name` too, so "D1" is called "Defining level 1" (3.1.4) — the defining tabs fit only abbreviated, and the glossary carries the expansion for everyone else |
 | Word cloud | A `listbox` of `option`s, not a group — that is what says the arrow keys are there. The row wrappers are `role="presentation"` so the options stay owned by it |
 | `aria-setsize` / `aria-posinset` | Stated, not counted. Only the rows near the viewport are in the DOM, so a chip's place in the band cannot be inferred from it |
 | The chips' widths | Measured on a canvas from a hidden probe chip, never from the DOM, since the rows are packed before they are rendered. A `ResizeObserver` watches the probe as well as the container, so a text-spacing override (1.4.12) or a late font re-measures rather than clipping the last chip of every row |

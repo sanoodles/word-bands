@@ -11,6 +11,7 @@ import WordSearchBox from "@/components/WordSearchBox";
 import type { BandView, WordBands } from "@/lib/types";
 import {
   DEFAULT_SOURCE,
+  DEFINING_LEVEL_COUNT,
   englishName,
   hasDefining,
   isSourceLang,
@@ -230,6 +231,7 @@ const CORPUS_LINK = "tw-underline hover:tw-text-primary";
  * because that is the block the terms come from.
  */
 function Glossary({ source }: { source: SourceLang }) {
+  const levelCount = DEFINING_LEVEL_COUNT[source];
   // Line height inline, on the whole block: Fondue's x-small token sets 1.33 and a
   // utility class loses to it — which is 1.4.8 for the prose, and 2px off the summary's
   // 44px target for the control.
@@ -257,18 +259,18 @@ function Glossary({ source }: { source: SourceLang }) {
         <dd className="tw-mb-2 tw-ml-0">
           A word’s place in the list, most common first. Rank 1 is the commonest word.
         </dd>
-        {hasDefining(source) ? (
+        {levelCount ? (
           <>
             <dt className="tw-font-medium">Defining vocabulary</dt>
             <dd className="tw-mb-2 tw-ml-0">
               The words a dictionary uses to write its own entries. D1 is the core of that
-              set. D7 is never used to explain anything.
+              set. D{levelCount} is never used to explain anything.
             </dd>
             <dt className="tw-font-medium">K-core decomposition</dt>
             <dd className="tw-mb-2 tw-ml-0">
-              How the seven levels are worked out. It reads the dictionary as a network of
-              which word explains which, then peels it one layer at a time. Each layer is
-              one level.
+              How the {levelCount} levels are worked out. It reads the dictionary as a
+              network of which word explains which, then peels it one layer at a time. Each
+              layer is one level.
             </dd>
           </>
         ) : null}

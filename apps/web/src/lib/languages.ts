@@ -15,17 +15,26 @@ export type TargetLang = string;
 export const DEFAULT_SOURCE: SourceLang = "en";
 
 /**
- * Languages that carry defining levels, so `view=defining` is offered for them.
- * `bands.viewsFor` answers from the loaded artifact instead; `bands.test.ts` proves the
- * two agree.
- * @spec BAND-11
+ * Languages that carry defining levels, so `view=defining` is offered for them, and how many
+ * levels each one's dictionary peels into. `bands` answers from the loaded artifact instead;
+ * `bands.test.ts` proves the two agree.
+ * @spec BAND-11, BAND-15
  */
-export const DEFINING_LANGS: readonly SourceLang[] = ["pt", "it"];
+export const DEFINING_LEVEL_COUNT: Partial<Record<SourceLang, number>> = { pt: 7, it: 7, fr: 14 };
+
+export const DEFINING_LANGS = Object.keys(DEFINING_LEVEL_COUNT) as readonly SourceLang[];
 
 export const hasDefining = (l: SourceLang) => DEFINING_LANGS.includes(l);
 
-/** An A1 word at D7 in each language with defining levels, named by the figure's caption. */
-export const DEFINING_EXAMPLE: Partial<Record<SourceLang, string>> = { pt: "olá", it: "ciao" };
+/** A word's defining level from its one-character code: a base-36 digit, or "-" for none. */
+export const definingLevel = (c: string): number | null => (c === "-" ? null : parseInt(c, 36));
+
+/** An A1 word at the bottom level of each language with defining levels, named by the caption. */
+export const DEFINING_EXAMPLE: Partial<Record<SourceLang, string>> = {
+  pt: "olá",
+  it: "ciao",
+  fr: "allô",
+};
 
 export function isSourceLang(v: string): v is SourceLang {
   return (SOURCE_LANGS as readonly string[]).includes(v);

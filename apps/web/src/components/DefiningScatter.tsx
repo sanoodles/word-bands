@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useThemeToggle } from "@/app/providers";
 import Loading from "@/components/Loading";
-import { DEFINING_EXAMPLE, type SourceLang } from "@/lib/languages";
+import { DEFINING_EXAMPLE, definingLevel, type SourceLang } from "@/lib/languages";
 
 /**
  * The defining view's figure: every levelled word as a point, frequency across, defining
@@ -30,7 +30,6 @@ const CEFR_BANDS: { key: string; max: number | null }[] = [
   { key: "C1", max: 25000 },
   { key: "C2", max: null },
 ];
-const LEVELS = 7;
 // Two label rows sit under the plot: the ranks the stripes break at, then the band names.
 const PAD = { top: 10, right: 12, bottom: 40, left: 38 };
 /** Point radius, and the hit radius around the pointer, in CSS pixels. */
@@ -66,8 +65,10 @@ const CURSOR = 22;
 const TIP_H = 26;
 
 interface Points {
-  /** One char per ranked word: "1"-"7", or "-" for a word with no level. */
+  /** One char per ranked word: its level as a base-36 digit, or "-" for a word with no level. */
   levels: string;
+  /** How many levels the language's dictionary peels into, one row of the plot each. */
+  levelCount: number;
   words: string[];
 }
 
@@ -84,14 +85,15 @@ function xOf(rank: number, w: number, total: number): number {
   return PAD.left + t * (w - PAD.left - PAD.right);
 }
 
-function yOf(level: number, off: number, h: number): number {
-  const band = (h - PAD.top - PAD.bottom) / LEVELS;
+// @spec BAND-15
+function yOf(level: number, off: number, h: number, levelCount: number): number {
+  const band = (h - PAD.top - PAD.bottom) / levelCount;
   return PAD.top + (level - 0.5) * band + off * band * 0.7;
 }
 
 /**
- * Stable per-word vertical offset inside its level band. The level is 7 discrete values,
- * so without this every point stacks on seven straight lines and the density is invisible.
+ * Stable per-word vertical offset inside its level band. The level is a few discrete values,
+ * so without this every point stacks on a few straight lines and the density is invisible.
  * Hashed from the word rather than random, so points never move between repaints.
  */
 function jitter(word: string): number {
@@ -109,7 +111,7 @@ function jitter(word: string): number {
  * Positioned from the same geometry the points are, so a label sits on its own row or
  * column whatever the figure is resized to.
  */
-function Labels({ size, total }: { size: Plot; total: number }) {
+function Labels({ size, total, levelCount }: { size: Plot; total: number; levelCount: number }) {
   const { w, h } = size;
   const edges = [0, ...CEFR_BANDS.map((b) => b.max ?? total)];
   const xAt = (rank: number) => xOf(rank, w, total);
@@ -123,11 +125,15 @@ function Labels({ size, total }: { size: Plot; total: number }) {
   return (
     // Names the rows it is made of; the canvas beside it carries the whole claim.
     <div aria-hidden="true" className="tw-pointer-events-none tw-absolute tw-inset-0">
-      {Array.from({ length: LEVELS }, (_, i) => i + 1).map((l) => (
+      {Array.from({ length: levelCount }, (_, i) => i + 1).map((l) => (
         <span
           key={l}
           className={label}
-          style={{ left: gutter, top: yOf(l, 0, h), transform: "translate(-100%, -50%)" }}
+          style={{
+            left: gutter,
+            top: yOf(l, 0, h, levelCount),
+            transform: "translate(-100%, -50%)",
+          }}
         >
           D{l}
         </span>
@@ -185,12 +191,12 @@ export function nearestWord(
   const total = points.words.length;
   let best: { word: string; d: number } | null = null;
   for (let i = 0; i < total; i++) {
-    const c = points.levels[i]!;
-    if (c === "-") continue;
+    const level = definingLevel(points.levels[i]!);
+    if (level === null) continue;
     const dx = xOf(i + 1, plot.w, total) - px;
     if (dx > r || dx < -r) continue;
     const word = points.words[i]!;
-    const dy = yOf(+c, jitter(word), plot.h) - py;
+    const dy = yOf(level, jitter(word), plot.h, points.levelCount) - py;
     const d = dx * dx + dy * dy;
     if (d <= r * r && (!best || d < best.d)) best = { word, d };
   }
@@ -321,11 +327,11 @@ export default function DefiningScatter({
     ctx.fillStyle = ink;
     ctx.globalAlpha = dark ? ALPHA.point.dark : ALPHA.point.light;
     for (let i = 0; i < total; i++) {
-      const c = points.levels[i]!;
-      if (c === "-") continue;
+      const level = definingLevel(points.levels[i]!);
+      if (level === null) continue;
       const word = points.words[i]!;
       const x = xOf(i + 1, w, total);
-      const y = yOf(+c, jitter(word), h);
+      const y = yOf(level, jitter(word), h, points.levelCount);
       if (anchor && word.toLowerCase() === anchor) {
         anchorAt = [x, y];
         continue;
@@ -408,8 +414,8 @@ export default function DefiningScatter({
     <figure className="tw-m-0">
       <div
         ref={wrapRef}
-        // Taller as it gets wider, or the plot flattens: seven bands across 1,700px at a
-        // fixed 420 is a 4:1 letterbox, and the jitter inside each band stops reading.
+        // Taller as it gets wider, or the plot flattens: the level bands across 1,700px at a
+        // fixed 420 are a 4:1 letterbox, and the jitter inside each band stops reading.
         className={
           "tw-relative tw-h-[min(52svh,360px)] tw-w-full tw-text-secondary " +
           "min-[700px]:tw-h-[420px] min-[1200px]:tw-h-[480px] min-[1600px]:tw-h-[540px]"
@@ -435,7 +441,9 @@ export default function DefiningScatter({
           onClick={onPick}
           style={{ cursor: hover ? "pointer" : "default" }}
         />
-        {size && points && <Labels size={size} total={points.words.length} />}
+        {size && points && (
+          <Labels size={size} total={points.words.length} levelCount={points.levelCount} />
+        )}
         {hover && (
           <span
             aria-hidden
@@ -471,16 +479,16 @@ export default function DefiningScatter({
             Commonest words at the left, defining level up — not a difficulty scale
           </summary>
           {levelled.toLocaleString()} words. D1 at the top is the core the dictionary defines
-          everything else with; D7 at the bottom is never used in a definition at all. That makes
-          D1 a defining vocabulary in the Longman sense — one the dictionary&rsquo;s usage reveals,
-          rather than one an editor fixes in advance. The numbers across the bottom are ranks, not
-          counts: 6k is the 6,000th commonest word, so the further right a point sits, the rarer
-          it is. The vertical lines divide the CEFR bands, named in the row beneath — A1 the
-          first thousand words, C2 the rarest.{" "}
+          everything else with; D{points.levelCount} at the bottom is never used in a definition
+          at all. That makes D1 a defining vocabulary in the Longman sense — one the
+          dictionary&rsquo;s usage reveals, rather than one an editor fixes in advance. The
+          numbers across the bottom are ranks, not counts: 6k is the 6,000th commonest word, so
+          the further right a point sits, the rarer it is. The vertical lines divide the CEFR
+          bands, named in the row beneath — A1 the first thousand words, C2 the rarest.{" "}
           {example && (
             <>
-              <span lang={source}>{example}</span> is A1 vocabulary sitting at D7, which is what
-              &ldquo;not a difficulty scale&rdquo; means.{" "}
+              <span lang={source}>{example}</span> is A1 vocabulary sitting at
+              D{points.levelCount}, which is what &ldquo;not a difficulty scale&rdquo; means.{" "}
             </>
           )}
           Pick a point to look it up.
