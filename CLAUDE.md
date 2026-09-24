@@ -178,7 +178,9 @@ list alone is the stricter judge, and here strictness is the point.
 These are the one input with a **binary** behind them: `spellDict` shells out to
 `hunspell`, so no language will build without it on `PATH`. Nothing else does, and nothing
 outside `build:bands` does — CI and Vercel read the committed artifact and never run the
-build. They are also the one input under the GPL, which the others are not.
+build. They are also the one input under the GPL, which the others are not — and whether
+the committed artifact is a derived work of a GPL dictionary is an open question nobody
+has answered. The licence is named here; the question is not settled here.
 
 | Command | Does |
 | --- | --- |
@@ -192,7 +194,7 @@ it to `SOURCE_LANG_META`, and add the registry import in `bands.ts`.
 
 | Filter | Knob | Rule | Effect |
 | --- | --- | --- | --- |
-| Frequency floor | `minCount` | Drop words under 10 raw occurrences | Below that the OpenSubtitles tail is mostly hapax noise. Stated in occurrences, not rank, so it means the same in every language. Omitted for English, whose column is per-million |
+| Frequency floor | `minCount` | Drop words under 10 raw occurrences | Below that the OpenSubtitles tail is mostly hapax noise. Stated in occurrences, not rank, so it means the same in every language. Omitted for English, whose column is per-million. **Relaxing it is measured and rejected** — see below |
 | Clitics | `clitics`, `mesoEndings`, `cliticExceptions` | Strip pronouns hyphenated onto verbs and merge the frequency back into the verb | 24% of the pt list and 12% of fr. pt `lembrar` 333 → 177, fr `excuser` 761 → 297 |
 | Own-entry | — | A surface word that heads its own lemma entry keeps it, instead of merging into whichever lemma claims it | The lists are lemma-sorted, so plain first-wins hands a shared form to the alphabetically-first claimant. That deletes common words (it `governo` into `governare`, fr `tu` into `il`; 100–160 of the top 1,000 per language) and floats the absorber into the beginner bands |
 | Dictionary gate | `dictGate` | Past rank 25,000, keep a word only if the lemma list vouches for it | Drops about 80 junk words per real one. Omitted for English, whose source is curated |
@@ -202,6 +204,32 @@ it to `SOURCE_LANG_META`, and add the registry import in `bands.ts`.
 | Personal names | `determiners`, `NAME_RANK_FLOOR` | Drop a word meeting all four tests below | See the per-language counts below |
 | Display casing | `casingFile` | Measure each word's mid-sentence capitalization and store that casing | Sentence-initial position is ignored, since it capitalizes everything |
 | Case-homographs | — | Keep both casings of one entry under `variants` | `"essen" -> ["Essen","essen"]`, most frequent first. `getWord` returns them as `forms` |
+
+### Below the frequency floor, and why it stays at 10
+
+`minCount: 10` is the binding constraint on real-but-rare words, and lowering it is the
+one option here that was measured and **rejected outright**. Do not revisit it without
+new data.
+
+Measured on German at counts 3–9: 176,647 words land nowhere. The best filter found
+(hunspell plus a lemma-shaped test) admits 41,241 of them at about 3:1, and a 40-word
+random sample of those held ~10 duds — inflected forms (`sondereinsätzen`,
+`überschaubare`), nonce compounds (`drachenpanzer`), place names (`tölz`). Stricter
+variants are *worse*: `.dic`-stems-only runs ~2.7:1, because the `.dic` carries proper
+nouns (`montesquieu`, `skagerrak`, `ludwigsburg`).
+
+The ratio is not the deciding number. **Every sub-floor word is rarer than every word
+already in the list**, so they can only stack below it:
+
+| Where the 41,241 land | Count |
+| --- | --- |
+| German index | 35,630 → 76,871, more than double |
+| A1–C1 | **0** |
+| C2 / `rare` | 14,370 / 26,871 |
+
+Doubling the index to fill two bands nobody browses, at 3:1, is the worst trade available.
+It also fails its own motivation: it gets `Strichpunkt` and `polyglott` but not `Vergabe`
+or `Semikolon`, which sit *above* the floor and were dictionary-gate casualties.
 
 ### Clitics
 
@@ -319,7 +347,30 @@ German words; it is still the first place to look when the build stops generalis
 
 It does not touch loanwords: `Semikolon` and `polyglott` have no German morphology to grab,
 and only a dictionary would admit them. That was the measured trade — the combined
-hunspell variant would have taken them at roughly a third of the precision.
+hunspell variant would have taken them at roughly a third of the precision. Hunspell
+*alone* past the gate is worse still, about 2:1, because it accepts inflections wholesale:
+it is a spell checker, and an inflected form is spelt correctly.
+
+### Words that are absent on purpose
+
+Four German words come up because they are the ones someone notices missing. None of them
+is a defect to be fixed:
+
+| Word | Why it is out | What would bring it back |
+| --- | --- | --- |
+| `Semikolon` | Loanword past the gate, with no German morphology to grab — the paragraph above | The hunspell-plus-morphology vouch, at about a third of `morphology`'s precision |
+| `polyglott` | Count 3, so below the floor, *and* no morphology | Nothing sensible |
+| `Strichpunkt` | Count 3, below the floor | Relaxing the floor, which is rejected above |
+| `Vergabestelle` | Count **1** in a 100M-word corpus | Nothing will ever justify it |
+
+### Two filters that look obviously right and are not
+
+Both were tried on the junk problem and both are worse than what the build does.
+
+| Idea | What actually happens |
+| --- | --- |
+| Cross-corpus attestation (Leipzig) as a junk filter | A dud. It scores `truck` 69 and `workshop` 93, gives the OCR fragment `cklich` 1,257, and has zero hits for `Strichpunkt` or `Semikolon` |
+| Longest-common-prefix for lemma disambiguation | Worse than `lemmaOf`. `worse`→`wrong`, `aale`→`aalen`, `acciones`→`accionar` |
 
 ### The head of the list, and the spell gate
 
@@ -799,6 +850,14 @@ re-flows on its own when Diatype replaces the fallback.
 | The overlay is `pointer-events-none` except the badge | Clicking the badge puts the caret at the end of the word, which is what a click just past the text means |
 | This badge alone is `padded` | 15×14 is under the 24px of 2.5.8, and here no sentence exempts it — the badge on a translation's term is inline in one, and padding it would space the words apart. The horizontal half comes back as margin, so the run keeps its width and the badge does not move |
 
+Three ways of keeping the overlay under forced colours were measured and none is takeable:
+
+| Instead of dropping it | Why not |
+| --- | --- |
+| `background-color: transparent !important` | It works, but only with `!important` — the same declaration without it computes identically and paints nothing back. Too fine a precedence quirk to hang the field on |
+| `forced-color-adjust: none` | Opts the badge out of the forced palette, which is the one thing the reader asked for |
+| Moving the overlay or the input in z order | Puts the badge behind an input that forced colours then fill opaquely |
+
 ## Width on a phone
 
 `GUTTER` in `page.tsx` is the page's side padding — 12px on a phone, 24 at 700, 40 at 900
@@ -1024,6 +1083,13 @@ What is left under 44 is left on purpose, and the probe still lists it:
 | The badge in the search field, 24 | It activates the field it sits in rather than anything of its own. 24 is 2.5.8's floor, which is what it was sized to |
 | The figure's points, 14 for a mouse | 44 for touch already. Spacing thousands of points 44 apart is the one thing that would destroy the figure, and the cloud below browses the same words |
 
+Two ways of reaching 44 that do not:
+
+| Instead of | Why not |
+| --- | --- |
+| A pseudo-element hit area | Invisible to a probe reading element rectangles, so it cannot be measured. Real padding can |
+| Padding without setting the line height | Fondue's x-small token sets 1.33, so the arithmetic lands 2px short. Set the line height inline on the block, as the caption and the credits do |
+
 ### Focus and selection in the search field
 
 | Rule | Why |
@@ -1175,7 +1241,26 @@ around:
 
 `build:check` leaves one tracked file dirty: Next rewrites `next-env.d.ts` to import
 `./.next-build/types/routes.d.ts`. Check it out again afterwards, or the committed file
-points at a directory only that command builds.
+points at a directory only that command builds. The `.next/dev/` form, the one including
+`root-params.d.ts`, is the committed one — do not revert that.
+
+## Confirming a deploy carried a change
+
+**Do not grep the deployed JS chunks.** Turbopack's paths defeat the obvious pattern, and
+a poller built on it runs its full timeout and then reports a false negative. Ask the app
+instead: `/api/word/<word>?source=<code>` for what the artifacts hold,
+`/api/bands/cefr?source=<code>` for the band counts, `pnpm a11y:check` for the markup and
+`pnpm decode:check` for the edge.
+
+## Git and GitHub from here
+
+| Trap | Detail |
+| --- | --- |
+| Branch protection's required status is a **job name** | `check`, in `pr.yml`. Renaming the job reports nothing and blocks every PR |
+| No GitHub API credentials | The SSH remote signs git operations and grants no API access. Unauthenticated the API is 60 requests an hour per IP, and a polling loop exhausts it — poll sparingly |
+| Merging a PR | Locally over SSH. A real `git merge --no-ff` keeps the PR head an ancestor, which is what makes GitHub close it as merged |
+| A Dependabot rebase is a force-push | `git fetch` rejects it as non-fast-forward, so it needs `--force` on the refspec |
+| A lockfile conflict | Never hand-merge `pnpm-lock.yaml`. Take the union of the manifests and run `pnpm install` to regenerate it |
 
 ## Dependency updates
 
