@@ -943,9 +943,9 @@ Everything else over it is HTML.
 | Rule | Why |
 | --- | --- |
 | Every label is HTML over the canvas | Drawn into it they were images of text: 2.29:1 in light, blind to a text-spacing override (1.4.12), and unscalable (1.4.9). They lay out from the same geometry the points do, off the `size` state `paint` sets |
-| Both label rows take `text-muted-aaa` | 7.26:1 light and 7.54:1 dark, so 1.4.6 holds on both. The band name is the heavier of the two by weight rather than by a second colour, since a second colour is what cost the row above its contrast |
+| Both label rows take `text-muted-aaa` | 9.47:1 light and 7.54:1 dark, so 1.4.6 holds on both. The band name is the heavier of the two by weight rather than by a second colour, since a second colour is what cost the row above its contrast |
 | The ink alphas live in `ALPHA`, and `p3-states.mjs` holds a copy | A canvas has no computed style to read, so the probe recomputes the numbers from those alphas. The two must move together |
-| The points are 3.14:1 light and 4.03:1 dark | The darkest that leaves the cloud readable. The figure's whole claim is density, and at full ink the dense rows fill in solid — so this one is judged by eye as well as measured |
+| The points are 4.31:1 light and 4.03:1 dark | The darkest that leaves the cloud readable. The figure's whole claim is density, and at full ink the dense rows fill in solid — so this one is judged by eye as well as measured. The alphas were set against a lighter ink: the canvas takes its colour from the wrapper's `tw-text-secondary`, so darkening that tier lifted the points, the edges and the ring with it |
 | The bands are edges, not fills | The alternating fill was 1.10:1, a shade nobody could see; the boundary is what it was for. A half-pixel offset keeps the line 1px rather than a 2px smear |
 | The anchor dot carries a ring | `#f5c542` is 1.62:1 on the light ground. The dot is 11.65:1 in dark and needs nothing there, but the ring is drawn in both so one path draws it |
 
