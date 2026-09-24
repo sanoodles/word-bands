@@ -137,7 +137,7 @@ lemma-merged word ranking plus the band definitions.
 | `lemma-<code>.txt` | all | michmech/lemmatization-lists | Also the dictionary the filters below consult |
 | `casing-<code>.txt` | all | Leipzig Corpora *sentences* file, from `downloads.wortschatz-leipzig.de` | Named by `casingFile`. **Which corpus each language took is not recorded** — see below |
 | `names.txt` | shared | `smashew/NameDatabases` | Personal-name gazetteer, one name a line |
-| `de_DE_frami.{dic,aff}` | de | `LibreOffice/dictionaries`, `de/` — igerman98 | Hunspell spell checker. Named by `spellDict` |
+| `<base>.{dic,aff}` | all | `LibreOffice/dictionaries` | Hunspell spell checkers. Named by `spellDict`, one base per file, listed below |
 
 Take `_full.txt` because the cut belongs in code, where it is version-controlled, not in
 whichever file someone happened to download.
@@ -150,10 +150,35 @@ their sentences talk about put German at 2022 and the other five at 2023 — so
 `deu_news_2022_1M` and five 2023 siblings, which is inferred and not a record. Write the
 download name here when next replacing one.
 
-The German dictionary is the one input with a **binary** behind it: `spellDict` shells out
-to `hunspell`, so that language will not build without it on `PATH`. Nothing else does,
-and nothing outside `build:bands` does — CI and Vercel read the committed artifact and
-never run the build. It is also the one input under the GPL, which the others are not.
+Which dictionary each language takes, and from which directory of that repo:
+
+| Language | `spellDict` | Upstream path |
+| --- | --- | --- |
+| en | `["en_US", "en_GB"]` | `en/` |
+| es | `es_ES` | `es/` — the RLA set, one file per country |
+| fr | `fr` | `fr_FR/dictionaries/` — Dicollecte, the *classique* list |
+| de | `de_DE_frami` | `de/` — igerman98 |
+| pt | `["pt_PT", "pt_BR"]` | `pt_PT/` and `pt_BR/` |
+| it | `it_IT` | `it_IT/` |
+
+**Two where one orthography is not the whole language.** hunspell takes several
+dictionaries comma-separated and accepts a word any of them holds, which is the only way
+past a gate that would otherwise drop one country's spellings wholesale: `pt_PT` alone
+refuses `objectivo`, `pt_BR` alone refuses `direcção`, and `en_US` alone refuses `honour`,
+`favourite`, `realise` and `licence`.
+
+Spanish is the one where a second dictionary was measured and **rejected**. The RLA set has
+a file per country, and adding `es_MX`, `es_AR` and `es_CO` to `es_ES` rescues 218 words of
+which about ten are Spanish: the voseo forms `tenés`, `sabés`, `querés` and `mirá`, plus
+`papi`, `sandwich` and `banana`. The rest is what those files carry that the European one
+does not — `john`, `lincoln`, `arizona`, `alaska`, `praga`, `facebook`, `google`, `twitter`,
+`apple` — and the accentless misspellings `tio`, `dificil`, `corazon` and `dejame`. Spain's
+list alone is the stricter judge, and here strictness is the point.
+
+These are the one input with a **binary** behind them: `spellDict` shells out to
+`hunspell`, so no language will build without it on `PATH`. Nothing else does, and nothing
+outside `build:bands` does — CI and Vercel read the committed artifact and never run the
+build. They are also the one input under the GPL, which the others are not.
 
 | Command | Does |
 | --- | --- |
@@ -170,9 +195,9 @@ it to `SOURCE_LANG_META`, and add the registry import in `bands.ts`.
 | Frequency floor | `minCount` | Drop words under 10 raw occurrences | Below that the OpenSubtitles tail is mostly hapax noise. Stated in occurrences, not rank, so it means the same in every language. Omitted for English, whose column is per-million |
 | Clitics | `clitics`, `mesoEndings`, `cliticExceptions` | Strip pronouns hyphenated onto verbs and merge the frequency back into the verb | 24% of the pt list and 12% of fr. pt `lembrar` 333 → 177, fr `excuser` 761 → 297 |
 | Own-entry | — | A surface word that heads its own lemma entry keeps it, instead of merging into whichever lemma claims it | The lists are lemma-sorted, so plain first-wins hands a shared form to the alphabetically-first claimant. That deletes common words (it `governo` into `governare`, fr `tu` into `il`; 100–160 of the top 1,000 per language) and floats the absorber into the beginner bands |
-| Dictionary gate | `dictGate` | Past rank 25,000, keep a word only if the lemma list vouches for it | Drops about 80 junk words per real one. Lands the five subtitle languages at 33–40k words each, near where English's SUBTLEX ends on its own |
-| Spell gate | `spellDict` | *Below* rank 25,000, drop a word the language's own spell checker rejects | −4,561 in German. The other half of the same list — see below |
-| Truncated stems | `spellDict`, `STEM_MIN_FORM` | Move an entry off a lemma headword that is not a word of the language | 14 in German. `jed` → `jeder`, `mehrer` → `mehrere` |
+| Dictionary gate | `dictGate` | Past rank 25,000, keep a word only if the lemma list vouches for it | Drops about 80 junk words per real one. Omitted for English, whose source is curated |
+| Spell gate | `spellDict`, `spellVariants` | *Below* rank 25,000, drop a word the language's own spell checker rejects in every spelling | 1,379 to 7,204 a language. The other half of the same list — see below |
+| Truncated stems | `spellDict`, `STEM_MIN_FORM` | Move an entry off a lemma headword that is not a word of the language | 14 in German, 2 to 6 elsewhere. `jed` → `jeder`, `mehrer` → `mehrere` |
 | Morphology | `morphology` | Past `dictGate`, keep a word the language's own compounding or derivation accounts for | +17,887 in German, taking it 35.6k → 53.5k. See below |
 | Personal names | `determiners`, `NAME_RANK_FLOOR` | Drop a word meeting all four tests below | See the per-language counts below |
 | Display casing | `casingFile` | Measure each word's mid-sentence capitalization and store that casing | Sentence-initial position is ignored, since it capitalizes everything |
@@ -210,7 +235,7 @@ no entry for `ryûji` or `rrr`. The dictionary can, which is what `dictGate` use
 
 | Known cost | Detail |
 | --- | --- |
-| Not used for English | Its source is curated and its lemma list is the smallest by far, 808KB against French's 4.9MB. Gating it would cut 11k mostly-real words |
+| Not used for English | Its source is curated and its lemma list is the smallest by far, 808KB against French's 4.9MB. Gating it would cut 11k mostly-real words. The spell gate below still runs there, since it judges the head rather than the tail |
 | Real words lost | 1–3% of what the gate drops, 900–2,700 per language |
 | Where they cluster | Productive morphology the lists do not headword: `-mente`/`-ment` adverbs, `-ità`/`-ité` nouns, superlatives — `logicamente`, `unanimità`, `rigoureusement`, `Geborgenheit` |
 | Spot-check | Italian's list has no `entropia`, so the build's spot-check for it reports `—` |
@@ -238,7 +263,7 @@ Where the 7,565 sit, and what runs there:
 | Rank | Count | The test in force |
 | --- | --- | --- |
 | 1–1,000 | 20 | None. `NAME_RANK_FLOOR` exempts the head |
-| 1,001–24,999 | 7,545 | The name gazetteer alone. No dictionary test: `dictGate` starts at 25,000 and only German has a `spellDict` |
+| 1,001–24,999 | 7,545 | The name gazetteer, and now the spell gate. `dictGate` starts at 25,000 and never reached here |
 | 25,000+ | 0 | `dictGate`. Nothing past it is unvouched |
 
 So the gate holds perfectly and the whole hole is below it. It is also not the 12k–25k of
@@ -259,6 +284,12 @@ untranslated English (`The`, `of`, `and`, `New`, `City`), accentless and pre-ref
 | --- | --- |
 | A candidate list, not a drop list | `bem-vindos`, `bem-vinda`, `directamente` and `Iorque` are ordinary Portuguese sitting in the second group |
 | Portuguese only | Repeating it needs that language's Wiktionary extract — 339MB per language, which is what the spike downloads |
+
+**The spell gate is what answers this.** Crossed against the current artifact, 6,504 of
+the 7,565 are not in it — 86%. What is left is 1,061 words, headed by `john jack sam michael frank mike peter george max
+james alex` — first names the Portuguese dictionaries hold, so the checker vouches for them
+as readily as the gazetteer refuses to. A spell checker cannot be the judge of a name, and
+neither can `names.txt`, which is where `NAME_RANK_FLOOR` already conceded the point.
 
 ### Morphology, the second way past the gate
 
@@ -293,8 +324,13 @@ hunspell variant would have taken them at roughly a third of the precision.
 ### The head of the list, and the spell gate
 
 The dictionary gate answers the tail. The head has the opposite problem and needs the
-opposite tool, so `spellDict` runs a Hunspell dictionary over everything *below*
-`dictGate` and drops what it refuses. `FILTER-9` is the rule.
+opposite tool, so `spellDict` runs a Hunspell dictionary over everything *below* rank
+25,000 and drops what it refuses. `FILTER-9` is the rule, and every language has one.
+
+The bound is `DICT_GATE`, but it is not the dictionary gate's to set: 25,000 is where a
+checker stops being right about a corpus, which is a property of the checker. English has
+no `dictGate` and still has a head worth cleaning, so `spellGate` takes the lower of the
+two rather than reading `cfg.dictGate`.
 
 Measured against German at rank 25,000, the two sources' blind spots are mirror images:
 
@@ -312,12 +348,51 @@ vandal. Run on the head it removes `elizabeth` (frequency 5,084), `up`, `janet`,
 `squad` and `scouts` — and every one of its 4,561 drops is below rank 25,000 by
 construction, which is the range anyone browses.
 
-Either casing passing is enough, so a word is refused only when neither spelling is a
-word. Without that, German's own capitalization decides vocabulary questions.
+A word is refused only when **none of the spellings its language writes it in** is a word.
+Both casings, or German's own capitalization decides vocabulary questions. Plus whatever
+`spellVariants` adds, which is French's ligature: the corpus writes `oeil`, `coeur` and
+`soeur`, the dictionary holds `œil`, `cœur` and `sœur`, and `œ` is on no keyboard. Asking about
+the ligature too keeps 26 French words, every one of them real, and admits no junk —
+`goes`, `moe` and `tahoe` are no more words with the ligature than without it.
 
-The cost is the ~11% it takes with them: real words the dictionary lacks (`Viech`,
-`Klunker`, `rabauke`) and pre-1996 spellings (`daß`, `Haß`, `Imbiß`), which igerman98
-is post-reform and does not carry.
+The cost in German is the ~11% it takes with them: real words the dictionary lacks
+(`Viech`, `Klunker`, `rabauke`) and pre-1996 spellings (`daß`, `Haß`, `Imbiß`), which
+igerman98 is post-reform and does not carry.
+
+#### What it does language by language
+
+German's ~89% is no guide to the rest, so each was measured the same way: dump the
+drop list, bucket it by CEFR band, and hand-audit ~20 random words a band. An evenly-spaced
+sample lies — it reads near-perfect where a random one reads 85–90%.
+
+| | en | es | fr | de | pt | it |
+| --- | --- | --- | --- | --- | --- | --- |
+| Dropped below 25,000 | 1,379 | 7,139 | 6,056 | 4,561 | 7,204 | 6,064 |
+| Share of that head | 5.5% | 28.6% | 24.2% | 18.2% | 28.8% | 24.3% |
+| Junk, in a hand-audit | ~85% | 92% | 94% | ~89% | 85% | 97% |
+| List size after | 38,322 | 32,102 | 28,788 | 53,517 | 28,623 | 27,416 |
+
+Every one of them is dominated by the same two kinds — untranslated English and the names
+the gazetteer's four-way test spared — which is what the section above measures for
+Portuguese. What differs is the third kind and the cost:
+
+| Language | The third kind of junk | What it takes with them |
+| --- | --- | --- |
+| en | Contraction debris the tokenizer left: `didn` at rank 87, `doesn`, `isn`, `wouldn`, `hasn`, ten more inside the top 800 | `tv`, `snuck`, `meds`, `arse` — abbreviations and the informal. Its 5.5% is the smallest because SUBTLEX is curated |
+| es | Accentless spellings: `aqui`, `asi`, `estan`, `habia` | Enclitic verb forms (`vámonos`, `llevémoslo`, `págame`), diminutives (`amiguito`, `bolsitas`), loanwords `picnic`, `surf`, `beicon` |
+| fr | Accentless spellings: `ca`, `plait`, `ecoutez`, `etais` | The 1990 rectifications, which the *classique* list refuses: `diner`, `entrainement`, `traitres` |
+| pt | The pre-AO90 orthography, which is most of the drop above rank 3,000: `exactamente`, `acção`, `directo`, `objecto` | 89 of those 166 have no reformed twin in the list, so they go outright — `correcto`, `acto`, `efectuar`. The other 77 keep theirs: `ação` 3,010, `exatamente` 1,306, `diretor` 3,129 |
+| it | Accent-stripped duplicates, and almost nothing else: `perche`, `piu`, `gia`, `citta`, `realta`, `verita` | Almost nothing, which is why it audits at 97%. `più` and `può` are the exception: neither has an accented entry, so the word leaves as an entry and stays only as a redirect, `più` → `molto` |
+
+The pt row is the same trade German already takes on `daß`: a reform makes the old spelling
+a misspelling, and the checker is post-reform. Italian's row is the opposite of a cost —
+`citta` and `perche` were entries beside `città` and `perché`, which is the duplicate the
+diacritic fold (`BAND-14`) exists to make unnecessary.
+
+| Measured and rejected | Why |
+| --- | --- |
+| Asking about the all-caps spelling too | It would keep `tv`, `gps`, `dvd` and the real acronyms `EEUU`, `OTAN`, `VIH`, `IVA` — and with them French's `ok`(133) and `ca`(158), and German's pre-1996 `ungewiß`, `bewußt`, `anschluß`, `rußland`, because uppercase `ß` is `SS`. It would change German's list for junk it does not have |
+| Adding `es_MX`, `es_AR`, `es_CO` to `es_ES` | 218 words back, ten of them Spanish. See the build-inputs table |
 
 ### Truncated lemma stems
 
@@ -339,6 +414,7 @@ a word. That is why this needs `spellDict` rather than the casing corpus alone.
 | --- | --- |
 | The repair picks the corpus-dominant form | The citation form for `jed` → `jeder`, but not for `ander` → `anderen`. Both are real words, so the wart is cosmetic |
 | A headword whose forms do not all extend it is left alone | A different defect: michmech maps *both* `Dach` and the past tense of `denken` onto `dachen`, and there is no splitting that from the list. The spell gate above drops `dachen` instead |
+| It runs wherever `spellDict` does, so in all six | German is where it is worth most — 14 repairs against 2 to 6 elsewhere, because michmech headwords German determiners on a bare stem and does not do the same to the Romance five |
 
 ### Personal names
 
@@ -358,7 +434,7 @@ would eat "que", "por", "he" and "she". Words dropped per language:
 
 | en | es | fr | de | pt | it |
 | --- | --- | --- | --- | --- | --- |
-| −1,126 | −2,495 | −2,790 | −2,185 | −1,737 | −2,316 |
+| −1,126 | −4,277 | −4,440 | −3,284 | −2,567 | −3,549 |
 
 Known wart: a few country names sit in the surname list and go with them — `england`,
 `france`, `africa`, `canada`, `india` (en), `francia` and `italia` (es), `italia` and
@@ -393,7 +469,7 @@ Past C2 sits `rare` ("Rare · beyond C2"), open-ended at `max: null`.
 | --- | --- |
 | Tops roughly double, so C2 ends at 50k | Rather than running open-ended to the end of the list |
 | `rare` past it is open-ended | It is what lets `getWord` assert a band exists at every rank — keep `max: null` on whichever band is last |
-| **German reaches it and the other five do not** | The morphology vouch buys back ~18k compounds, taking the list past 50k, while `dictGate` keeps the Romance five inside C2 |
+| **German reaches it and the other five do not** | The morphology vouch buys back ~18k compounds, taking the list past 50k, while `dictGate` and the spell gate keep the other five inside C2 |
 | Both lists are filtered to bands that hold words | An unreached `rare` renders no empty tab, so German alone shows a seventh |
 
 **No language has a CEFR source of its own.** The whole calibration is one English
@@ -428,7 +504,10 @@ past 7,000, and calls `corpse`, `convict` and `trauma` C1 where subtitles put th
 3,000. A1 words carrying one of the profile's syllabus-topic tags have median rank 1,154
 against 449 for the untagged, which is that difference made countable.
 
-The profiles are not committed, so this run is not reproducible from the repo.
+The profiles are not committed, so this run is not reproducible from the repo, and it was
+made against an English list 1,379 words longer — the spell gate has taken the contraction
+debris out of the head since. What it dropped is what no CEFR profile headwords, so the
+figures are expected to hold; nothing has re-measured them.
 
 Comparing one language against another through the bands is the weaker reading. The six
 agree almost everywhere, and where they disagree it is usually a word within 20% of a
@@ -470,7 +549,7 @@ To add a language: emit its levels in the defining-vocabulary repo, add it to
 
 | Known cost | Detail |
 | --- | --- |
-| Accent misspellings show beside the real word | They are entries of their own, below the dictionary gate (see *Measuring what the gate misses*). pt `nao` lists `não`, `näo`, `nâo`, `năo`, `náo`, `nào` |
+| The spell gate is what keeps a misspelling out of the list | The fold reaches every entry whose accents come off to the query, so an accentless duplicate would sit beside the real word. pt `nao` lists `não` and its two compounds, not `näo` `nâo` `năo` `náo` `nào` — and it is the gate holding that, not the fold |
 
 ## Looking a word up by an inflected form
 

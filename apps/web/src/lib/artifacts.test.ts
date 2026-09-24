@@ -106,17 +106,47 @@ describe("truncated lemma stems", () => {
 
 // The head of the list and its tail need different judges. Past the gate a spell checker
 // rejects the colloquial tail wholesale, but below it the corpus's junk is untranslated
-// English and the personal names the gazetteer's four-way test spared.
+// English, the personal names the gazetteer's four-way test spared, and the accents a
+// subtitle typist left off.
 // @spec FILTER-9
 describe("spell gate", () => {
-  it("holds no untranslated English, and no name the gazetteer spared", () => {
-    for (const w of ["the", "you", "dad", "mom", "night", "up", "squad", "scouts",
-      "elizabeth", "janet", "beverly", "mccarthy"]) expect(held("de", w), w).toBe(false);
+  it("holds no untranslated English, no name the gazetteer spared, and no misspelling", () => {
+    for (const [lang, ...words] of [
+      ["de", "the", "you", "dad", "mom", "night", "up", "squad", "scouts",
+        "elizabeth", "janet", "beverly", "mccarthy"],
+      ["en", "didn", "doesn", "isn", "wouldn", "hasn", "tellin", "sookie"],
+      ["es", "the", "hey", "john", "aqui", "asi", "estan", "habia"],
+      ["fr", "the", "you", "ok", "plait", "ecoutez", "batman", "etais"],
+      ["pt", "the", "mr", "nao", "charlie", "familia", "capitao"],
+      ["it", "the", "wow", "john", "piu", "citta", "perche", "realta"],
+    ] as const) for (const w of words) expect(held(lang, w), `${lang} ${w}`).toBe(false);
   });
 
-  it("keeps the ordinary German that sits at the same ranks", () => {
-    for (const w of ["Wasser", "Regierung", "Dach", "denken", "Brot", "Liebe"]) {
-      expect(held("de", w), w).toBe(true);
+  it("keeps the ordinary vocabulary sitting at the same ranks", () => {
+    for (const [lang, ...words] of [
+      ["de", "Wasser", "Regierung", "Dach", "denken", "Brot", "Liebe"],
+      ["en", "water", "government", "sneak", "medication"],
+      ["es", "agua", "casa", "ciudad", "dámelo"],
+      ["fr", "eau", "maison", "ouais", "gouvernement"],
+      ["pt", "água", "exatamente", "diretor", "espetáculo"],
+      ["it", "acqua", "città", "perché", "realtà"],
+    ] as const) for (const w of words) expect(held(lang, w), `${lang} ${w}`).toBe(true);
+  });
+
+  // One orthography is not the whole language: the checker is asked both lists at once,
+  // or it would drop one country's spellings wholesale.
+  it("keeps both orthographies where the language has two", () => {
+    for (const w of ["honour", "favourite", "realise", "colour", "honor", "favorite",
+      "realize", "color"]) expect(held("en", w), w).toBe(true);
+    for (const w of ["autocarro", "comboio", "telemóvel", "ônibus", "trem",
+      "celular"]) expect(held("pt", w), w).toBe(true);
+  });
+
+  // French writes "coeur" where its dictionary holds "cœur", and the ligature is on no
+  // keyboard. Refusing a word only when no spelling of it is a word is what keeps them.
+  it("keeps a spelling the checker takes only in its other form", () => {
+    for (const w of ["oeil", "coeur", "soeur", "oeuvre", "manoeuvre", "foetus"]) {
+      expect(held("fr", w), w).toBe(true);
     }
   });
 });

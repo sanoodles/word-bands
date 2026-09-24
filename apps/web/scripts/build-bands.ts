@@ -146,9 +146,20 @@ interface LangConfig {
   dictGate?: number;
   /**
    * Hunspell dictionary basename in `data/` (a `.dic` plus an `.aff`), consulted below
-   * `dictGate` — see `spellRejects`. Absent = the head of the list is not checked.
+   * `DICT_GATE` — see `spellRejects`. Absent = the head of the list is not checked.
+   * Several where one orthography is not the whole language: Portuguese needs both the
+   * European and the Brazilian list, and English both en_US and en_GB, or the gate drops
+   * one side's spellings wholesale.
    */
-  spellDict?: string;
+  spellDict?: string | string[];
+  /**
+   * Further spellings of a word to ask the checker about, as literal replacements. French
+   * writes "coeur" where its dictionary holds "cœur", and the ligature is on no keyboard,
+   * so without this the gate takes "oeil", "coeur" and "soeur" with it. Same trade as the
+   * two casings: a word is refused only when none of the spellings the language writes it
+   * in is a word.
+   */
+  spellVariants?: [string, string][];
   /**
    * Word-formation this language spells inside a single word, for `vouchMorphology`:
    * the linking morphemes a compound joins with, and the prefixes and suffixes a
@@ -169,6 +180,7 @@ const LANGS: Record<string, LangConfig> = {
     code: "en",
     freq: { file: "subtlex.csv", format: "csv", wordCol: "Word", freqCol: "SUBTLWF" },
     lemmaFile: "lemma-en.txt",
+    spellDict: ["en_US", "en_GB"],
     singleLetterOk: new Set(["a", "i"]),
     fragments: new Set(["re", "ll", "ve", "em", "im", "n", "st", "nd", "rd", "th"]),
     spotChecks: ["the", "be", "water", "government", "philosophy", "entropy", "photosynthesis"],
@@ -184,6 +196,7 @@ const LANGS: Record<string, LangConfig> = {
     freq: { file: "freq-es.txt", format: "list", wordCol: 0, freqCol: 1, minCount: MIN_COUNT },
     lemmaFile: "lemma-es.txt",
     dictGate: DICT_GATE,
+    spellDict: "es_ES",
     singleLetterOk: new Set(["a", "y", "o", "e", "u"]),
     fragments: new Set(),
     spotChecks: ["de", "ser", "agua", "gobierno", "filosofía", "entropía"],
@@ -199,6 +212,8 @@ const LANGS: Record<string, LangConfig> = {
     freq: { file: "freq-fr.txt", format: "list", wordCol: 0, freqCol: 1, minCount: MIN_COUNT },
     lemmaFile: "lemma-fr.txt",
     dictGate: DICT_GATE,
+    spellDict: "fr",
+    spellVariants: [["oe", "œ"]],
     singleLetterOk: new Set(["à", "a", "y"]),
     fragments: new Set(["sync"]),
     spotChecks: ["de", "être", "eau", "gouvernement", "philosophie", "entropie"],
@@ -251,6 +266,7 @@ const LANGS: Record<string, LangConfig> = {
     freq: { file: "freq-pt.txt", format: "list", wordCol: 0, freqCol: 1, minCount: MIN_COUNT },
     lemmaFile: "lemma-pt.txt",
     dictGate: DICT_GATE,
+    spellDict: ["pt_PT", "pt_BR"],
     singleLetterOk: new Set(["a", "o", "e", "é", "à", "á"]),
     fragments: new Set(["pt-subs", "pt-pt"]),
     spotChecks: ["que", "ser", "água", "governo", "filosofia", "entropia"],
@@ -278,6 +294,7 @@ const LANGS: Record<string, LangConfig> = {
     freq: { file: "freq-it.txt", format: "list", wordCol: 0, freqCol: 1, minCount: MIN_COUNT },
     lemmaFile: "lemma-it.txt",
     dictGate: DICT_GATE,
+    spellDict: "it_IT",
     singleLetterOk: new Set(["a", "e", "è", "i", "o"]),
     fragments: new Set(["srt"]),
     spotChecks: ["di", "essere", "acqua", "società", "filosofia", "entropia"],
@@ -500,7 +517,8 @@ const STEM_MIN_FORM = 20;
 function stemRepairs(
   formsOf: Map<string, string[]>,
   corpus: Map<string, CorpusStat>,
-  dictBase: string,
+  dictBase: string | string[],
+  variants?: [string, string][],
 ): Map<string, string> {
   const seen = (w: string) => corpus.get(w)?.tot ?? 0;
   const candidates = new Map<string, string>();
@@ -517,12 +535,12 @@ function stemRepairs(
   // adjective is nearly always written declined: bare "afrikanisch" occurs twice in a
   // million sentences, where "jed" occurs three times. Only a dictionary separates them,
   // so a headword is repaired only when the dictionary says it is not a word.
-  const notWords = spellRejects([...candidates.keys()], dictBase);
+  const notWords = spellRejects([...candidates.keys()], dictBase, variants);
   return new Map([...candidates].filter(([head]) => notWords.has(head)));
 }
 
 /**
- * The words below `dictGate` a spell checker of the language rejects.
+ * The words below `DICT_GATE` a spell checker of the language rejects.
  *
  * Past the gate this would be the wrong tool: a checker is thin on the colloquial verbs,
  * diminutives and superlatives the rare tail is made of, and rejects them wholesale. The
@@ -530,31 +548,56 @@ function stemRepairs(
  * spared and untranslated English, which is exactly what the checker knows is not the
  * language. So the two gates split the list between them at the same rank.
  *
- * Either casing passing is enough. The dictionary capitalizes nouns, and a checker takes
- * any word capitalized the way a sentence would capitalize it, so a word is only refused
- * when neither spelling is a word.
+ * A word is refused only when none of the spellings its language writes it in is a word:
+ * both casings, since the dictionary capitalizes nouns and a checker takes any word
+ * capitalized the way a sentence would, plus whatever `spellVariants` adds. Without that
+ * the orthography decides vocabulary questions — German's capitalization, French's
+ * ligature.
  * @spec FILTER-9
  */
-function spellRejects(words: string[], dictBase: string): Set<string> {
-  const dict = data(dictBase);
-  for (const ext of [".dic", ".aff"]) {
-    if (existsSync(dict + ext)) continue;
-    throw new Error(`${dictBase}${ext} is missing from data/ (see the build inputs table)`);
+function spellRejects(
+  words: string[],
+  dictBase: string | string[],
+  variants: [string, string][] = [],
+): Set<string> {
+  const bases = [dictBase].flat();
+  for (const base of bases) {
+    for (const ext of [".dic", ".aff"]) {
+      if (existsSync(data(base) + ext)) continue;
+      throw new Error(`${base}${ext} is missing from data/ (see the build inputs table)`);
+    }
   }
+  // hunspell takes several dictionaries comma-separated and accepts a word any of them
+  // holds, which is how one language spans two orthographies.
+  const dict = bases.map(data).join(",");
   const ask = (spell: (w: string) => string) => {
+    const asked = words.map(spell);
     const r = spawnSync("hunspell", ["-d", dict, "-l"], {
-      input: words.map(spell).join("\n") + "\n",
+      input: asked.join("\n") + "\n",
       encoding: "utf8",
       maxBuffer: 1 << 28,
     });
     // ENOENT here is the binary missing, which is a broken toolchain rather than a
     // language with nothing to check — say so instead of silently keeping every word.
     if (r.error) throw new Error(`hunspell could not run: ${r.error.message}`);
-    return new Set(r.stdout.split(/\r?\n/).filter(Boolean).map((w) => w.toLowerCase()));
+    // It echoes the spelling it was given, so a variant's answer is read back by position
+    // rather than by name: "cœur" comes back as "cœur", and the word asked about is "coeur".
+    const bad = new Set(r.stdout.split(/\r?\n/).filter(Boolean));
+    return new Set(words.filter((w, i) => bad.has(asked[i]!)));
   };
-  const capped = ask((w) => w.charAt(0).toUpperCase() + w.slice(1));
-  const lower = ask((w) => w.toLowerCase());
-  return new Set(words.filter((w) => capped.has(w.toLowerCase()) && lower.has(w.toLowerCase())));
+  const spellings = [(w: string) => w, ...variants.map(([from, to]) => (w: string) => w.replaceAll(from, to))];
+  const casings = [(w: string) => w, (w: string) => w.charAt(0).toUpperCase() + w.slice(1)];
+  // Refused only where every spelling was refused, so the answers intersect.
+  let refused: Set<string> | undefined;
+  for (const spelling of spellings) {
+    for (const casing of casings) {
+      const bad = ask((w) => casing(spelling(w.toLowerCase())));
+      const seen = refused;
+      refused = seen ? new Set([...bad].filter((w) => seen.has(w))) : bad;
+      if (refused.size === 0) return refused;
+    }
+  }
+  return refused ?? new Set<string>();
 }
 
 // --- Morphology, the second way past `dictGate`.
@@ -696,7 +739,7 @@ function buildLang(cfg: LangConfig) {
   // to say which spellings are words, and the merge needs the repair.
   const cased = cfg.casingFile ? buildCasing(cfg) : null;
   const repairs = cased && cfg.spellDict
-    ? stemRepairs(formsOf, cased.corpus, cfg.spellDict)
+    ? stemRepairs(formsOf, cased.corpus, cfg.spellDict, cfg.spellVariants)
     : new Map<string, string>();
 
   // @spec FILTER-3, FILTER-8
@@ -789,8 +832,12 @@ function buildLang(cfg: LangConfig) {
   // of the language is the better judge, and answers the other half of the same list
   // (see `spellRejects`).
   const gate = cfg.dictGate ?? Infinity;
+  // The spell gate stops at `DICT_GATE` whether or not this language has a `dictGate`.
+  // The rank is where a checker stops being right about a corpus, which is a property of
+  // the checker; English has no dictionary gate and still has a head worth cleaning.
+  const spellGate = Math.min(gate, DICT_GATE);
   const misspelt = cfg.spellDict
-    ? spellRejects(namedKeys.slice(0, gate), cfg.spellDict)
+    ? spellRejects(namedKeys.slice(0, spellGate), cfg.spellDict, cfg.spellVariants)
     : new Set<string>();
   // @spec FILTER-10
   // Past the gate the lemma list is not the only judge: a word the language's own
@@ -860,9 +907,9 @@ function buildLang(cfg: LangConfig) {
       sample.map(([h, f]) => `${h}→${f}`).join(" "));
   }
   if (cfg.spellDict) {
-    const sample = namedKeys.filter((w, i) => i < gate && misspelt.has(w)).slice(0, 8);
+    const sample = namedKeys.filter((w, i) => i < spellGate && misspelt.has(w)).slice(0, 8);
     console.log(`  spell gate: ${misspelt.size.toLocaleString()} dropped below rank`,
-      `${gate.toLocaleString()}`, "e.g.", sample.join(" "));
+      `${spellGate.toLocaleString()}`, "e.g.", sample.join(" "));
   }
   const chased = Object.entries(forms).filter(([f, t]) => lemmaOf(f) !== t).length;
   console.log(`  forms: ${Object.keys(forms).length.toLocaleString()} redirects ->`,

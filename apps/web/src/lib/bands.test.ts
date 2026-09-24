@@ -255,8 +255,8 @@ describe("the defining view", () => {
     }
     const none = (lang: Parameters<typeof getBandSummary>[0]) =>
       getBandSummary(lang, "defining").find((b) => b.key === "none")?.count;
-    expect(none("pt")).toBe(13003);
-    expect(none("it")).toBe(11558);
+    expect(none("pt")).toBe(6330);
+    expect(none("it")).toBe(5886);
   });
 
   // WCAG 3.1.4: eight tabs reading "D1" to "D7" fit the row only as abbreviations, so
@@ -285,10 +285,10 @@ describe("the defining view", () => {
   it("answers a word with its level", () => {
     expect(getWord("pt", "água")?.defining?.key).toBe("D3");
     expect(getWord("pt", "ser")?.defining?.key).toBe("D1");
-    expect(getWord("pt", "john")?.defining?.key).toBe("none");
+    expect(getWord("pt", "max")?.defining?.key).toBe("none");
     expect(getWord("it", "acqua")?.defining?.key).toBe("D2");
     expect(getWord("it", "essere")?.defining?.key).toBe("D1");
-    expect(getWord("it", "john")?.defining?.key).toBe("none");
+    expect(getWord("it", "max")?.defining?.key).toBe("none");
   });
 
   // The scale measures what the dictionary leans on, not what a learner meets first, and
@@ -313,16 +313,16 @@ describe("the defining view", () => {
     }
     const levelled = (lang: Parameters<typeof getBandSummary>[0]) =>
       [...getDefiningPoints(lang)!.levels].filter((c) => c !== "-");
-    expect(getDefiningPoints("pt")!.words).toHaveLength(35827);
-    expect(levelled("pt")).toHaveLength(22824);
-    expect(getDefiningPoints("it")!.words).toHaveLength(33480);
-    expect(levelled("it")).toHaveLength(21922);
+    expect(getDefiningPoints("pt")!.words).toHaveLength(28623);
+    expect(levelled("pt")).toHaveLength(22293);
+    expect(getDefiningPoints("it")!.words).toHaveLength(27416);
+    expect(levelled("it")).toHaveLength(21530);
     expect(getDefiningPoints("en")).toBeNull();
   });
 
   it("lists a band in frequency order", () => {
     const d1 = getBand("pt", "defining", "D1")!;
-    expect(d1.words).toHaveLength(51);
+    expect(d1.words).toHaveLength(54);
     expect(d1.words.slice(0, 4)).toEqual(["o", "que", "a", "não"]);
     const d1It = getBand("it", "defining", "D1")!;
     expect(d1It.words).toHaveLength(366);

@@ -148,7 +148,7 @@ re-runs the build.
 | FILTER-6 | Display casing is measured mid-sentence, not ruled: German nouns and proper nouns are capitalized, weekdays and months are not |
 | FILTER-7 | A word measured lowercase mid-sentence is stored lowercase, in every language |
 | FILTER-8 | A lemma headword that is not a word of the language holds no entry; its frequency sits under the form that is written |
-| FILTER-9 | Below the dictionary gate, German holds no word its own spell checker rejects |
+| FILTER-9 | Below the dictionary gate, a list holds no word its language's own spell checker rejects in every spelling that language writes |
 | FILTER-10 | Past the dictionary gate, German keeps a word its own compounding or derivation accounts for, and still drops what the corpus tail is made of |
 
 ## FORM — looking a word up by an inflected form
