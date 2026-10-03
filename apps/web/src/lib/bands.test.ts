@@ -324,7 +324,7 @@ describe("the defining view", () => {
 
   // The scale measures what the dictionary leans on, not what a learner meets first, and
   // each language's example is the word that proves the two come apart: A1 vocabulary at
-  // the bottom level, because no definition is ever written in terms of "hello". The
+  // the bottom level, because no definition outside it is written in terms of "hello". The
   // figure's caption makes this claim, so every language it can be shown for has to back it.
   it("does not order words by difficulty", () => {
     for (const lang of DEFINING_LANGS) {

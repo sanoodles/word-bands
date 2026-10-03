@@ -36,8 +36,8 @@ interface DefiningBand {
  * D1 to Dn plus the words the dictionary graph never placed, where n is however many levels
  * the language's dictionary peels into. Unlike `freq` and `cefr` this is not a rank window —
  * a level is a property of the word, so a band here is a set. D1 is the core the dictionary
- * explains everything else with; Dn is never used to define anything. `none` is not a
- * level, it is the absence of one, and in Portuguese it is a fifth of the list.
+ * explains everything else with; Dn is never used to define a word outside Dn. `none` is not
+ * a level, it is the absence of one, and in Portuguese it is a fifth of the list.
  * @spec BAND-15
  */
 // `name` spells the tab out (WCAG 3.1.4): the defining tabs fit only as abbreviations, and

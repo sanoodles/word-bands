@@ -264,7 +264,7 @@ function Glossary({ source }: { source: SourceLang }) {
             <dt className="tw-font-medium">Defining vocabulary</dt>
             <dd className="tw-mb-2 tw-ml-0">
               The words a dictionary uses to write its own entries. D1 is the core of that
-              set. D{levelCount} is never used to explain anything.
+              set. D{levelCount} is never used to explain a word outside D{levelCount}.
             </dd>
             <dt className="tw-font-medium">K-core decomposition</dt>
             <dd className="tw-mb-2 tw-ml-0">

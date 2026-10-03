@@ -472,7 +472,7 @@ describe("Workspace", () => {
       // The bottom level is the language's own, D7 in Portuguese and D14 in French.
       const n = DEFINING_LEVEL_COUNT[source];
       if (n) {
-        expect(glossary, source).toHaveTextContent(`D${n} is never used to explain anything`);
+        expect(glossary, source).toHaveTextContent(`D${n} is never used to explain a word outside D${n}`);
         expect(glossary, source).toHaveTextContent(`How the ${n} levels are worked out`);
       }
       cleanup();

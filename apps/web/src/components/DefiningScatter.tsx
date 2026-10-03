@@ -471,8 +471,8 @@ export default function DefiningScatter({
             Commonest words at the left, defining level up — not a difficulty scale
           </summary>
           {levelled.toLocaleString()} words. D1 at the top is the core the dictionary defines
-          everything else with; D{points.levelCount} at the bottom is never used in a definition
-          at all. That makes D1 a defining vocabulary in the Longman sense — one the
+          everything else with; D{points.levelCount} at the bottom is never used to define a
+          word outside D{points.levelCount}. That makes D1 a defining vocabulary in the Longman sense — one the
           dictionary&rsquo;s usage reveals, rather than one an editor fixes in advance. The
           numbers across the bottom are ranks, not counts: 6k is the 6,000th commonest word, so
           the further right a point sits, the rarer it is. The vertical lines divide the CEFR

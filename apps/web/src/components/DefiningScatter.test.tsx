@@ -84,7 +84,7 @@ describe("DefiningScatter", () => {
     );
     render(<DefiningScatter source="fr" anchorWord={null} onSelect={() => {}} />);
     const fig = await screen.findByRole("figure");
-    expect(fig.textContent).toContain("D14 at the bottom is never used in a definition");
+    expect(fig.textContent).toContain("D14 at the bottom is never used to define a word outside D14");
     expect(fig.textContent).toContain("allô is A1 vocabulary sitting at D14");
   });
 
