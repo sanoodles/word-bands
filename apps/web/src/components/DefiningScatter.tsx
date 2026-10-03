@@ -70,8 +70,17 @@ const HIT = { mouse: 7, finger: 22 };
 /** Whether the reader has folded the caption away. Absent until they touch it. */
 const CAPTION_KEY = "word-bands:defining-caption";
 
-/** At 64, all but 2–4% of the points stand 8px clear of their neighbours on a phone. */
-export const MAX_ZOOM = 64;
+// @spec FIG-3, FIG-8
+/** The first doubling at which the densest row fits its words 10mm apart on a phone. */
+export const MAX_ZOOM = 512;
+/**
+ * How far apart two points stand at full zoom, at the least: room for a large or a shaking
+ * fingertip. Measured on the least plot full screen leaves a phone — 320px wide in portrait,
+ * 340px tall in landscape — at Android's 160px an inch.
+ */
+const CLEARANCE = { mm: 10, pxPerMm: 160 / 25.4, plot: { w: 254, h: 183 } };
+/** How many further offsets a crowded word tries before it settles for the farthest. */
+const TRIES = 16;
 /** One press of a zoom button or key. */
 const ZOOM_STEP = 2;
 /** How far a press moves the view, as a share of what is in view. A held key repeats. */
@@ -165,7 +174,7 @@ function uOf(rank: number, total: number): number {
 }
 
 // @spec BAND-15
-/** Where a word falls down the figure, 0 to 1: its level's row, and its jitter inside it. */
+/** Where a word falls down the figure, 0 to 1: its level's row, and its offset inside it. */
 function vOf(level: number, off: number, levelCount: number): number {
   return (level - 0.5 + off * 0.7) / levelCount;
 }
@@ -176,15 +185,51 @@ const sx = (u: number, view: View, w: number) =>
 const sy = (v: number, view: View, h: number) =>
   PAD.top + (v - view.v) * view.k * (h - PAD.top - PAD.bottom);
 
+/** A stream of offsets in [-0.5, 0.5), seeded by a word's hash: mulberry32. */
+function offsets(seed: number): () => number {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32 - 0.5;
+  };
+}
+
+/** The words of one level placed so far, in rank order: where across, and their offset. */
+interface Row {
+  u: number[];
+  off: number[];
+}
+
 /**
- * Stable per-word vertical offset inside its level band. The level is a few discrete values,
- * so without this every point stacks on a few straight lines and the density is invisible.
- * Hashed from the word rather than random, so points never move between repaints.
+ * A word's offset inside its level's band. Hashed from the word, so it never moves between
+ * repaints — but random offsets put some pairs closer than full zoom can pull apart. So an
+ * offset within `CLEARANCE` of a word already in the row gives way to the first clear one of
+ * `TRIES` more, or failing that the farthest.
  */
-function jitter(word: string): number {
+// @spec FIG-8
+function offsetOf(word: string, u: number, row: Row, levelCount: number): number {
   let h = 0;
   for (let i = 0; i < word.length; i++) h = (Math.imul(h, 31) + word.charCodeAt(i)) | 0;
-  return ((h >>> 0) % 1000) / 1000 - 0.5;
+  const next = offsets(h);
+  const { plot } = CLEARANCE;
+  const clear = (CLEARANCE.mm * CLEARANCE.pxPerMm) / MAX_ZOOM;
+  const band = (0.7 / levelCount) * plot.h;
+  let best = { off: 0, d: -1 };
+  for (let t = 0; t <= TRIES; t++) {
+    const off = t === 0 ? ((h >>> 0) % 1000) / 1000 - 0.5 : next();
+    let d = Infinity;
+    // Rank order runs left to right, so only the row's last few words can be that close.
+    for (let j = row.u.length - 1; j >= 0; j--) {
+      const dx = (u - row.u[j]!) * plot.w;
+      if (dx >= clear) break;
+      const dy = (off - row.off[j]!) * band;
+      d = Math.min(d, dx * dx + dy * dy);
+    }
+    if (d >= clear * clear) return off;
+    if (d > best.d) best = { off, d };
+  }
+  return best.off;
 }
 
 /** Every plotted point's place in the figure, worked out once rather than on every frame. */
@@ -195,17 +240,25 @@ interface Layout {
   v: Float64Array;
 }
 
-function layoutOf(points: Points): Layout {
+/** Exported for the tests, which place the points through it. */
+export function layoutOf(points: Points): Layout {
   const total = points.words.length;
   const word: number[] = [];
   const u: number[] = [];
   const v: number[] = [];
+  const rows = new Map<number, Row>();
   for (let i = 0; i < total; i++) {
     const level = definingLevel(points.levels[i]!);
     if (level === null) continue;
+    let row = rows.get(level);
+    if (!row) rows.set(level, (row = { u: [], off: [] }));
+    const at = uOf(i + 1, total);
+    const off = offsetOf(points.words[i]!, at, row, points.levelCount);
+    row.u.push(at);
+    row.off.push(off);
     word.push(i);
-    u.push(uOf(i + 1, total));
-    v.push(vOf(level, jitter(points.words[i]!), points.levelCount));
+    u.push(at);
+    v.push(vOf(level, off, points.levelCount));
   }
   return { word: Int32Array.from(word), u: Float64Array.from(u), v: Float64Array.from(v) };
 }
@@ -351,28 +404,25 @@ function Labels({
 // @spec FIG-4
 export function nearestWord(
   points: Points,
+  layout: Layout,
   plot: Plot,
   px: number,
   py: number,
   r: number,
   view: View = WHOLE,
 ): string | null {
-  const total = points.words.length;
   let best: { word: string; d: number } | null = null;
-  for (let i = 0; i < total; i++) {
-    const level = definingLevel(points.levels[i]!);
-    if (level === null) continue;
-    const x = sx(uOf(i + 1, total), view, plot.w);
+  for (let j = 0; j < layout.u.length; j++) {
+    const x = sx(layout.u[j]!, view, plot.w);
     const dx = x - px;
     if (dx > r || dx < -r) continue;
     // Off the plot, where a zoomed view cuts it away, so not there to be picked.
     if (x < PAD.left - 0.5 || x > plot.w - PAD.right + 0.5) continue;
-    const word = points.words[i]!;
-    const y = sy(vOf(level, jitter(word), points.levelCount), view, plot.h);
+    const y = sy(layout.v[j]!, view, plot.h);
     if (y < PAD.top - 0.5 || y > plot.h - PAD.bottom + 0.5) continue;
     const dy = y - py;
     const d = dx * dx + dy * dy;
-    if (d <= r * r && (!best || d < best.d)) best = { word, d };
+    if (d <= r * r && (!best || d < best.d)) best = { word: points.words[layout.word[j]!]!, d };
   }
   return best?.word ?? null;
 }
@@ -649,7 +699,7 @@ function Chart({
   };
 
   const hitTest = (x: number, y: number, r: number) =>
-    plot.current ? nearestWord(points, plot.current, x, y, r, viewRef.current) : null;
+    plot.current ? nearestWord(points, layout, plot.current, x, y, r, viewRef.current) : null;
 
   const hoverAt = ({ x, y }: Point) => {
     const word = hitTest(x, y, HIT.mouse);

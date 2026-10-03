@@ -4,13 +4,15 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import DefiningScatter, {
   MAX_ZOOM,
   WHOLE,
+  layoutOf,
   nearestWord,
   panView,
   rankTicks,
   tipStyle,
   zoomView,
 } from "./DefiningScatter";
-import type { SourceLang } from "@/lib/languages";
+import { getDefiningPoints } from "@/lib/bands";
+import { DEFINING_LANGS, type SourceLang } from "@/lib/languages";
 
 // `paint` bails on the zero-size wrap that jsdom reports, before it reaches the context
 // stub in test/setup.ts. That is the point: everything outside the canvas — the label, the
@@ -176,29 +178,31 @@ const H = 400;
 /** Where two of the fixture's words land in an 800x400 plot, and what a pick there gets. */
 const FIRST = { x: 275, y: 21, word: "o" };
 const LAST = { x: 788, y: 321, word: "d" };
+const placed = layoutOf(points);
 
 describe("the hit-test", () => {
   const plot = { w: W, h: H };
 
   it("finds the word under the pointer", () => {
-    expect(nearestWord(points, plot, FIRST.x, FIRST.y, 7)).toBe(FIRST.word);
-    expect(nearestWord(points, plot, LAST.x, LAST.y, 7)).toBe(LAST.word);
+    expect(nearestWord(points, placed, plot, FIRST.x, FIRST.y, 7)).toBe(FIRST.word);
+    expect(nearestWord(points, placed, plot, LAST.x, LAST.y, 7)).toBe(LAST.word);
   });
 
   it("finds nothing out in the white", () => {
-    expect(nearestWord(points, plot, FIRST.x, LAST.y, 7)).toBeNull();
+    expect(nearestWord(points, placed, plot, FIRST.x, LAST.y, 7)).toBeNull();
   });
 
   it("never returns a word with no level", () => {
     // "john" is the fixture's "-". Nothing is plotted for it, so no radius can reach it.
     for (let x = 0; x <= W; x += 4)
-      for (let y = 0; y <= H; y += 4) expect(nearestWord(points, plot, x, y, 22)).not.toBe("john");
+      for (let y = 0; y <= H; y += 4)
+        expect(nearestWord(points, placed, plot, x, y, 22)).not.toBe("john");
   });
 
   it("reaches further for a finger than for a cursor", () => {
     const off = { x: FIRST.x + 14, y: FIRST.y };
-    expect(nearestWord(points, plot, off.x, off.y, 7)).toBeNull();
-    expect(nearestWord(points, plot, off.x, off.y, 22)).toBe(FIRST.word);
+    expect(nearestWord(points, placed, plot, off.x, off.y, 7)).toBeNull();
+    expect(nearestWord(points, placed, plot, off.x, off.y, 22)).toBe(FIRST.word);
   });
 });
 
@@ -372,13 +376,35 @@ describe("the view", () => {
   };
 
   // @spec FIG-3
-  it("zooms out no further than the whole figure, and in no further than 64 times", () => {
+  it("zooms out no further than the whole figure, and in no further than 512 times", () => {
     expect(zoomView(WHOLE, 0.25)).toEqual(WHOLE);
     let v = WHOLE;
     for (let i = 0; i < 12; i++) v = zoomView(v, 2, [0.9, 0.1]);
-    expect(MAX_ZOOM).toBe(64);
-    expect(v.k).toBe(64);
+    expect(MAX_ZOOM).toBe(512);
+    expect(v.k).toBe(512);
     inside(v);
+  });
+
+  // @spec FIG-8
+  it("stands every point 10mm from every other at full zoom on a phone", () => {
+    // 320px wide in portrait and 340px tall in landscape, less the toolbar, the hint and the
+    // plot's margins. 10mm at Android's 160px an inch.
+    const phone = { w: 254 * MAX_ZOOM, h: 183 * MAX_ZOOM };
+    const tenMm = (10 * 160) / 25.4;
+    for (const source of DEFINING_LANGS) {
+      const { u, v } = layoutOf(getDefiningPoints(source)!);
+      // Sorted across, so the search stops once the gap across alone is too wide.
+      const across = [...u.keys()].sort((a, b) => u[a]! - u[b]!);
+      let closest = Infinity;
+      for (let a = 0; a < across.length; a++)
+        for (let b = a + 1; b < across.length; b++) {
+          const [i, j] = [across[a]!, across[b]!];
+          const dx = (u[j]! - u[i]!) * phone.w;
+          if (dx >= closest) break;
+          closest = Math.min(closest, Math.hypot(dx, (v[j]! - v[i]!) * phone.h));
+        }
+      expect(closest, source).toBeGreaterThanOrEqual(tenMm);
+    }
   });
 
   // @spec FIG-3
@@ -408,11 +434,11 @@ describe("the view", () => {
     const plot = { w: W, h: H };
     // Zoomed four times in place at FIRST, which therefore stays put.
     const view = zoomView(WHOLE, 4, [(FIRST.x - 38) / (W - 50), (FIRST.y - 10) / (H - 50)]);
-    expect(nearestWord(points, plot, FIRST.x, FIRST.y, 7, view)).toBe(FIRST.word);
+    expect(nearestWord(points, placed, plot, FIRST.x, FIRST.y, 7, view)).toBe(FIRST.word);
     // LAST has gone out of view, so nothing anywhere picks it.
     for (let x = 0; x <= W; x += 4)
       for (let y = 0; y <= H; y += 4)
-        expect(nearestWord(points, plot, x, y, 22, view)).not.toBe(LAST.word);
+        expect(nearestWord(points, placed, plot, x, y, 22, view)).not.toBe(LAST.word);
   });
 
   // @spec FIG-4
@@ -425,7 +451,7 @@ describe("the view", () => {
     const after = 38 + (u - view.u) * view.k * (W - 50);
     const hit = (x: number, v: typeof view) =>
       Array.from({ length: H }, (_, y) => y).some(
-        (y) => nearestWord(points, plot, x, y, 1, v) === "água",
+        (y) => nearestWord(points, placed, plot, x, y, 1, v) === "água",
       );
     expect(hit(before, WHOLE)).toBe(true);
     expect(hit(after, view)).toBe(true);
@@ -665,7 +691,7 @@ describe("full screen", () => {
       const view = zoomView(WHOLE, 2);
       const x = 38 + (Math.sqrt(4 / 10) - view.u) * view.k * (W - 50);
       const y = Array.from({ length: H }, (_, i) => i).find(
-        (i) => nearestWord(points, { w: W, h: H }, x, i, 1, view) === "água",
+        (i) => nearestWord(points, placed, { w: W, h: H }, x, i, 1, view) === "água",
       )!;
       fireEvent.pointerDown(canvas, { ...mouse, clientX: x, clientY: y });
       fireEvent.pointerUp(canvas, { ...mouse, clientX: x, clientY: y });

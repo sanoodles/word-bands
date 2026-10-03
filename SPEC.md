@@ -224,8 +224,9 @@ static picture. Full screen, it zooms and pans, so one word in the crowd can be 
 | --- | --- |
 | FIG-1 | The figure opens full screen on every device, including in a browser with no element fullscreen |
 | FIG-2 | Full screen, the figure zooms by wheel, pinch, keys and buttons, and pans by drag, keys and buttons |
-| FIG-3 | The zoom runs from the whole figure to 64 times, and the view never pans past the figure's edges |
+| FIG-3 | The zoom runs from the whole figure to 512 times, and the view never pans past the figure's edges |
 | FIG-4 | A pick lands on the word drawn under it at every zoom. A drag or a pinch picks nothing |
 | FIG-5 | Zoomed, every level and band in view keeps its name in view, and the ranks along the bottom stay labelled |
 | FIG-6 | In the page the figure neither zooms nor pans, so the wheel and a finger scroll the page across it |
 | FIG-7 | Leaving the browser's own full screen leaves the figure's too |
+| FIG-8 | Fully zoomed on a phone, no two points stand closer than 10mm |

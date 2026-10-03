@@ -1217,11 +1217,20 @@ is where it zooms and pans.
 | No tooltip inside it | Radix portals a tooltip to `<body>`, which sits under the top layer and outside the fullscreen element, so it would never show. The buttons' own text names them, and shows from 900px |
 | A pick stays full screen | The word is looked up behind it and marked in it. Leaving on every pick would throw the zoom away mid-search |
 | Safari's trackpad pinch | Safari sends `gesturechange`, not a ctrl+wheel. A pinch on glass sends both, so the gesture handler stands down while a pointer is down |
-| `MAX_ZOOM` is 64 | Measured on all four languages: at 64 on a 390px phone, 2–4% of the points still sit within 8px of another. At 32 it is 8–15% |
+| `MAX_ZOOM` is 512 (`FIG-8`) | The first doubling at which the densest row fits its words 10mm apart on a phone. At 256 French cannot: 1,342 of its words would sit closer. A desktop never needs this much, and the extra costs it nothing |
+| 10mm is room for a large or a shaking fingertip | It is the closest pair that has to be pickable, not the typical one. A view of the densest row at full zoom holds two or three points, and a reader who needs less stops zooming sooner |
+| A word keeps its hashed offset unless that lands within 10mm of a word already in its row | Random offsets put 28–103 pairs per language within 0.05px of each other on a phone at 1×, and only over 13,000× would pull those 10mm apart. The rule moves 5–10% of the words, nearly 90% of them in the bottom two rows, so the picture is still the one the hash draws |
+| 10mm is measured on a 254 by 183 plot, at 160px an inch | The least plot full screen leaves a phone: 320px wide in portrait, 340px tall in landscape. 160px an inch is Android's, and near every phone's. A larger plot only spreads the points further, so `FIG-8`'s test reads this one |
 | Rank labels between the band edges, full screen only | Zoomed inside one band, its edges are off screen and the row would be empty. The step is the finest round number whose rightmost pair stays 56px apart, since the square root crowds ranks to the right |
 | A row or band is named in the middle of what shows (`FIG-5`) | Zoomed past its middle, the middle is off screen. Wholly in view, it is named in its middle |
 | Zoomed points are clipped to the plot | The label rows sit just under it. Whole, nothing lies off the plot, so nothing is clipped |
 | Points grow with the zoom, and turn round from 3px | A 1.6px square reads as a dot and a 4px one as a pixel. Few points are in view by then, so drawing each one round costs little |
+
+| Instead of the 10mm rule | Why not |
+| --- | --- |
+| Offsets from the golden-ratio sequence along each row | 10mm by 83–199×, but its lattice draws vertical streaks through the dense rows at 1×, which read as structure in the data |
+| Best-candidate blue noise for every word | About 0.6s a language to lay out as prototyped, and short landscape plots still needed 555× |
+| A zoom large enough for the random offsets | Over 13,000×, at which a view almost never holds a point |
 
 ### Crawlers and link previews
 
