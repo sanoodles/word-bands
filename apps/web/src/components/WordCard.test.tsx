@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import WordCard from "./WordCard";
+import { etymologyHref, SOURCE_LANGS, type SourceLang } from "@/lib/languages";
 
 // The workspace owns the target language now; a tiny stateful host stands in for it so
 // picking a language in the card re-renders with the new value, as it does in the app.
@@ -13,7 +14,7 @@ function Host({
   target: initial,
 }: {
   word: string;
-  source: string;
+  source: SourceLang;
   target: string;
 }) {
   const [target, setTarget] = useState(initial);
@@ -87,6 +88,31 @@ describe("WordCard language selector", () => {
     // the purpose.
     const help = document.getElementById(link.getAttribute("aria-describedby") ?? "");
     expect(help).toHaveTextContent("Opens in a new tab.");
+  });
+
+  // @spec ETYM-1
+  it("links the word to its etymology, in a new tab, named by the word", () => {
+    render(<WordCard word="Gletscher" forms={["Gletscher"]} source="de" target="en" onTargetChange={() => {}} />);
+    const link = screen.getByRole("link", { name: "Etymology of Gletscher" });
+    expect(link).toHaveTextContent(/^Etymology/);
+    expect(link).toHaveAttribute("href", "https://www.dwds.de/wb/Gletscher#etymwb-1");
+    expect(link).toHaveAttribute("hreflang", "de");
+    expect(link).toHaveAttribute("target", "_blank");
+    // The same sentence the translate link points at, said once for both.
+    const translate = screen.getByRole("link", { name: /google translate/i });
+    expect(link.getAttribute("aria-describedby")).toBe(translate.getAttribute("aria-describedby"));
+  });
+
+  // @spec ETYM-1
+  it("offers the etymology in every source language", () => {
+    for (const source of SOURCE_LANGS) {
+      render(<WordCard word="ola" forms={["ola"]} source={source} target={source} onTargetChange={() => {}} />);
+      expect(screen.getByRole("link", { name: "Etymology of ola" })).toHaveAttribute(
+        "href",
+        etymologyHref("ola", source),
+      );
+      cleanup();
+    }
   });
 
   it("translates the word into the target language", async () => {
@@ -428,7 +454,7 @@ describe("WordCard picking a translation", () => {
   // which is the order the workspace does it in — and the order that matters, since the
   // button is gone before the new word arrives.
   function PickHost() {
-    const [pair, setPair] = useState({ source: "it", target: "en" });
+    const [pair, setPair] = useState<{ source: SourceLang; target: string }>({ source: "it", target: "en" });
     const [word, setWord] = useState("lago");
     return (
       <WordCard

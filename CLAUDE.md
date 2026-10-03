@@ -62,7 +62,7 @@ ours. `source`/`target` map onto them at that one call.
 
 | Path | Holds |
 | --- | --- |
-| `src/lib/languages.ts` | `SOURCE_LANGS`, `SourceLang`, `TargetLang`, `SOURCE_LANG_META`, `englishName` |
+| `src/lib/languages.ts` | `SOURCE_LANGS`, `SourceLang`, `TargetLang`, `SOURCE_LANG_META`, `englishName`, and each language's etymology dictionary |
 | `src/lib/bands.ts` | Server registry, `getWord`, all word lookups |
 | `src/lib/geo.ts` | Country table, `sourceLang`, `targetLang` |
 | `src/lib/scenario.ts` | URL encode / decode, `pageTitle` |
@@ -188,7 +188,8 @@ has answered. The licence is named here; the question is not settled here.
 | `pnpm --filter @word-bands/web build:bands <code>` | Rebuild one |
 
 To add a language: drop its inputs in `data/`, add a `LANGS` entry in the build script, add
-it to `SOURCE_LANG_META`, and add the registry import in `bands.ts`.
+it to `SOURCE_LANG_META` and to `ETYMOLOGY` beside it, and add the registry import in
+`bands.ts`.
 
 ## Build filters
 
@@ -862,6 +863,54 @@ Three ways of keeping the overlay under forced colours were measured and none is
 | `forced-color-adjust: none` | Opts the badge out of the forced palette, which is the one thing the reader asked for |
 | Moving the overlay or the input in z order | Puts the badge behind an input that forced colours then fill opaquely |
 
+## The etymology link
+
+`ETYM-1` to `ETYM-3` are the rules. The link sits on the word card beside Google Translate,
+and `ETYMOLOGY` in `languages.ts` holds one dictionary per language. Each is written in the
+language it describes, so a German word's history is told in German.
+
+Measured on 2026-10-03, on 10 random words per CEFR band from A1 to C2, 60 per language.
+The last column is the same sample against English Wiktionary, the one source that covers
+all six:
+
+| | Dictionary | What the link lands on | Sampled words with an etymology | English Wiktionary |
+| --- | --- | --- | --- | --- |
+| en | Etymonline | A dedicated etymology dictionary | 60 | 56 |
+| de | DWDS, at Pfeifer's *Etymologisches Wörterbuch* | Pfeifer's text inside the DWDS entry. A compound he lacks still shows its parts there: `Gletscher` + `Spalte` | 34, and 18 more with their parts | 39 |
+| fr | CNRTL | The TLFi's dated attestations and the etymon | 47 | 42 |
+| es | The RAE's *Diccionario de la lengua española* | One line at the head of the entry: *Del lat. aqua.* | 47 | 45 |
+| it | Nuovo De Mauro | The first attestation and the etymon: *1585; dal turco kahve* | 51 entries. A derived word can give only the date | 37 |
+| pt | Priberam | One line at the foot of the entry: *Origem: latim aqua.* | 46 | 39 |
+
+The misses are mostly what no dictionary headwords: clitic verb forms (`chantajearme`,
+`fraintendetemi`), names (`Lincoln`), and nonce compounds (`riesendeal`).
+
+| Load-bearing detail | Why |
+| --- | --- |
+| The DWDS entry with `#etymwb-1`, not Pfeifer's own page | Pfeifer's page has 32 of the 60. The DWDS has an entry for 55, and the anchor scrolls to his text where there is one |
+| German keeps its capital | `essen` and `Essen` are two DWDS entries |
+| The RAE's dictionary gets lowercase | It is case-sensitive: `Dios` has no entry and `dios` does |
+| The Nuovo De Mauro gets no diacritics either | Its URLs drop them: `/parola/caffè` is a 404 and `/parola/caffe` the entry |
+| A new tab, sharing the translate link's description | The two sit together and look the same. One element says "Opens in a new tab." for both |
+| Visible text "Etymology", not the dictionary's name | DWDS, CNRTL and RAE are abbreviations, and each would owe an expansion (3.1.4). The name is "Etymology of <word>" |
+
+| Measured and rejected | Why not |
+| --- | --- |
+| English Wiktionary for all six | It is in English like the page, and one URL fits every language. It has fewer etymologies everywhere but German, where the DWDS entry's parts still put it behind |
+| The OED for English | It has the best etymologies, behind a subscription |
+| Treccani for Italian | Its URLs number homographs (`quanto1`) and drop accents, and a miss redirects to the home page. Its search is full text: `barocca` finds `maiuscolo` first |
+| etimo.it for Italian | Pianigiani's 1907 dictionary, as scanned page images |
+| etimologias.dechile.net for Spanish | 40 of 60, against the RAE's 47 |
+
+The two links take about 305px between them. Where they do not fit beside the translation
+they drop to a row of their own:
+
+| Layout | They drop at | Then |
+| --- | --- | --- |
+| Two columns | 1,384px and under | The hero row is 168px rather than 108 |
+| Stacked | 627px and under | Every common phone width, 360 to 430px, keeps them on one row |
+| Stacked, narrow | 355px and under | One row each |
+
 ## Width on a phone
 
 `GUTTER` in `page.tsx` is the page's side padding — 12px on a phone, 24 at 700, 40 at 900
@@ -925,7 +974,7 @@ tooltip is open.
 | `CefrBadge` | The band and rank are the name; the word they belong to is the description. `aria-describedby` is always ours, never Radix's — the name already says what its tooltip says. In the search field the description points at the `invisible` mirror of the value, which Chrome reads because a directly-referenced node counts even when hidden |
 | `SwapButton` | Same trade: disabled, the reason why is in the name, not only in the tooltip |
 | A clickable alternative | Named by the word and nothing else, or the line stops reading as the translation. What clicking it does is a description — announced on focus, not while reading — and one element holds that sentence for every term on the card. The cost is two tab stops per badged term, the word and then its level, since the badge keeps its own focus for its rank |
-| The card's Google Translate link | Named by the word it opens and the language it opens it in, behind the visible text so speech input still reaches it (2.5.3). The one new-tab link on the page, and that it opens one is a **description**: what activating it does, announced on focus, while the name stays what it is for |
+| The card's two links | Named by the word they open, behind the visible text so speech input still reaches them (2.5.3): "Google Translate: Wasser in English" and "Etymology of Wasser". The page's only new-tab links, and that they open one is a **description**, one element for both: what activating one does, announced on focus, while the name stays what it is for |
 | Abbreviations in the credits | Expanded in the sentence, never in a `title`. Chrome puts an `<abbr title>` in no name at all, and neither touch nor the keyboard can reach it — so it was a mechanism for nobody (3.1.4). The `<abbr>` markup went with it, and the lint rule below stays as a guard |
 | `WordSearchBox` | Named by its section heading (`labelledBy`), not by a second copy of the same string |
 | The figure | No heading, deliberately. It is a `<figure>` with a visible `<figcaption>`, which already names it, and its canvas carries a `role="img"` with a long description — a heading on top would be a second name for one thing |
@@ -1075,7 +1124,7 @@ row fewer per screen, on the one control the page has hundreds of.
 | The view toggle | `min-height: 46px` on the **group**, in `globals.css` — see the Fondue table |
 | Select options | `min-height` on `[role="option"]` inside the popper. They are already a centred flex row, so nothing else moves |
 | The figure's caption toggle | 13px of padding on an 18px line. Padding rather than a height, so it stays centred and a wrapped line still grows |
-| The skip link, Previous and Next, the band tabs, the card's link | Already 44 or over |
+| The skip link, Previous and Next, the band tabs, the card's two links | Already 44 or over |
 
 What is left under 44 is left on purpose, and the probe still lists it:
 

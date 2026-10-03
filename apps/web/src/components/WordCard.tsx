@@ -5,7 +5,7 @@ import CefrBadge from "@/components/CefrBadge";
 import LangSelect from "@/components/LangSelect";
 import Loading from "@/components/Loading";
 import { PANEL, PANEL_LANG, SECTION_HEADING } from "@/components/panel";
-import { englishName, type TargetLang } from "@/lib/languages";
+import { englishName, etymologyHref, type SourceLang, type TargetLang } from "@/lib/languages";
 import type { WordLevel } from "@/lib/types";
 import { baseLang, type SenseGroup } from "@/lib/translate";
 
@@ -161,6 +161,10 @@ const GLOSS_TYPE = {
 // Smaller type, but the translation's line box — else each translation resizes the card.
 const STATUS_TYPE = { display: GLOSS_TYPE.display, lineHeight: GLOSS_TYPE.lineHeight };
 
+// The card's links out, each a 44px target (WCAG 2.5.5).
+const OUT_LINK =
+  "tw-inline-flex tw-min-h-[44px] tw-shrink-0 tw-items-center tw-justify-center tw-gap-1 tw-rounded-full tw-border tw-border-line-subtle tw-px-4 tw-py-1.5 tw-body-large tw-text-secondary tw-no-underline hover:tw-border-line hover:tw-text-primary";
+
 // Underlined on hover only: the line is a translation first, and six standing underlines
 // would read as a row of links rather than as the meaning of the word.
 const PICK =
@@ -252,7 +256,7 @@ export default function WordCard({
    */
   forms: string[] | null;
   /** Source language the word is in. */
-  source: string;
+  source: SourceLang;
   /** Target language, owned by the workspace so it can ride in the URL. */
   target: TargetLang;
   onTargetChange: (l: TargetLang) => void;
@@ -350,7 +354,7 @@ export default function WordCard({
       </div>
       {/* Wraps on the card's own width, not the viewport's — it is also cramped in the
           two-column layout just past 860px. Alone on a wrapped row, justify-between
-          leaves the link at the start. */}
+          leaves the links at the start. */}
       <div className="tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-2 min-[700px]:tw-gap-4">
         {/* Leads the row, since it decides what the translation says. */}
         <div className={PANEL_LANG}>
@@ -359,8 +363,8 @@ export default function WordCard({
         {/* The card is only the meaning now — the word itself is in the search box
             and spotlighted in the cloud, so printing it a third time said nothing. */}
         {/* 44px, centred: the translation sits on the same line as the search field facing
-            it, and level with the link beside it. Basis is short by the width the
-            select takes from the row, so the link still drops at the same card width. */}
+            it, and level with the links beside it. The basis is the room it keeps before
+            the links drop to a row of their own. */}
         <div className="tw-flex tw-min-h-[44px] tw-min-w-0 tw-grow tw-basis-[11rem] tw-items-center">
           {/* Announce translation state changes to assistive tech (WCAG 4.1.3). */}
           <div aria-live="polite">
@@ -426,27 +430,43 @@ export default function WordCard({
             Look this word up in {englishName(target)}, swapping the two languages.
           </p>
         )}
-        {/* The one new-tab link on the page. A description, not part of the name: what
-            activating it does, announced on focus, while the name stays what it is for.
-            aria-hidden for the reason the sentence above is. */}
+        {/* The page's two new-tab links share it. A description, not part of the name:
+            what activating one does, announced on focus, while the name stays what it is
+            for. aria-hidden for the reason the sentence above is. */}
         <p id={newTabHelp} className="visually-hidden" aria-hidden="true">
           Opens in a new tab.
         </p>
-        {/* 44px target (WCAG 2.5.5). */}
-        <a
-          href={translateHref(word, source, target)}
-          // Opens a fresh tab every time (named-tab reuse can't survive Google
-          // clearing window.name) — accepted, for its pronunciation audio.
-          target="_blank"
-          rel="noopener noreferrer"
-          // The visible text leads, so speech input still reaches it (2.5.3); the word
-          // and the language behind it are what the link is for (2.4.9).
-          aria-label={`Google Translate: ${word} in ${englishName(target)}`}
-          aria-describedby={newTabHelp}
-          className="tw-inline-flex tw-min-h-[44px] tw-shrink-0 tw-items-center tw-justify-center tw-gap-1 tw-rounded-full tw-border tw-border-line-subtle tw-px-4 tw-py-1.5 tw-body-large tw-text-secondary tw-no-underline hover:tw-border-line hover:tw-text-primary"
-        >
-          Google Translate <span aria-hidden="true">↗</span>
-        </a>
+        {/* One flex item, so the two drop to a row of their own together. */}
+        <div className="tw-flex tw-flex-wrap tw-gap-2">
+          <a
+            href={translateHref(word, source, target)}
+            // Opens a fresh tab every time (named-tab reuse can't survive Google
+            // clearing window.name) — accepted, for its pronunciation audio.
+            target="_blank"
+            rel="noopener noreferrer"
+            // The visible text leads, so speech input still reaches it (2.5.3); the word
+            // and the language behind it are what the link is for (2.4.9).
+            aria-label={`Google Translate: ${word} in ${englishName(target)}`}
+            aria-describedby={newTabHelp}
+            className={OUT_LINK}
+          >
+            Google Translate <span aria-hidden="true">↗</span>
+          </a>
+          {/* @spec ETYM-1
+              A new tab, like the link beside it. The dictionary is written in the source
+              language, which hreflang says. */}
+          <a
+            href={etymologyHref(word, source)}
+            hrefLang={source}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Etymology of ${word}`}
+            aria-describedby={newTabHelp}
+            className={OUT_LINK}
+          >
+            Etymology <span aria-hidden="true">↗</span>
+          </a>
+        </div>
       </div>
     </section>
   );

@@ -40,17 +40,18 @@ TAB THROUGH THE PAGE
   12. aqua, button, — Look this word up in English, swapping the two languages.
   13. C1 · Advanced · rank 18,422, img, — aqua
   14. Google Translate: Wasser in English, link, — Opens in a new tab.
-  15. CEFR, radio, checked, — Common European Framework of Reference for Languages (CEFR) level
-  16. A1 · Beginner, 1,000 words, tab, selected
-  17. Wasser, option, selected, 393 of 1000
-  18. OpenSubtitles frequencies, link
-  19. lemmatization list, link
-  20. ODbL 1.0, link
-  21. CEFR-J, link
-  22. Leipzig Corpora, link
-  23. Google Translate, link
-  24. What these words mean, button
-  25. samuelgomezcrespo@gmail.com, link
+  15. Etymology of Wasser, link, — Opens in a new tab.
+  16. CEFR, radio, checked, — Common European Framework of Reference for Languages (CEFR) level
+  17. A1 · Beginner, 1,000 words, tab, selected
+  18. Wasser, option, selected, 393 of 1000
+  19. OpenSubtitles frequencies, link
+  20. lemmatization list, link
+  21. ODbL 1.0, link
+  22. CEFR-J, link
+  23. Leipzig Corpora, link
+  24. Google Translate, link
+  25. What these words mean, button
+  26. samuelgomezcrespo@gmail.com, link
 
 THE WORD CLOUD — a listbox of the band's words
 ------------------------------------------------------------------------

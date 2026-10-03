@@ -68,6 +68,26 @@ export const SOURCE_LANG_META: Record<SourceLang, SourceLangMeta> = {
   it: { name: "Italiano", defaultWord: "acqua", corpus: opensubs("it") },
 };
 
+// The Nuovo De Mauro keys its pages without diacritics: "caffè" is /parola/caffe.
+const bare = (w: string) => w.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+
+/**
+ * Each language's etymology, in a dictionary written in that language, keyed the way that
+ * dictionary looks a word up.
+ * @spec ETYM-2, ETYM-3
+ */
+const ETYMOLOGY: Record<SourceLang, (word: string) => string> = {
+  en: (w) => `https://www.etymonline.com/word/${encodeURIComponent(w)}`,
+  // The entry, not Pfeifer's own page: a compound he lacks still shows its parts there.
+  de: (w) => `https://www.dwds.de/wb/${encodeURIComponent(w)}#etymwb-1`,
+  fr: (w) => `https://www.cnrtl.fr/etymologie/${encodeURIComponent(w)}`,
+  es: (w) => `https://dle.rae.es/${encodeURIComponent(w.toLowerCase())}`,
+  it: (w) => `https://dizionario.internazionale.it/parola/${encodeURIComponent(bare(w))}`,
+  pt: (w) => `https://dicionario.priberam.org/${encodeURIComponent(w)}`,
+};
+
+export const etymologyHref = (word: string, source: SourceLang) => ETYMOLOGY[source](word);
+
 /**
  * A language named in English, for the app's English prose. `SOURCE_LANG_META.name` is
  * the endonym instead, which is what the picker shows.

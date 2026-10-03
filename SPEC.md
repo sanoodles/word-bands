@@ -46,6 +46,7 @@ verifies the claim exists, not that it bites.
 | `HEAD` | Response headers and the CSP | PR |
 | `URL` | Deeplink state and the page title | PR |
 | `CREDIT` | Which sources and works the page credits | PR |
+| `ETYM` | The word card's link to the word's etymology | PR |
 
 Not covered yet, and deliberately: visual design, copy, component layout, the
 accessibility contract (its proof is the transcript, which detects change rather than
@@ -201,3 +202,14 @@ The credits sit in the Sources line beneath the browser, and follow the source l
 | CREDIT-2 | A language with defining levels cites the works its method follows: Blondin Massé et al. (2008), Vincent-Lamarre et al. (2016), Seidman (1983), West & Endicott (1935) and the Longman Dictionary of Contemporary English (1978) |
 | CREDIT-3 | Every language credits the Leipzig Corpora, since every language's casing is measured from them |
 | CREDIT-4 | Every language credits the lemmatization list under its license, since every language's ranking is lemma-merged |
+
+## ETYM — the etymology link
+
+The word card links the word to where it comes from. Each language links to a dictionary
+written in that language.
+
+| ID | Rule |
+| --- | --- |
+| ETYM-1 | In every source language, the word card links the looked-up word to its etymology in a dictionary of that language |
+| ETYM-2 | English links to Etymonline, German to the DWDS entry at its etymology, French to the CNRTL's etymology, Spanish to the RAE's dictionary, Italian to the Nuovo De Mauro and Portuguese to Priberam |
+| ETYM-3 | The word is spelt the way its dictionary looks it up: lowercase for the RAE's, and lowercase without diacritics for the Nuovo De Mauro |
