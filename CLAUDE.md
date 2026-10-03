@@ -75,6 +75,7 @@ ours. `source`/`target` map onto them at that one call.
 | `data/word-bands.<code>.json` | Committed artifact, one per language |
 | `data/forms.<code>.json` | Committed artifact: inflected form -> the indexed word it belongs to |
 | `data/defining.<code>.json` | Committed artifact: one defining level per ranked word, emitted by the defining-vocabulary repo |
+| `node_modules/next/dist/docs/` | Next.js's own guides for the installed version, which is newer than a model's training data. Read the relevant one before using a Next API. `agentRules: false` in `next.config.mjs` stops `next dev` writing this advice into `apps/web/` as its own AGENTS.md and CLAUDE.md |
 
 Paths are relative to `apps/web/`.
 

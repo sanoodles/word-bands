@@ -40,6 +40,8 @@ const nextConfig = {
   // automatically — no outputFileTracingIncludes needed.
   // @spec HEAD-5
   poweredByHeader: false,
+  // The agent instructions live in the root CLAUDE.md, not in files `next dev` writes here.
+  agentRules: false,
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
