@@ -113,16 +113,31 @@ describe("the hover label's placement", () => {
 
   it("sits above the cursor's glyph at every height, the top row included", () => {
     for (const y of [4, 200]) {
-      const st = tipStyle({ x: 100, y }, W);
+      const st = tipStyle({ x: 100, y }, W, 60);
       // translateY(-100%) makes `top` the label's bottom edge.
       expect(st.transform).toContain("translateY(-100%)");
       expect(Number(st.top)).toBeLessThan(y - GLYPH_UP);
     }
   });
 
-  it("flips left near the right edge so it cannot run off", () => {
-    expect(tipStyle({ x: 880, y: 200 }, W).transform).toContain("translateX(-100%)");
-    expect(tipStyle({ x: 100, y: 200 }, W).transform ?? "").not.toContain("translateX");
+  it("takes the side of the pointer it fits on, right first, and centres where neither fits", () => {
+    expect(tipStyle({ x: 100, y: 200 }, W, 60).left).toBe(108);
+    expect(tipStyle({ x: 880, y: 200 }, W, 60).left).toBe(812);
+    expect(tipStyle({ x: 148, y: 200 }, 296, 188).left).toBe(54);
+  });
+
+  // @spec FIG-9
+  it("stays inside the figure on a 320px screen, for any label the figure can hold", () => {
+    // 320px less the page's 12px gutter either side, the least the figure gets.
+    const FRAME = 296;
+    const out: string[] = [];
+    for (let tip = 1; tip <= FRAME; tip++) {
+      for (let x = 0; x <= FRAME; x++) {
+        const left = Number(tipStyle({ x, y: 200 }, FRAME, tip).left);
+        if (left < 0 || left + tip > FRAME) out.push(`${tip}px at x=${x}`);
+      }
+    }
+    expect(out).toEqual([]);
   });
 });
 

@@ -1198,6 +1198,8 @@ WCAG 1.4.13 asks that it be dismissible and hoverable, and it is neither by defa
 | The label takes pointer events | `pointer-events: none` let the canvas hit-test *through* it, so moving onto the label renamed it to whichever point it covered |
 | The wrapper owns `mouseleave`, not the canvas | The label is a sibling of the canvas inside that wrapper, so moving onto the label leaves the canvas — on the canvas the handler dismissed the very label it was meant to keep |
 | Above the cursor at every height, D1 included | A cursor hangs below its hotspot by as much as its size. The Breeze hand at 48 reaches 41px down and 3px up, so a label below it is covered at any size guessed. On D1 the label rises past the plot's top edge, over the panel padding above it, so nothing above the figure may clip it |
+| 16px, the size the chips give the same words | Full screen is where one word is found in the crowd, so labels are read one after another, often letter by letter. The zoom spreads the points and never enlarges text. The cost of a large label falls as the zoom rises: fully zoomed on a phone the points stand 10mm apart (`FIG-8`), so a label covers one or two |
+| On whichever side of the pointer it fits, else centred inside the figure (`FIG-9`) | A label is as wide as its word, and the widest is 188px — over half the 296px a 320px screen leaves the figure. So no fixed share of the width can choose the side, and the label is measured before paint. It never wraps: near an edge, a hyphenated word would break at its hyphen and measure short |
 
 ### The figure full screen
 

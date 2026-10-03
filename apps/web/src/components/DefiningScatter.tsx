@@ -427,17 +427,29 @@ export function nearestWord(
   return best?.word ?? null;
 }
 
+/** How far the hover label keeps from the pointer, across and up. */
+const TIP_GAP = 8;
+
 /**
  * Where the hover label sits: above the cursor at every height, since a cursor hangs below
  * its hotspot by however large it is set. On the top row that runs the label past the plot.
+ * Across, on whichever side of the pointer it fits, else centred inside the figure.
  */
-export function tipStyle(hover: { x: number; y: number }, wrapWidth: number): React.CSSProperties {
-  const flipX = hover.x > wrapWidth * 0.66;
-  return {
-    left: hover.x + (flipX ? -8 : 8),
-    top: hover.y - 8,
-    transform: `${flipX ? "translateX(-100%) " : ""}translateY(-100%)`,
-  };
+// @spec FIG-9
+export function tipStyle(
+  hover: { x: number; y: number },
+  wrapWidth: number,
+  tipWidth: number,
+): React.CSSProperties {
+  const right = hover.x + TIP_GAP;
+  const left = hover.x - TIP_GAP - tipWidth;
+  const x =
+    right + tipWidth <= wrapWidth
+      ? right
+      : left >= 0
+        ? left
+        : Math.max(0, Math.min(hover.x - tipWidth / 2, wrapWidth - tipWidth));
+  return { left: x, top: hover.y - TIP_GAP, transform: "translateY(-100%)" };
 }
 
 // 44px, as every control on the page is (2.5.5). Disabled by aria, as SwapButton is, so a
@@ -527,6 +539,9 @@ function Chart({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [hover, setHover] = useState<{ word: string; x: number; y: number } | null>(null);
+  const tipRef = useRef<HTMLSpanElement | null>(null);
+  // Read before paint, since the side of the pointer the label fits on depends on its word.
+  const [tipWidth, setTipWidth] = useState(0);
   const [grabbing, setGrabbing] = useState(false);
   // Plot geometry, kept from the last paint so hit-testing measures against what is drawn.
   const plot = useRef<Plot | null>(null);
@@ -671,6 +686,11 @@ function Chart({
   // A label names the point under a pointer that has stopped; once the view moves, it names
   // whatever has slid under it instead.
   useEffect(() => setHover(null), [view]);
+
+  // @spec FIG-9
+  useLayoutEffect(() => {
+    if (tipRef.current) setTipWidth(tipRef.current.getBoundingClientRect().width);
+  }, [hover?.word]);
 
   // Escape dismisses the label without moving the pointer, which WCAG 1.4.13 asks of
   // anything that covers other content — and this one covers the points around it.
@@ -880,11 +900,13 @@ function Chart({
       )}
       {hover && (
         <span
+          ref={tipRef}
           aria-hidden
           // Takes the pointer rather than passing it through: hit-testing the canvas
           // under the label renamed it to whichever point it covered (WCAG 1.4.13).
-          className="tw-absolute tw-z-10 tw-rounded tw-border tw-border-line-subtle tw-bg-surface tw-px-2 tw-py-1 tw-body-x-small tw-text-primary tw-shadow"
-          style={tipStyle(hover, wrapRef.current?.clientWidth ?? 0)}
+          // Sized as the chips are, since full screen is read one label after another.
+          className="tw-absolute tw-z-10 tw-whitespace-nowrap tw-rounded tw-border tw-border-line-subtle tw-bg-surface tw-px-2 tw-py-1 tw-body-large tw-text-primary tw-shadow"
+          style={tipStyle(hover, wrapRef.current?.clientWidth ?? 0, tipWidth)}
           lang={source}
         >
           {hover.word}
