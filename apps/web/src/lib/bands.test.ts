@@ -268,6 +268,7 @@ describe("the defining view", () => {
     expect(none("pt")).toBe(6330);
     expect(none("it")).toBe(5886);
     expect(none("fr")).toBe(976);
+    expect(none("es")).toBe(7349);
   });
 
   // A wordier dictionary peels further, so each language has its own count.
@@ -313,6 +314,9 @@ describe("the defining view", () => {
     expect(getWord("fr", "eau")?.defining?.key).toBe("D3");
     expect(getWord("fr", "être")?.defining?.key).toBe("D1");
     expect(getWord("fr", "new")?.defining?.key).toBe("none");
+    expect(getWord("es", "agua")?.defining?.key).toBe("D4");
+    expect(getWord("es", "ser")?.defining?.key).toBe("D1");
+    expect(getWord("es", "déjame")?.defining?.key).toBe("none");
     // The dictionary spells it only with the ligature, so the other spelling takes its level.
     expect(getWord("fr", "coeur")?.defining?.key).toBe(getWord("fr", "cœur")?.defining?.key);
     expect(getWord("fr", "oeil")?.defining?.key).toBe("D4");

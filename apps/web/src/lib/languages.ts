@@ -20,7 +20,12 @@ export const DEFAULT_SOURCE: SourceLang = "en";
  * `bands.test.ts` proves the two agree.
  * @spec BAND-11, BAND-15
  */
-export const DEFINING_LEVEL_COUNT: Partial<Record<SourceLang, number>> = { pt: 7, it: 7, fr: 14 };
+export const DEFINING_LEVEL_COUNT: Partial<Record<SourceLang, number>> = {
+  pt: 7,
+  it: 7,
+  fr: 14,
+  es: 11,
+};
 
 export const DEFINING_LANGS = Object.keys(DEFINING_LEVEL_COUNT) as readonly SourceLang[];
 
@@ -34,6 +39,7 @@ export const DEFINING_EXAMPLE: Partial<Record<SourceLang, string>> = {
   pt: "olá",
   it: "ciao",
   fr: "allô",
+  es: "hola",
 };
 
 export function isSourceLang(v: string): v is SourceLang {

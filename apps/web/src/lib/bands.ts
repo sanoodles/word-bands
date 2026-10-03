@@ -13,6 +13,7 @@ import pt from "../../data/word-bands.pt.json";
 import definingPt from "../../data/defining.pt.json";
 import definingIt from "../../data/defining.it.json";
 import definingFr from "../../data/defining.fr.json";
+import definingEs from "../../data/defining.es.json";
 import it from "../../data/word-bands.it.json";
 
 export { isSourceLang } from "@/lib/languages";
@@ -145,7 +146,7 @@ function load(
 
 const REGISTRY: Record<SourceLang, LangData> = {
   en: load(en),
-  es: load(es),
+  es: load(es, definingEs),
   fr: load(fr, definingFr),
   de: load(de),
   pt: load(pt, definingPt),
