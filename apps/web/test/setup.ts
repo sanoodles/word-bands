@@ -32,6 +32,19 @@ if (typeof window !== "undefined") {
   el.setPointerCapture ??= () => {};
   el.releasePointerCapture ??= () => {};
 }
+// jsdom has the <dialog> element but no modal for it. Enough of one for the figure's full
+// screen: `open` follows the two calls, and closing fires `close` as a browser does.
+if (typeof window !== "undefined" && !window.HTMLDialogElement.prototype.showModal) {
+  const dialog = window.HTMLDialogElement.prototype;
+  dialog.showModal = function (this: HTMLDialogElement) {
+    this.setAttribute("open", "");
+  };
+  dialog.close = function (this: HTMLDialogElement) {
+    if (!this.open) return;
+    this.removeAttribute("open");
+    this.dispatchEvent(new Event("close"));
+  };
+}
 // jsdom's canvas returns no 2d context; GraphView measures label widths through
 // one. Hand back a minimal stub with approximate text metrics.
 if (typeof window !== "undefined") {

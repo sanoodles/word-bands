@@ -981,6 +981,7 @@ tooltip is open.
 | Abbreviations in the credits | Expanded in the sentence, never in a `title`. Chrome puts an `<abbr title>` in no name at all, and neither touch nor the keyboard can reach it — so it was a mechanism for nobody (3.1.4). The `<abbr>` markup went with it, and the lint rule below stays as a guard |
 | `WordSearchBox` | Named by its section heading (`labelledBy`), not by a second copy of the same string |
 | The figure | No heading, deliberately. It is a `<figure>` with a visible `<figcaption>`, which already names it, and its canvas carries a `role="img"` with a long description — a heading on top would be a second name for one thing |
+| The figure full screen | A modal `<dialog>` named by its visible heading and described by the hint under the plot, so the way to zoom is read as it opens. Each icon button is named by its own text, visually hidden under 900px |
 | Section headings | Visible, and every one of them is also the name of the section it opens. Nothing is hidden for assistive tech alone, so a heading cannot drift from the name it gives |
 | `WordCard` | Named by its own heading, "Meaning of <word>". The word is in the name because the live region beneath it would otherwise announce a translation with no subject, and the heading is visible because it is what starts the card's row level with the panel facing it. The level, where the card carries it, sits beside that heading and not inside it — it belongs to the word, not to the card |
 | Search help | `aria-hidden`, so it is read once as the field's description. A hidden element still contributes its text when `aria-describedby` names it directly |
@@ -1127,6 +1128,7 @@ row fewer per screen, on the one control the page has hundreds of.
 | The view toggle | `min-height: 46px` on the **group**, in `globals.css` — see the Fondue table |
 | Select options | `min-height` on `[role="option"]` inside the popper. They are already a centred flex row, so nothing else moves |
 | The figure's caption toggle | 13px of padding on an 18px line. Padding rather than a height, so it stays centred and a wrapped line still grows |
+| The figure's full-screen button, and every button inside full screen | `TOOL` in `DefiningScatter`: 44px tall, and at least 44 wide |
 | The skip link, Previous and Next, the band tabs, the card's two links | Already 44 or over |
 
 What is left under 44 is left on purpose, and the probe still lists it:
@@ -1196,6 +1198,30 @@ WCAG 1.4.13 asks that it be dismissible and hoverable, and it is neither by defa
 | The label takes pointer events | `pointer-events: none` let the canvas hit-test *through* it, so moving onto the label renamed it to whichever point it covered |
 | The wrapper owns `mouseleave`, not the canvas | The label is a sibling of the canvas inside that wrapper, so moving onto the label leaves the canvas — on the canvas the handler dismissed the very label it was meant to keep |
 | Above the cursor at every height, D1 included | A cursor hangs below its hotspot by as much as its size. The Breeze hand at 48 reaches 41px down and 3px up, so a label below it is covered at any size guessed. On D1 the label rises past the plot's top edge, over the panel padding above it, so nothing above the figure may clip it |
+
+### The figure full screen
+
+`FIG-1` to `FIG-7` are the rules. In the page the figure is one static picture. Full screen
+is where it zooms and pans.
+
+| Detail | Why |
+| --- | --- |
+| A native `<dialog>`, not Fondue's `Dialog` | Fondue's full-screen size keeps a 1rem margin and is sized to `100vh`, which on an iPhone runs under Safari's toolbar. A modal `<dialog>` brings Escape, the inert page and the top layer with it |
+| The dialog is the full screen, and the browser's is asked for on top | iPhone Safari has no element fullscreen, so the dialog has to stand on its own (`FIG-1`). Where the browser has one, it also takes the browser's bars away |
+| The browser's full screen is asked for on a `div` inside the dialog | A `<dialog>` cannot be the fullscreen element |
+| Leaving the browser's full screen closes the dialog (`FIG-7`) | Escape there belongs to the browser. It leaves the browser's full screen and never reaches the page, so without this it takes two presses |
+| In the page the figure takes no wheel and no finger (`FIG-6`) | They scroll the page. On a phone the figure is half the screen tall, and a figure that took the finger would trap a reader scrolling past it |
+| Full screen, the wheel zooms with no modifier | Nothing behind it scrolls, so the wheel has nothing else to do |
+| A key with ctrl, cmd or alt held is left alone | Ctrl and plus is the browser's page zoom (1.4.4) |
+| Buttons on the plot's edges move the view | A drag pans, but 2.5.7 asks for a way without one. They show only once zoomed, when there is somewhere to move to |
+| No tooltip inside it | Radix portals a tooltip to `<body>`, which sits under the top layer and outside the fullscreen element, so it would never show. The buttons' own text names them, and shows from 900px |
+| A pick stays full screen | The word is looked up behind it and marked in it. Leaving on every pick would throw the zoom away mid-search |
+| Safari's trackpad pinch | Safari sends `gesturechange`, not a ctrl+wheel. A pinch on glass sends both, so the gesture handler stands down while a pointer is down |
+| `MAX_ZOOM` is 64 | Measured on all four languages: at 64 on a 390px phone, 2–4% of the points still sit within 8px of another. At 32 it is 8–15% |
+| Rank labels between the band edges, full screen only | Zoomed inside one band, its edges are off screen and the row would be empty. The step is the finest round number whose rightmost pair stays 56px apart, since the square root crowds ranks to the right |
+| A row or band is named in the middle of what shows (`FIG-5`) | Zoomed past its middle, the middle is off screen. Wholly in view, it is named in its middle |
+| Zoomed points are clipped to the plot | The label rows sit just under it. Whole, nothing lies off the plot, so nothing is clipped |
+| Points grow with the zoom, and turn round from 3px | A 1.6px square reads as a dot and a 4px one as a pixel. Few points are in view by then, so drawing each one round costs little |
 
 ### Crawlers and link previews
 

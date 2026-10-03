@@ -1,7 +1,15 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import DefiningScatter, { nearestWord, tipStyle } from "./DefiningScatter";
+import DefiningScatter, {
+  MAX_ZOOM,
+  WHOLE,
+  nearestWord,
+  panView,
+  rankTicks,
+  tipStyle,
+  zoomView,
+} from "./DefiningScatter";
 import type { SourceLang } from "@/lib/languages";
 
 // `paint` bails on the zero-size wrap that jsdom reports, before it reaches the context
@@ -351,5 +359,360 @@ describe("picking a point", () => {
     fireEvent.pointerDown(canvas, { ...tap, pointerType: "touch" });
     fireEvent.click(canvas, tap);
     expect(await screen.findByText(LAST.word)).toBeInTheDocument();
+  });
+});
+
+// The view is plain numbers, so where it may go is proven without laying anything out.
+describe("the view", () => {
+  const inside = (v: { k: number; u: number; v: number }) => {
+    expect(v.u).toBeGreaterThanOrEqual(0);
+    expect(v.v).toBeGreaterThanOrEqual(0);
+    expect(v.u + 1 / v.k).toBeLessThanOrEqual(1 + 1e-12);
+    expect(v.v + 1 / v.k).toBeLessThanOrEqual(1 + 1e-12);
+  };
+
+  // @spec FIG-3
+  it("zooms out no further than the whole figure, and in no further than 64 times", () => {
+    expect(zoomView(WHOLE, 0.25)).toEqual(WHOLE);
+    let v = WHOLE;
+    for (let i = 0; i < 12; i++) v = zoomView(v, 2, [0.9, 0.1]);
+    expect(MAX_ZOOM).toBe(64);
+    expect(v.k).toBe(64);
+    inside(v);
+  });
+
+  // @spec FIG-3
+  it("never pans past the figure's edges", () => {
+    const v = zoomView(WHOLE, 4);
+    for (const [du, dv] of [
+      [-10, 0],
+      [10, 0],
+      [0, -10],
+      [0, 10],
+    ] as const)
+      inside(panView(v, du, dv));
+    // Whole, there is nowhere to go.
+    expect(panView(WHOLE, 0.5, -0.5)).toEqual(WHOLE);
+  });
+
+  // @spec FIG-2
+  it("keeps the point under the pointer where it is as it zooms", () => {
+    const at: [number, number] = [0.3, 0.7];
+    const v = zoomView(WHOLE, 3, at);
+    expect(v.u + at[0] / v.k).toBeCloseTo(at[0]);
+    expect(v.v + at[1] / v.k).toBeCloseTo(at[1]);
+  });
+
+  // @spec FIG-4
+  it("hit-tests what the view draws, not where the whole figure would have it", () => {
+    const plot = { w: W, h: H };
+    // Zoomed four times in place at FIRST, which therefore stays put.
+    const view = zoomView(WHOLE, 4, [(FIRST.x - 38) / (W - 50), (FIRST.y - 10) / (H - 50)]);
+    expect(nearestWord(points, plot, FIRST.x, FIRST.y, 7, view)).toBe(FIRST.word);
+    // LAST has gone out of view, so nothing anywhere picks it.
+    for (let x = 0; x <= W; x += 4)
+      for (let y = 0; y <= H; y += 4)
+        expect(nearestWord(points, plot, x, y, 22, view)).not.toBe(LAST.word);
+  });
+
+  // @spec FIG-4
+  it("finds a word where the zoom moved it, and no longer where it was", () => {
+    const plot = { w: W, h: H };
+    const view = zoomView(WHOLE, 2);
+    // água, rank 4 of 10: at twice the zoom about the middle it lands 99px to the right.
+    const u = Math.sqrt(4 / 10);
+    const before = 38 + u * (W - 50);
+    const after = 38 + (u - view.u) * view.k * (W - 50);
+    const hit = (x: number, v: typeof view) =>
+      Array.from({ length: H }, (_, y) => y).some(
+        (y) => nearestWord(points, plot, x, y, 1, v) === "água",
+      );
+    expect(hit(before, WHOLE)).toBe(true);
+    expect(hit(after, view)).toBe(true);
+    expect(hit(before, view)).toBe(false);
+  });
+
+  // @spec FIG-5
+  it("labels the ranks wherever a zoomed view sits, band edges in it or not", () => {
+    // Ranks 100 to 746 of 30,000: inside A1, where no band edge falls.
+    const ranks = rankTicks({ k: 10, u: Math.sqrt(100 / 30_000), v: 0 }, W, 30_000, true);
+    expect(ranks.length).toBeGreaterThanOrEqual(2);
+    expect(ranks.every((t) => !t.edge)).toBe(true);
+    // The page's own figure marks the band edges and nothing between them.
+    expect(rankTicks(WHOLE, W, 30_000, false).map((t) => t.rank)).toEqual([
+      1000, 3000, 6000, 12000, 25000,
+    ]);
+  });
+});
+
+/** The labels a figure carries, read back off the DOM it laid them out in. */
+const labelsIn = (root: Element) => {
+  const spans = [...root.querySelectorAll<HTMLElement>("div[aria-hidden] > span")];
+  const find = (text: string) => spans.find((el) => el.textContent === text)?.style;
+  return {
+    written: spans.map((el) => el.textContent ?? ""),
+    at: (text: string) => parseFloat(find(text)?.left ?? "NaN"),
+    top: (text: string) => parseFloat(find(text)?.top ?? "NaN"),
+  };
+};
+
+/**
+ * A browser with element fullscreen, for the tests that need one. jsdom has none, which is
+ * iPhone Safari's case and the default here.
+ */
+function withBrowserFullScreen() {
+  let current: Element | null = null;
+  const changed = () => document.dispatchEvent(new Event("fullscreenchange"));
+  const request = vi.fn(async function (this: Element) {
+    current = this;
+    changed();
+  });
+  const exit = vi.fn(async () => {
+    current = null;
+    changed();
+  });
+  beforeEach(() => {
+    current = null;
+    Object.defineProperty(document, "fullscreenEnabled", { configurable: true, get: () => true });
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => current,
+    });
+    Object.defineProperty(document, "exitFullscreen", { configurable: true, value: exit });
+    Object.defineProperty(window.HTMLElement.prototype, "requestFullscreen", {
+      configurable: true,
+      value: request,
+    });
+  });
+  afterEach(() => {
+    for (const k of ["fullscreenEnabled", "fullscreenElement", "exitFullscreen"])
+      Reflect.deleteProperty(document, k);
+    Reflect.deleteProperty(window.HTMLElement.prototype, "requestFullscreen");
+    request.mockClear();
+    exit.mockClear();
+  });
+  // Leaving by the browser's own way out: Escape, a gesture, its own control.
+  return { request, exit, leave: () => ((current = null), changed()) };
+}
+
+describe("full screen", () => {
+  paints();
+  const wide = {
+    levels: "1".repeat(30_000),
+    levelCount: 7,
+    words: Array.from({ length: 30_000 }, (_, i) => `w${i}`),
+  };
+  const serve = (p: typeof wide | typeof points) =>
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => p })));
+  beforeEach(() => serve(wide));
+
+  const open = async (onSelect: (w: string) => void = () => {}) => {
+    render(<DefiningScatter source="pt" anchorWord={null} onSelect={onSelect} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Full screen" }));
+    const dialog = await screen.findByRole("dialog", { name: "Frequency against defining level" });
+    return { dialog, canvas: dialog.querySelector("canvas")!, labels: labelsIn(dialog) };
+  };
+  /** The distance between two rows, which is the zoom. Both have to be wholly in view. */
+  const rowGap = (dialog: Element) => labelsIn(dialog).top("D5") - labelsIn(dialog).top("D4");
+  const button = (name: string) => screen.getByRole("button", { name });
+
+  // @spec FIG-1
+  it("opens in a browser with no element fullscreen, as iPhone Safari is", async () => {
+    const { dialog, canvas } = await open();
+    expect(dialog).toHaveAttribute("open");
+    expect(canvas).toHaveAccessibleName(/^Frequency against defining level/);
+    // Opened by a button, so focus starts on the one that undoes it.
+    expect(button("Exit full screen")).toHaveFocus();
+  });
+
+  it("gives focus back to the button that opened it", async () => {
+    await open();
+    fireEvent.click(button("Exit full screen"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(button("Full screen")).toHaveFocus();
+  });
+
+  describe("where the browser has its own full screen", () => {
+    const fs = withBrowserFullScreen();
+
+    // @spec FIG-1
+    it("takes it as well", async () => {
+      const { dialog } = await open();
+      expect(fs.request).toHaveBeenCalledOnce();
+      expect(fs.request.mock.contexts[0]).toBe(dialog.firstElementChild);
+      expect(dialog).toHaveAttribute("open");
+    });
+
+    // @spec FIG-7
+    it("closes when the browser's closes, so one Escape leaves both", async () => {
+      const { dialog } = await open();
+      fs.leave();
+      await waitFor(() => expect(dialog).not.toHaveAttribute("open"));
+      expect(button("Full screen")).toHaveFocus();
+    });
+
+    it("leaves the browser's when its own button closes it", async () => {
+      await open();
+      fireEvent.click(button("Exit full screen"));
+      expect(fs.exit).toHaveBeenCalledOnce();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+  });
+
+  // @spec FIG-2
+  it("zooms by wheel, around the pointer, and keeps the page from scrolling", async () => {
+    const { dialog, canvas } = await open();
+    expect(rowGap(dialog)).toBeCloseTo(50);
+    // Not prevented means the page would have scrolled instead.
+    expect(fireEvent.wheel(canvas, { deltaY: -500, clientX: 400, clientY: 200 })).toBe(false);
+    expect(rowGap(dialog)).toBeCloseTo(50 * Math.exp(0.8));
+  });
+
+  // @spec FIG-2
+  it("zooms by pinch, following the fingers", async () => {
+    const { dialog, canvas } = await open();
+    const touch = { pointerType: "touch" };
+    fireEvent.pointerDown(canvas, { ...touch, pointerId: 1, clientX: 300, clientY: 200 });
+    fireEvent.pointerDown(canvas, { ...touch, pointerId: 2, clientX: 500, clientY: 200 });
+    fireEvent.pointerMove(canvas, { ...touch, pointerId: 2, clientX: 700, clientY: 200 });
+    expect(rowGap(dialog)).toBeCloseTo(100);
+  });
+
+  // @spec FIG-2
+  it("pans by drag", async () => {
+    const { dialog, canvas } = await open();
+    fireEvent.keyDown(document, { key: "+" });
+    const before = labelsIn(dialog).at("6k");
+    const mouse = { pointerId: 1, pointerType: "mouse" };
+    fireEvent.pointerDown(canvas, { ...mouse, clientX: 400, clientY: 200 });
+    fireEvent.pointerMove(canvas, { ...mouse, clientX: 500, clientY: 200 });
+    fireEvent.pointerUp(canvas, { ...mouse, clientX: 500, clientY: 200 });
+    expect(labelsIn(dialog).at("6k") - before).toBeCloseTo(100);
+  });
+
+  // @spec FIG-2
+  it("zooms and pans by key, and leaves the browser's own zoom keys alone", async () => {
+    const { dialog } = await open();
+    fireEvent.keyDown(document, { key: "+" });
+    expect(rowGap(dialog)).toBeCloseTo(100);
+    const before = labelsIn(dialog).at("6k");
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    // A fifth of the window, which is 750px wide at twice the zoom.
+    expect(before - labelsIn(dialog).at("6k")).toBeCloseTo(150);
+    fireEvent.keyDown(document, { key: "0" });
+    expect(rowGap(dialog)).toBeCloseTo(50);
+    // Ctrl and plus is the browser zooming the page.
+    expect(fireEvent.keyDown(document, { key: "+", ctrlKey: true })).toBe(true);
+    expect(rowGap(dialog)).toBeCloseTo(50);
+  });
+
+  // @spec FIG-2
+  it("zooms and pans by buttons, so no move needs a drag", async () => {
+    const { dialog } = await open();
+    expect(button("Zoom out")).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByRole("button", { name: "Move right" })).toBeNull();
+    fireEvent.click(button("Zoom in"));
+    expect(rowGap(dialog)).toBeCloseTo(100);
+    // Centred, so there is figure on every side to move to.
+    for (const side of ["left", "right", "up", "down"])
+      expect(button(`Move ${side}`)).toHaveAttribute("aria-disabled", "false");
+    const before = labelsIn(dialog).at("6k");
+    fireEvent.click(button("Move left"));
+    expect(labelsIn(dialog).at("6k") - before).toBeCloseTo(375);
+    expect(button("Move left")).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(button("Reset zoom"));
+    expect(rowGap(dialog)).toBeCloseTo(50);
+    expect(screen.queryByRole("button", { name: "Move left" })).toBeNull();
+  });
+
+  // @spec FIG-5
+  it("keeps the row and the band it is zoomed into named, and the ranks labelled", async () => {
+    const { dialog } = await open();
+    // Five doublings from the middle of the figure, deep inside D4 and B2, then down and
+    // left until the middle of either one is out of view.
+    for (let i = 0; i < 5; i++) fireEvent.keyDown(document, { key: "+" });
+    for (let i = 0; i < 4; i++) fireEvent.keyDown(document, { key: "ArrowDown" });
+    for (let i = 0; i < 4; i++) fireEvent.keyDown(document, { key: "ArrowLeft" });
+    const { written, top, at } = labelsIn(dialog);
+    expect(written.filter((t) => /^D\d+$/.test(t))).toEqual(["D4"]);
+    expect(top("D4")).toBeGreaterThan(10);
+    expect(top("D4")).toBeLessThan(H - 40);
+    expect(at("B2")).toBeGreaterThan(38);
+    expect(at("B2")).toBeLessThan(W - 12);
+    expect(written.filter((t) => /^\d/.test(t)).length).toBeGreaterThanOrEqual(2);
+  });
+
+  describe("picking", () => {
+    beforeEach(() => serve(points));
+    const mouse = { pointerId: 1, pointerType: "mouse" };
+
+    // @spec FIG-4
+    it("picks the word under a press that stayed put", async () => {
+      const picked = vi.fn();
+      const { canvas } = await open(picked);
+      fireEvent.pointerDown(canvas, { ...mouse, clientX: LAST.x, clientY: LAST.y });
+      fireEvent.pointerUp(canvas, { ...mouse, clientX: LAST.x + 2, clientY: LAST.y });
+      expect(picked).toHaveBeenCalledExactlyOnceWith(LAST.word);
+      // Still full screen: the word is looked up behind it, and marked in it.
+      expect(screen.getByRole("dialog")).toHaveAttribute("open");
+    });
+
+    // @spec FIG-4
+    it("picks what the zoomed view draws under the press", async () => {
+      const picked = vi.fn();
+      const { canvas } = await open(picked);
+      fireEvent.keyDown(document, { key: "+" });
+      const view = zoomView(WHOLE, 2);
+      const x = 38 + (Math.sqrt(4 / 10) - view.u) * view.k * (W - 50);
+      const y = Array.from({ length: H }, (_, i) => i).find(
+        (i) => nearestWord(points, { w: W, h: H }, x, i, 1, view) === "água",
+      )!;
+      fireEvent.pointerDown(canvas, { ...mouse, clientX: x, clientY: y });
+      fireEvent.pointerUp(canvas, { ...mouse, clientX: x, clientY: y });
+      expect(picked).toHaveBeenCalledExactlyOnceWith("água");
+    });
+
+    // @spec FIG-4
+    it("picks nothing when a pinch ends, even with a finger still on a point", async () => {
+      const picked = vi.fn();
+      const { canvas } = await open(picked);
+      const touch = { pointerType: "touch" };
+      fireEvent.pointerDown(canvas, { ...touch, pointerId: 1, clientX: FIRST.x, clientY: FIRST.y });
+      fireEvent.pointerDown(canvas, { ...touch, pointerId: 2, clientX: 500, clientY: 200 });
+      fireEvent.pointerMove(canvas, { ...touch, pointerId: 2, clientX: 600, clientY: 260 });
+      fireEvent.pointerUp(canvas, { ...touch, pointerId: 2, clientX: 600, clientY: 260 });
+      // The finger that never moved lifts last, where a tap would have picked.
+      fireEvent.pointerUp(canvas, { ...touch, pointerId: 1, clientX: FIRST.x, clientY: FIRST.y });
+      expect(picked).not.toHaveBeenCalled();
+    });
+
+    // @spec FIG-4
+    it("picks nothing at the end of a drag, even one ending on a point", async () => {
+      const picked = vi.fn();
+      const { canvas } = await open(picked);
+      fireEvent.pointerDown(canvas, { ...mouse, clientX: FIRST.x, clientY: FIRST.y });
+      fireEvent.pointerMove(canvas, { ...mouse, clientX: LAST.x, clientY: LAST.y });
+      fireEvent.pointerUp(canvas, { ...mouse, clientX: LAST.x, clientY: LAST.y });
+      expect(picked).not.toHaveBeenCalled();
+    });
+  });
+});
+
+// @spec FIG-6
+describe("the figure in the page", () => {
+  paints();
+
+  it("leaves the wheel and a finger to the page", async () => {
+    render(<DefiningScatter source="pt" anchorWord={null} onSelect={() => {}} />);
+    const canvas = await screen.findByRole("img");
+    const fig = canvas.closest("figure")!;
+    const before = labelsIn(fig).top("D4");
+    expect(fireEvent.wheel(canvas, { deltaY: -500, clientX: 400, clientY: 200 })).toBe(true);
+    expect(canvas.style.touchAction).not.toBe("none");
+    const finger = { pointerId: 1, pointerType: "touch" };
+    fireEvent.pointerDown(canvas, { ...finger, clientX: 300, clientY: 200 });
+    fireEvent.pointerMove(canvas, { ...finger, clientX: 300, clientY: 100 });
+    fireEvent.pointerUp(canvas, { ...finger, clientX: 300, clientY: 100 });
+    expect(labelsIn(fig).top("D4")).toBe(before);
   });
 });

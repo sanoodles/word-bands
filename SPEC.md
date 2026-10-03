@@ -47,6 +47,7 @@ verifies the claim exists, not that it bites.
 | `URL` | Deeplink state and the page title | PR |
 | `CREDIT` | Which sources and works the page credits | PR |
 | `ETYM` | The word card's link to the word's etymology | PR |
+| `FIG` | The defining figure: full screen, zoom and pan | PR |
 
 Not covered yet, and deliberately: visual design, copy, component layout, the
 accessibility contract (its proof is the transcript, which detects change rather than
@@ -213,3 +214,18 @@ written in that language.
 | ETYM-1 | In every source language, the word card links the looked-up word to its etymology in a dictionary of that language |
 | ETYM-2 | English links to Etymonline, German to the DWDS entry at its etymology, French to the CNRTL's etymology, Spanish to the RAE's dictionary, Italian to the Nuovo De Mauro and Portuguese to Priberam |
 | ETYM-3 | The word is spelt the way its dictionary looks it up: lowercase for the RAE's, and lowercase without diacritics for the Nuovo De Mauro |
+
+## FIG — the defining figure
+
+The defining view draws every levelled word as one point. In the page the figure is one
+static picture. Full screen, it zooms and pans, so one word in the crowd can be found.
+
+| ID | Rule |
+| --- | --- |
+| FIG-1 | The figure opens full screen on every device, including in a browser with no element fullscreen |
+| FIG-2 | Full screen, the figure zooms by wheel, pinch, keys and buttons, and pans by drag, keys and buttons |
+| FIG-3 | The zoom runs from the whole figure to 64 times, and the view never pans past the figure's edges |
+| FIG-4 | A pick lands on the word drawn under it at every zoom. A drag or a pinch picks nothing |
+| FIG-5 | Zoomed, every level and band in view keeps its name in view, and the ranks along the bottom stay labelled |
+| FIG-6 | In the page the figure neither zooms nor pans, so the wheel and a finger scroll the page across it |
+| FIG-7 | Leaving the browser's own full screen leaves the figure's too |
