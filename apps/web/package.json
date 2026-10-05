@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@frontify/fondue": "^13.7.10",
-    "next": "^16.3.5",
+    "next": "^16.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1"
