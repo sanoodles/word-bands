@@ -11,10 +11,12 @@ import rankedPt from "../../data/word-bands.pt.json";
 import rankedIt from "../../data/word-bands.it.json";
 import rankedFr from "../../data/word-bands.fr.json";
 import rankedEs from "../../data/word-bands.es.json";
+import rankedDe from "../../data/word-bands.de.json";
 import definingPt from "../../data/defining.pt.json";
 import definingIt from "../../data/defining.it.json";
 import definingFr from "../../data/defining.fr.json";
 import definingEs from "../../data/defining.es.json";
+import definingDe from "../../data/defining.de.json";
 
 // The committed data/word-bands.<code>.json files are the build's output and the app's
 // only corpus, so these hold whether or not anyone re-runs the build. Nothing else looks
@@ -226,6 +228,7 @@ describe("defining levels", () => {
     for (const [ranked, defining] of [
       [rankedPt, definingPt], [rankedIt, definingIt],
       [rankedFr, definingFr], [rankedEs, definingEs],
+      [rankedDe, definingDe],
     ] as const) {
       const digest = createHash("sha256").update(ranked.ranked.join("\n")).digest("hex").slice(0, 16);
       expect(defining.digest, defining.lang).toBe(digest);

@@ -25,6 +25,7 @@ export const DEFINING_LEVEL_COUNT: Partial<Record<SourceLang, number>> = {
   it: 7,
   fr: 14,
   es: 11,
+  de: 5,
 };
 
 export const DEFINING_LANGS = Object.keys(DEFINING_LEVEL_COUNT) as readonly SourceLang[];
@@ -40,6 +41,7 @@ export const DEFINING_EXAMPLE: Partial<Record<SourceLang, string>> = {
   it: "ciao",
   fr: "allô",
   es: "hola",
+  de: "hallo",
 };
 
 export function isSourceLang(v: string): v is SourceLang {

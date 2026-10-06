@@ -49,9 +49,15 @@ TAB THROUGH THE PAGE
   21. ODbL 1.0, link
   22. CEFR-J, link
   23. Leipzig Corpora, link
-  24. Google Translate, link
-  25. What these words mean, button
-  26. samuelgomezcrespo@gmail.com, link
+  24. German Wiktionary, link
+  25. CC BY-SA 4.0, link
+  26. Wiktextract, link
+  27. Blondin Massé et al. (2008), link
+  28. Vincent-Lamarre et al. (2016), link
+  29. Seidman, 1983, link
+  30. Google Translate, link
+  31. What these words mean, button
+  32. samuelgomezcrespo@gmail.com, link
 
 THE WORD CLOUD — a listbox of the band's words
 ------------------------------------------------------------------------
