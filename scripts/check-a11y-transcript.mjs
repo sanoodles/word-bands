@@ -111,11 +111,39 @@ function launch() {
   const child = spawn(bin, flags, {
     stdio: ["ignore", "ignore", "pipe"],
     env: { ...process.env, LANG: "en_US.UTF-8", LC_ALL: "en_US.UTF-8", TZ: "UTC" },
+    // Its own process group, so `stop` reaches a browser started behind a wrapper script.
+    detached: true,
   });
   child.on("error", () => {}); // surfaced by the exit handler below instead
   const log = [];
   child.stderr.on("data", (d) => log.push(String(d)));
   return { child, profile, log };
+}
+
+// True while any process of the browser's group is left to receive the signal.
+function signal(child, sig) {
+  try {
+    process.kill(-child.pid, sig);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function dropProfile(profile) {
+  try {
+    rmSync(profile, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  } catch {
+    /* a directory left in tmp is the OS's to reap, and no reason to fail a check */
+  }
+}
+
+// Waits for the group to empty before deleting: a browser still writing makes the delete fail.
+async function stop({ child, profile }) {
+  signal(child, "SIGTERM");
+  for (let i = 0; i < 50 && signal(child, 0); i++) await sleep(100);
+  signal(child, "SIGKILL");
+  dropProfile(profile);
 }
 
 // Chrome prints the endpoint it chose to stderr, which is the only way to learn it with
@@ -481,6 +509,13 @@ try {
   process.exit(1);
 }
 
+// process.exit() skips finally, and a detached group never hears the terminal's Ctrl-C.
+process.on("exit", () => {
+  signal(browser.child, "SIGKILL");
+  dropProfile(browser.profile);
+});
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.once(sig, () => process.exit(1));
+
 let actual;
 try {
   const cdp = connect(await browserEndpoint(browser));
@@ -495,20 +530,7 @@ try {
   annotate("Could not transcribe the page", `${TARGET}${SCENARIO}\n\n${err.stack ?? err.message}`);
   process.exit(1);
 } finally {
-  // kill() only asks. Deleting the profile while the browser is still flushing into it
-  // fails with ENOTEMPTY, which `force` does not cover — and a throw in here escapes
-  // before the comparison, so the check dies of housekeeping with the transcript already
-  // in hand. Wait for the exit, retry the delete, and never let either be the verdict.
-  await new Promise((resolve) => {
-    const done = setTimeout(resolve, 5_000);
-    browser.child.once("exit", () => { clearTimeout(done); resolve(); });
-    browser.child.kill();
-  });
-  try {
-    rmSync(browser.profile, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  } catch {
-    /* a directory left in tmp is the OS's to reap, and no reason to fail a check */
-  }
+  await stop(browser);
 }
 
 if (UPDATE) {
