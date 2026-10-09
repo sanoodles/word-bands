@@ -301,7 +301,7 @@ async function transcribe(send, on) {
         const al = c.getAttribute && c.getAttribute("aria-label");
         o += al ? " (" + al + ")" : walk(c);
       } return o; };
-    return walk(l).replace(/\s+/g, " ").trim(); })()`)}`);
+    return walk(l).replace(/\\s+/g, " ").trim(); })()`)}`);
   say(`  copied as    ${JSON.stringify(await val(`(() => { const l = document.querySelector("[aria-live] span[lang]");
     const s = getSelection(), r = document.createRange(); r.selectNodeContents(l); s.removeAllRanges(); s.addRange(r);
     const t = s.toString(); s.removeAllRanges(); return t; })()`))}`);
