@@ -206,25 +206,30 @@ function Terms({
         return (
           <Fragment key={`${i}:${term}`}>
             {i > 0 && ", "}
-            {level && onPick ? (
-              <button
-                type="button"
-                id={termId}
-                // Named by the term itself, never by a label saying what the click does:
-                // a name would replace the word and the line would stop reading as the
-                // translation. The purpose is a description, announced on focus alone.
-                aria-describedby={pickHelp}
-                className={PICK}
-                onClick={() => onPick(term)}
-              >
-                {term}
-              </button>
-            ) : level ? (
-              <span id={termId}>{term}</span>
+            {level ? (
+              // One unbreakable run: a button is an atomic inline, which a line may break after.
+              <span className="tw-whitespace-nowrap">
+                {onPick ? (
+                  <button
+                    type="button"
+                    id={termId}
+                    // Named by the term itself, never by a label saying what the click does:
+                    // a name would replace the word and the line would stop reading as the
+                    // translation. The purpose is a description, announced on focus alone.
+                    aria-describedby={pickHelp}
+                    className={PICK}
+                    onClick={() => onPick(term)}
+                  >
+                    {term}
+                  </button>
+                ) : (
+                  <span id={termId}>{term}</span>
+                )}
+                <CefrBadge level={level} describedBy={termId} />
+              </span>
             ) : (
               term
             )}
-            {level && <CefrBadge level={level} describedBy={termId} />}
           </Fragment>
         );
       })}

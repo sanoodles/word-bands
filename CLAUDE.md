@@ -836,7 +836,7 @@ instead of at the leading one.
 | Separators are bare text | Nothing but the badge sits between one term and the next |
 | A badged term is wrapped in a `<span id>`, or in the button where it can be picked | Somewhere for its badge to point at. Only a badged one — the wrapper exists to be pointed at, and a span carries no text either way |
 | The badge is `select-none` | A copied line is then the translation and nothing else. The margin keeps a space out of it; without this the letters stayed, and "water, aqua" copied as "waterA1, aquaB2" |
-| No whitespace between a term and its badge | A wrap can never split the two |
+| A term and its badge sit in one `whitespace-nowrap` span | A wrap can never split the two. Leaving out the whitespace is not enough: a pickable term is a button, an atomic inline, which a line may break after |
 | `role="img"` carries the detail as the badge's accessible name | Hidden text would say the same thing but ride along into anything copied out of the translation |
 | The word the badge is for is its **description**, not part of its name | Reading the line, the word and its badge are already adjacent, so a name holding both would say the word twice. Tabbing lands on the badge alone, where the level has no subject. A description is announced on focus and not while reading, which is the split exactly |
 
