@@ -381,16 +381,19 @@ async function transcribe(send, on) {
   // Each source's line ends in its name, which is also the way to its page for the word.
   rule("TWO SOURCES — Spanish into German, with Wiktionary's line under Google's");
   await send("Page.navigate", { url: TARGET + PAIR_SCENARIO });
+  // Keyed on Wiktionary's link: while the lookup is in flight the spinner's own wrapper
+  // has two children as well, so a count of them reads the spinner.
+  const LINE = "[aria-live] > div > span[lang]";
   await until(
-    `document.querySelectorAll("[aria-live] > div > *").length === 2`,
+    `!!document.querySelector('${LINE}:last-child a[href*="wiktionary.org"]')`,
     "both sources' lines",
     `document.querySelector("[aria-live]")?.innerText ?? null`,
   );
-  for (const [name, sel] of [["Google", ":first-child"], ["Wiktionary", ":last-child"]]) {
-    say(`  ${name.padEnd(12)} ${await reading(`[aria-live] > div > ${sel}`)}`);
-    say(`  ${"copied as".padEnd(12)} ${await copied(`[aria-live] > div > ${sel}`)}`);
+  for (const [name, sel] of [["Google", `${LINE}:first-child`], ["Wiktionary", `${LINE}:last-child`]]) {
+    say(`  ${name.padEnd(12)} ${await reading(sel)}`);
+    say(`  ${"copied as".padEnd(12)} ${await copied(sel)}`);
   }
-  await val(`document.querySelector("[aria-live] > div > :last-child a").focus()`);
+  await val(`document.querySelector('${LINE}:last-child a').focus()`);
   say(`  ${"its link".padEnd(12)} ${await speak()}`);
 
   // Last, because moving off A1 leaves a different band open behind it.
