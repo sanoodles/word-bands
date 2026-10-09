@@ -271,10 +271,28 @@ interface WiktionaryArtifact {
 
 // Wiktionary's translations, one artifact per direction (built by
 // scripts/build-wiktionary.ts). Dynamic for the reason the forms are: one route reads them,
-// for one line of the word card.
+// for one line of the word card, and one direction at a time.
 const WIKTIONARY: Record<string, () => Promise<{ default: WiktionaryArtifact }>> = {
   "es-de": () => import("../../data/wiktionary.es-de.json"),
+  "es-fr": () => import("../../data/wiktionary.es-fr.json"),
+  "es-it": () => import("../../data/wiktionary.es-it.json"),
+  "es-pt": () => import("../../data/wiktionary.es-pt.json"),
   "de-es": () => import("../../data/wiktionary.de-es.json"),
+  "de-fr": () => import("../../data/wiktionary.de-fr.json"),
+  "de-it": () => import("../../data/wiktionary.de-it.json"),
+  "de-pt": () => import("../../data/wiktionary.de-pt.json"),
+  "fr-es": () => import("../../data/wiktionary.fr-es.json"),
+  "fr-de": () => import("../../data/wiktionary.fr-de.json"),
+  "fr-it": () => import("../../data/wiktionary.fr-it.json"),
+  "fr-pt": () => import("../../data/wiktionary.fr-pt.json"),
+  "it-es": () => import("../../data/wiktionary.it-es.json"),
+  "it-de": () => import("../../data/wiktionary.it-de.json"),
+  "it-fr": () => import("../../data/wiktionary.it-fr.json"),
+  "it-pt": () => import("../../data/wiktionary.it-pt.json"),
+  "pt-es": () => import("../../data/wiktionary.pt-es.json"),
+  "pt-de": () => import("../../data/wiktionary.pt-de.json"),
+  "pt-fr": () => import("../../data/wiktionary.pt-fr.json"),
+  "pt-it": () => import("../../data/wiktionary.pt-it.json"),
 };
 const wiktionaryCache = new Map<string, { terms: Map<string, string[]>; titles: Map<string, string | null> }>();
 

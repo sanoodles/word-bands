@@ -222,11 +222,11 @@ written in that language.
 
 Google reaches a pair without English through English, so a word takes on the senses of
 whichever English word it passes through. Each language's own Wiktionary translates into the
-other directly. The card shows both sources, each named, and leaves the reader to weigh them.
+others directly. The card shows both sources, each named, and leaves the reader to weigh them.
 
 | ID | Rule |
 | --- | --- |
-| WIKT-1 | Spanish to German and German to Spanish show Wiktionary's translations on a line of their own, beneath Google's. No other pair does |
+| WIKT-1 | Between Spanish, German, French, Italian and Portuguese, every direction shows Wiktionary's translations on a line of their own, beneath Google's. A pair with English, or with any other target, does not |
 | WIKT-2 | Each line ends with the name of its source, linked to that source's page for the word: Google Translate, or the entry in the source language's own Wiktionary |
 | WIKT-3 | Wiktionary's line is left out when every term on it is already on Google's |
 | WIKT-4 | Wiktionary's line holds at most four terms, each one word or two. Terms both editions give come first, then the more frequent in the target language |

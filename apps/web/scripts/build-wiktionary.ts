@@ -1,7 +1,7 @@
-// Build the Wiktionary translation artifacts the word card shows beside Google's. For each
-// pair of indexed languages and each direction, every word of the source list that the
-// two languages' own Wiktionaries translate into the target, with at most four terms.
-// One artifact per direction, `data/wiktionary.<source>-<target>.json`.
+// Build the Wiktionary translation artifacts the word card shows beside Google's. For every
+// language in LANGS into every other, each word of the source list that the two languages'
+// own Wiktionaries translate into the target, with at most four terms. One artifact per
+// direction, `data/wiktionary.<source>-<target>.json`.
 //
 // Both editions are read. The source edition's entry for a word lists its translations;
 // the target edition's entries list theirs back, and inverting those finds the target words
@@ -21,8 +21,8 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const data = (f: string) => resolve(here, "../data", f);
 
-// Each pair is built in both directions.
-const PAIRS: [string, string][] = [["es", "de"]];
+// Every one into every other. Each extract is read once, since French's alone is 700MB.
+const LANGS = ["es", "de", "fr", "it", "pt"];
 
 // The card's line holds four terms, as Google's does.
 const MAX_TERMS = 4;
@@ -32,6 +32,9 @@ const MAX_WORDS = 2;
 const ARTICLE: Record<string, RegExp> = {
   es: /^(?:el|la|los|las|un|una|unos|unas)\s+(?=\S)/i,
   de: /^(?:der|die|das|ein|eine)\s+(?=\S)/i,
+  fr: /^(?:(?:le|la|les|un|une|des)\s+|l['’])(?=\S)/i,
+  it: /^(?:(?:il|lo|la|i|gli|le|un|uno|una)\s+|(?:l|un)['’])(?=\S)/i,
+  pt: /^(?:o|a|os|as|um|uma|uns|umas)\s+(?=\S)/i,
 };
 
 /** The terms one translation string holds: notes stripped, variants split, phrases dropped. */
@@ -51,15 +54,15 @@ function termsOf(raw: string, lang: string): string[] {
 }
 
 interface Edition {
-  /** Headword -> its translation terms into the other language. */
-  translations: Map<string, string[]>;
+  /** Language -> headword -> its translation terms into that language. */
+  translations: Map<string, Map<string, string[]>>;
   /** Every page title holding an entry in the edition's own language. */
   heads: Set<string>;
 }
 
-/** One edition's entries in `lang`, with their translations into `other`. */
-async function harvest(lang: string, other: string): Promise<Edition> {
-  const translations = new Map<string, string[]>();
+/** One edition's entries in `lang`, with their translations into the other languages. */
+async function harvest(lang: string): Promise<Edition> {
+  const translations = new Map(LANGS.filter((l) => l !== lang).map((l) => [l, new Map<string, string[]>()]));
   const heads = new Set<string>();
   const lines = createInterface({ input: createReadStream(data(`wiktextract-${lang}.jsonl.gz`)).pipe(createGunzip()) });
   for await (const line of lines) {
@@ -72,10 +75,11 @@ async function harvest(lang: string, other: string): Promise<Edition> {
     const head = e.word.trim();
     heads.add(head);
     for (const t of e.translations ?? []) {
-      if (t.lang_code !== other || !t.word) continue;
-      const terms = translations.get(head) ?? [];
-      for (const term of termsOf(t.word, other)) if (!terms.includes(term)) terms.push(term);
-      if (terms.length) translations.set(head, terms);
+      const into = t.lang_code ? translations.get(t.lang_code) : undefined;
+      if (!into || !t.word) continue;
+      const terms = into.get(head) ?? [];
+      for (const term of termsOf(t.word, t.lang_code!)) if (!terms.includes(term)) terms.push(term);
+      if (terms.length) into.set(head, terms);
     }
   }
   return { translations, heads };
@@ -105,6 +109,7 @@ interface Candidate {
  * it separately; then the more frequent in the target language; then the order it was met.
  */
 function build(source: string, target: string, own: Edition, other: Edition): Artifact {
+  const ownTerms = own.translations.get(target)!;
   const words = ranked(source);
   const known = new Set(words.map((w) => w.toLowerCase()));
   const rank = new Map(ranked(target).map((w, i) => [w.toLowerCase(), i + 1]));
@@ -119,8 +124,8 @@ function build(source: string, target: string, own: Edition, other: Edition): Ar
     terms.set(term.toLowerCase(), c);
     found.set(key, terms);
   };
-  for (const [head, terms] of own.translations) for (const term of terms) add(head, term, "source");
-  for (const [head, terms] of other.translations) {
+  for (const [head, terms] of ownTerms) for (const term of terms) add(head, term, "source");
+  for (const [head, terms] of other.translations.get(source)!) {
     // The target edition's headword becomes the term, so it passes the same cleaning.
     const [term, ...more] = termsOf(head, target);
     if (!term || more.length) continue;
@@ -136,7 +141,7 @@ function build(source: string, target: string, own: Edition, other: Edition): Ar
     if (!candidates) continue;
     // The page the line links to: the entry its terms came from, where one did.
     const casings = [w, key, anyCasing.get(key)].filter((t): t is string => t !== undefined);
-    const title = casings.find((t) => own.translations.has(t)) ?? casings.find((t) => own.heads.has(t)) ?? null;
+    const title = casings.find((t) => ownTerms.has(t)) ?? casings.find((t) => own.heads.has(t)) ?? null;
     if (title !== w) titles[key] = title;
     terms[key] = [...candidates.values()]
       .sort(
@@ -169,17 +174,15 @@ function report({ source, target, terms }: Artifact) {
 }
 
 async function main() {
-  for (const [a, b] of PAIRS) {
-    const [ea, eb] = await Promise.all([harvest(a, b), harvest(b, a)]);
-    for (const [source, target, own, other] of [
-      [a, b, ea, eb],
-      [b, a, eb, ea],
-    ] as const) {
-      const artifact = build(source, target, own, other);
+  const editions = new Map<string, Edition>();
+  for (const lang of LANGS) editions.set(lang, await harvest(lang));
+  for (const source of LANGS)
+    for (const target of LANGS) {
+      if (source === target) continue;
+      const artifact = build(source, target, editions.get(source)!, editions.get(target)!);
       writeFileSync(data(`wiktionary.${source}-${target}.json`), JSON.stringify(artifact));
       report(artifact);
     }
-  }
 }
 
 main().catch((err: unknown) => {

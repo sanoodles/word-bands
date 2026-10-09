@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { getWord, resolveForm } from "@/lib/bands";
+import { getWord, resolveForm, WIKTIONARY_PAIRS } from "@/lib/bands";
 import formsEn from "../../data/forms.en.json";
 import formsEs from "../../data/forms.es.json";
 import formsFr from "../../data/forms.fr.json";
@@ -17,8 +18,6 @@ import definingIt from "../../data/defining.it.json";
 import definingFr from "../../data/defining.fr.json";
 import definingEs from "../../data/defining.es.json";
 import definingDe from "../../data/defining.de.json";
-import wiktionaryEsDe from "../../data/wiktionary.es-de.json";
-import wiktionaryDeEs from "../../data/wiktionary.de-es.json";
 
 // The committed data/word-bands.<code>.json files are the build's output and the app's
 // only corpus, so these hold whether or not anyone re-runs the build. Nothing else looks
@@ -243,25 +242,28 @@ describe("defining levels", () => {
 // Built by scripts/build-wiktionary.ts from both languages' own editions, so nothing in it
 // passed through English.
 describe("Wiktionary's translations", () => {
-  const ARTIFACTS = [wiktionaryEsDe, wiktionaryDeEs].map((a) => ({
-    source: a.source as "es" | "de",
-    target: a.target,
-    terms: new Map(Object.entries(a.terms as Record<string, string[]>)),
-    titles: a.titles as Record<string, string | null>,
-  }));
+  const ARTIFACTS = WIKTIONARY_PAIRS.map((pair) => {
+    const a = JSON.parse(readFileSync(new URL(`../../data/wiktionary.${pair}.json`, import.meta.url), "utf8")) as {
+      source: Parameters<typeof getWord>[0];
+      target: string;
+      terms: Record<string, string[]>;
+      titles: Record<string, string | null>;
+    };
+    expect(`${a.source}-${a.target}`).toBe(pair);
+    return { source: a.source, target: a.target, terms: new Map(Object.entries(a.terms)), titles: a.titles };
+  });
 
   // @spec WIKT-4
   it("holds at most four terms a word, each one word or two", () => {
-    for (const { source, terms } of ARTIFACTS)
+    const TERM = /^[^\s\d()[\]/,;]+(?: [^\s\d()[\]/,;]+)?$/;
+    const bad: string[] = [];
+    for (const { source, target, terms } of ARTIFACTS)
       for (const [word, list] of terms) {
-        expect(list.length, `${source} ${word}`).toBeGreaterThan(0);
-        expect(list.length, `${source} ${word}`).toBeLessThanOrEqual(4);
-        expect(new Set(list.map((t) => t.toLowerCase())).size, `${source} ${word}`).toBe(list.length);
-        for (const t of list) {
-          expect(t.split(" ").length, t).toBeLessThanOrEqual(2);
-          expect(t, t).toMatch(/^[^\s\d()[\]/,;]+(?: [^\s\d()[\]/,;]+)?$/);
-        }
+        const distinct = new Set(list.map((t) => t.toLowerCase())).size;
+        if (!list.length || list.length > 4 || distinct !== list.length) bad.push(`${source}-${target} ${word}: ${list}`);
+        for (const t of list) if (!TERM.test(t)) bad.push(`${source}-${target} ${word}: "${t}"`);
       }
+    expect(bad).toEqual([]);
   });
 
   // @spec WIKT-4
@@ -273,15 +275,20 @@ describe("Wiktionary's translations", () => {
   });
 
   it("keys only words the source list holds", () => {
-    for (const { source, terms, titles } of ARTIFACTS) {
-      for (const word of terms.keys()) expect(held(source, word), `${source} ${word}`).toBe(true);
-      for (const word of Object.keys(titles)) expect(terms.has(word), `${source} ${word}`).toBe(true);
+    const bad: string[] = [];
+    for (const { source, target, terms, titles } of ARTIFACTS) {
+      for (const word of terms.keys()) if (!held(source, word)) bad.push(`${source}-${target} ${word}`);
+      for (const word of Object.keys(titles)) if (!terms.has(word)) bad.push(`${source}-${target} title ${word}`);
     }
+    expect(bad).toEqual([]);
   });
 
   it("names a page only where Wiktionary titles it unlike the list displays it", () => {
-    for (const { source, titles } of ARTIFACTS)
-      for (const [word, title] of Object.entries(titles)) expect(title, `${source} ${word}`).not.toBe(cased(source, word));
+    const bad: string[] = [];
+    for (const { source, target, titles } of ARTIFACTS)
+      for (const [word, title] of Object.entries(titles))
+        if (title === cased(source, word)) bad.push(`${source}-${target} ${word}`);
+    expect(bad).toEqual([]);
   });
 
   // The words a pivot through English gets wrong, because the English word means more.

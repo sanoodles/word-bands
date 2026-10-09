@@ -62,7 +62,7 @@ ours. `source`/`target` map onto them at that one call.
 
 | Path | Holds |
 | --- | --- |
-| `src/lib/languages.ts` | `SOURCE_LANGS`, `SourceLang`, `TargetLang`, `SOURCE_LANG_META`, `englishName`, each language's etymology dictionary, and the pairs Wiktionary's translations are built for |
+| `src/lib/languages.ts` | `SOURCE_LANGS`, `SourceLang`, `TargetLang`, `SOURCE_LANG_META`, `englishName`, each language's etymology dictionary, and the languages Wiktionary's translations are built between |
 | `src/lib/bands.ts` | Server registry, `getWord`, all word lookups |
 | `src/lib/geo.ts` | Country table, `sourceLang`, `targetLang` |
 | `src/lib/scenario.ts` | URL encode / decode, `pageTitle` |
@@ -72,7 +72,7 @@ ours. `source`/`target` map onto them at that one call.
 | `next.config.mjs` | Response headers, the CSP, `distDir` |
 | `vercel.json` | The build commands, and the cron schedule behind the warm pass |
 | `scripts/build-bands.ts` | Artifact build, the `LANGS` table |
-| `scripts/build-wiktionary.ts` | Wiktionary translation build, the `PAIRS` table |
+| `scripts/build-wiktionary.ts` | Wiktionary translation build, the `LANGS` list |
 | `data/word-bands.<code>.json` | Committed artifact, one per language |
 | `data/forms.<code>.json` | Committed artifact: inflected form -> the indexed word it belongs to |
 | `data/defining.<code>.json` | Committed artifact: one defining level per ranked word, emitted by the defining-vocabulary repo |
@@ -141,7 +141,7 @@ lemma-merged word ranking plus the band definitions.
 | `casing-<code>.txt` | all | Leipzig Corpora *sentences* file, from `downloads.wortschatz-leipzig.de` | Named by `casingFile`. **Which corpus each language took is not recorded** — see below |
 | `names.txt` | shared | `smashew/NameDatabases` | Personal-name gazetteer, one name a line |
 | `<base>.{dic,aff}` | all | `LibreOffice/dictionaries` | Hunspell spell checkers. Named by `spellDict`, one base per file, listed below |
-| `wiktextract-<code>.jsonl.gz` | es de | kaikki.org, Wiktextract's extract of that language's own Wiktionary | Read by `build:wiktionary` alone. The same files the defining-vocabulary repo downloads, so a symlink to them serves |
+| `wiktextract-<code>.jsonl.gz` | es de fr it pt | kaikki.org, Wiktextract's extract of that language's own Wiktionary | Read by `build:wiktionary` alone. The same files the defining-vocabulary repo downloads, so a symlink to them serves. 1.2GB for the five |
 
 Take `_full.txt` because the cut belongs in code, where it is version-controlled, not in
 whichever file someone happened to download.
@@ -190,7 +190,7 @@ has answered. The licence is named here; the question is not settled here.
 | --- | --- |
 | `pnpm --filter @word-bands/web build:bands` | Rebuild every language |
 | `pnpm --filter @word-bands/web build:bands <code>` | Rebuild one |
-| `pnpm --filter @word-bands/web build:wiktionary` | Rebuild Wiktionary's translations, every pair |
+| `pnpm --filter @word-bands/web build:wiktionary` | Rebuild Wiktionary's translations, all 20 directions. About 75s, at 1.8GB |
 
 To add a language: drop its inputs in `data/`, add a `LANGS` entry in the build script, add
 it to `SOURCE_LANG_META` and to `ETYMOLOGY` beside it, and add the registry import in
@@ -803,12 +803,13 @@ one extra round trip: about 150ms cold, then nothing until the entry expires.
 
 ## Wiktionary's translations
 
-`WIKT-1` to `WIKT-5` are the rules. For Spanish and German, the card shows Wiktionary's
-translations on a line beneath Google's. Each line ends with its source's name, which links
-to that source's page for the word.
+`WIKT-1` to `WIKT-5` are the rules. Between Spanish, German, French, Italian and Portuguese,
+in all 20 directions, the card shows Wiktionary's translations on a line beneath Google's.
+Each line ends with its source's name, which links to that source's page for the word.
 
-Google cannot translate this pair without English. Its own plain es→de answer goes through
-English as well, on both endpoints a server can call (`gtx`, and `dict-chrome-ex`):
+None of these pairs has a scored Google dictionary, so the pivot above takes every one of
+them through English. Google's own plain es→de answer goes through English as well, on both
+endpoints a server can call (`gtx`, and `dict-chrome-ex`):
 
 | Spanish | Google es→en | Google es→de | Right German |
 | --- | --- | --- | --- |
@@ -820,29 +821,43 @@ The es→de response names its model, `en_de_2023q1`. The pivot above takes the 
 from the English word it passes through. `siesta` goes through "nap", which is also the pile
 of cloth, so `Flor` and `Strich` arrive beside `Nickerchen`. `criar` goes through "raise" and
 comes back as `erhöhen`, which raises a price. `tiempo` goes through "time" and loses
-`Wetter`. The Spanish and German Wiktionaries each list translations into the other, by
-sense, with no English between.
+`Wetter`. Each language's own Wiktionary lists translations into the others, by sense, with
+no English between.
 
 Measured on 2026-10-09:
 
 | Question | Answer |
 | --- | --- |
-| Can Wiktionary replace Google? | No. On 32 random Spanish words, A1 to B2, judged on the lists unordered and uncapped, it was better on 4, worse on 6 and equal on 22. It wins where the English word means two things. It loses on short lists and on another entry's table: `moretón` → Prellung alone, `global` → pauschal, `alta` → Entlassung, the noun for a hospital discharge |
+| Can Wiktionary replace Google? | No. On 32 random Spanish words into German, A1 to B2, judged on the lists unordered and uncapped, it was better on 4, worse on 6 and equal on 22. It wins where the English word means two things. It loses on short lists and on another entry's table: `moretón` → Prellung alone, `global` → pauschal, `alta` → Entlassung, the noun for a hospital discharge |
 | Can it filter Google's list instead? | No. Dropping a term whose German entry lists other Spanish words removed 13 wrong terms and 14 right ones. It kept every error whose German word has no Spanish table, so `alta` showed only "high" |
 | Can an edition's entries for the other language's words serve? | No. The German edition defines 2,765 Spanish words in German: 32% of A1, 9% of B1 |
-| So | Show both, each named. The target is the reader's own language, so the reader can judge the German words, and a second list beside the first makes a stray sense visible |
+| So | Show both, each named. The target is the reader's own language, so the reader can judge its words, and a second list beside the first makes a stray sense visible |
+| Do the other 18 directions hold up? | Spot-checked on eight everyday words each, the leading term was right in every one. The odd terms trail, where frequency puts them: `haus` → gars, type in de→fr, `notte` → Nyx in it→fr |
 
-| | A1 | A2 | B1 | B2 | C1 | C2 | rare |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| es→de, 16,856 words | 93% | 87% | 78% | 63% | 47% | 29% | — |
-| de→es, 17,410 words | 85% | 79% | 70% | 57% | 39% | 16% | 9% |
+How much of A1 and of B1 each direction covers:
+
+| From \ To | es | de | fr | it | pt |
+| --- | --- | --- | --- | --- | --- |
+| es | — | 93 / 78 | 95 / 78 | 76 / 49 | 82 / 59 |
+| de | 85 / 70 | — | 89 / 78 | 79 / 66 | 81 / 60 |
+| fr | 92 / 79 | 95 / 88 | — | 93 / 79 | 91 / 73 |
+| it | 69 / 45 | 88 / 73 | 88 / 75 | — | 73 / 43 |
+| pt | 78 / 58 | 88 / 67 | 91 / 72 | 74 / 44 | — |
+
+The French edition is the richest and the Italian and Portuguese ones the thinnest, so it↔pt
+and es↔it are the weakest directions. Where a direction has no entry for a word, the card
+shows Google's line as it always did.
+
+The 20 artifacts weigh 10.1MB, from 0.2MB for it→pt to 1.0MB for de→fr: about 37 bytes a
+word covered. One route reads them, one direction at a time, the first time that direction is
+asked for. The browser loads none of it.
 
 How `build-wiktionary.ts` builds one direction:
 
 | Step | Rule | Why |
 | --- | --- | --- |
-| Both editions | The source edition's entry lists its translations. The target edition's entries list theirs back, and inverting them finds the target words whose translations include the source word | The German edition is the richer one, and carries most of both directions: 49% of the Spanish list by inversion against 25% from the Spanish edition, and 31% of the German list against 14% |
-| Clean every string | Drop notes in brackets, split variants on `,` `;` `/`, drop a leading article, drop anything with a digit or past two words | The German edition writes `bolso (Handtasche), bolsa (Einkaufstasche)`, and whole proverbs. A target headword passes the same cleaning, or `landauf, landab` arrives as one term |
+| Both editions | The source edition's entry lists its translations. The target edition's entries list theirs back, and inverting them finds the target words whose translations include the source word | Either half alone leaves most of a list out. For es↔de the German edition carries most of both directions: 49% of the Spanish list by inversion against 25% from the Spanish edition, and 31% of the German list against 14% |
+| Clean every string | Drop notes in brackets, split variants on `,` `;` `/`, drop a leading article (`ARTICLE`, elisions such as `l'` included), drop anything with a digit or past two words | The German edition writes `bolso (Handtasche), bolsa (Einkaufstasche)`, and whole proverbs. A target headword passes the same cleaning, or `landauf, landab` arrives as one term |
 | Order (`WIKT-4`) | Terms both editions give first, then the more frequent in the target list, then table order | Two sets of editors reaching a term separately is the one signal Wiktionary has. Frequency puts `mordsmäßig` and `Blättermagen` last |
 | Cap (`WIKT-4`) | Four terms | Google's line holds four |
 | Titles | The page is the entry the terms came from, under its own casing. Stored only where it differs from the word as the list displays it | `soler` displays as "Soler", the surname, but its translations are on `soler`. The German list writes some nouns lowercase: `hölle` |
@@ -854,20 +869,21 @@ How `build-wiktionary.ts` builds one direction:
 | Hidden where it adds nothing (`WIKT-3`) | `agua` would show `Wasser` twice |
 | The source's name trails its line | The line is a translation first. Leading names would also start the two lists at different places |
 | The source's name is `select-none` | A copied line stays the translation, as with the badges |
-| A link only where the edition has a page | 752 Spanish words and 60 German have none under any casing. The name stays, as plain text |
+| A link only where the edition has a page | In es→de 752 Spanish words have none under any casing, and in de→es 60 German. The name stays, as plain text |
 | Where Google has nothing, its line says so | `no translation`, then its name, which is still the way to Google's page |
 
 | Known cost | Detail |
 | --- | --- |
-| The inverted half brings odd terms | `controlar` → annehmen, `amigo` → angenehm, `transportar` → abfahren, `libro` → Blättermagen. The list beside it is what lets a reader see past them |
+| The inverted half brings odd terms | `controlar` → annehmen, `amigo` → angenehm, `libro` → Blättermagen, `schön` → abeausir. The list beside it is what lets a reader see past them |
 | A form the merge keeps as an entry has no table | `gesagt`, `komm`, `dime`. Following Wiktionary's form-of links would take German A1 from 85% to about 95%, but the line would then show `sagen`'s translations under `gesagt` without saying so |
 | A case-homograph gets one line | `essen` and `Essen` share the lowercase key, so the line holds `comer` and `comida` together, beside Google's line per casing |
 
-To add a pair: put both languages' extracts in `data/`, add the pair to `PAIRS` in
-`build-wiktionary.ts`, to `WIKTIONARY_TARGETS` in `languages.ts` and to `WIKTIONARY` in
+To add a language: put its extract in `data/`, add it to `LANGS` in `build-wiktionary.ts`
+and to `WIKTIONARY_LANGS` in `languages.ts`, add its directions to `WIKTIONARY` in
 `bands.ts`, and run `build:wiktionary`. `bands.test.ts` fails when the last two disagree, and
-when the source language has no defining levels: the credit names the source edition and
-its license once, with those levels.
+when the language has no defining levels: the credit names the source edition and its
+license once, with those levels. English is left out: its pairs need no pivot, since Google's
+dictionary for them is direct and scored.
 
 ## CEFR levels on the translation
 

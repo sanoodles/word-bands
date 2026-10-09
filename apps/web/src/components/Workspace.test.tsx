@@ -10,7 +10,7 @@ import {
   hasDefining,
   SOURCE_LANGS,
   type SourceLang,
-  WIKTIONARY_TARGETS,
+  WIKTIONARY_LANGS,
 } from "@/lib/languages";
 import Workspace from "./Workspace";
 
@@ -492,8 +492,8 @@ describe("Workspace", () => {
 
   // @spec CREDIT-5
   it("credits both Wiktionaries where the card shows their translations, and neither elsewhere", () => {
-    for (const [source, targets] of Object.entries(WIKTIONARY_TARGETS) as [SourceLang, string[]][])
-      for (const target of targets) {
+    for (const source of WIKTIONARY_LANGS)
+      for (const target of WIKTIONARY_LANGS.filter((t) => t !== source)) {
         window.history.replaceState(null, "", `/?source=${source}&target=${target}`);
         render(<Workspace />);
         const credits = screen.getByRole("link", { name: "CEFR-J" }).closest("p")!;

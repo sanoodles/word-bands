@@ -17,7 +17,7 @@ import {
   hasDefining,
   hasWiktionary,
   SOURCE_LANGS,
-  WIKTIONARY_TARGETS,
+  WIKTIONARY_LANGS,
 } from "@/lib/languages";
 
 // German carries display casing (nouns/names capitalized) while lookups stay
@@ -377,7 +377,7 @@ describe("the defining view", () => {
 describe("Wiktionary's translations", () => {
   // @spec WIKT-1
   it("loads data for exactly the pairs the card asks for", () => {
-    const asked = Object.entries(WIKTIONARY_TARGETS).flatMap(([s, ts]) => ts!.map((t) => `${s}-${t}`));
+    const asked = WIKTIONARY_LANGS.flatMap((s) => WIKTIONARY_LANGS.filter((t) => t !== s).map((t) => `${s}-${t}`));
     expect([...WIKTIONARY_PAIRS].sort()).toEqual(asked.sort());
     for (const pair of WIKTIONARY_PAIRS) {
       const [source, target] = pair.split("-") as [(typeof SOURCE_LANGS)[number], string];
@@ -388,7 +388,7 @@ describe("Wiktionary's translations", () => {
 
   // The credit names the source edition and its license once, with the defining levels.
   it("comes only from languages whose own edition the credits already name", () => {
-    for (const source of Object.keys(WIKTIONARY_TARGETS)) expect(hasDefining(source as never), source).toBe(true);
+    for (const source of WIKTIONARY_LANGS) expect(hasDefining(source), source).toBe(true);
   });
 
   it("answers null for a pair or a word it has nothing for", async () => {
