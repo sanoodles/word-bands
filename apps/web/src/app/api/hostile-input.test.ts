@@ -9,6 +9,7 @@ import { GET as suggestGET } from "./suggest/route";
 import { GET as bandsGET } from "./bands/[view]/route";
 import { GET as bandGET } from "./band/[view]/[key]/route";
 import { GET as translateGET } from "./translate/[word]/route";
+import { GET as wiktionaryGET } from "./wiktionary/[word]/route";
 import { GET as warmGET } from "./cron/warm/route";
 
 const REAL = getBand("en", "freq", "1")!.words[0]!;
@@ -132,6 +133,25 @@ const POSITIONS: { name: string; call: (bad: string) => Promise<Response> }[] = 
     call: (b) =>
       translateGET(req(`/api/translate/x?source=en&target=es&dict=${q(b)}`), {
         params: promise({ word: "water" }),
+      }),
+  },
+  {
+    name: "/api/wiktionary/[word]",
+    call: (b) =>
+      wiktionaryGET(req("/api/wiktionary/x?source=es&target=de"), { params: promise({ word: b }) }),
+  },
+  {
+    name: "/api/wiktionary ?source",
+    call: (b) =>
+      wiktionaryGET(req(`/api/wiktionary/x?source=${q(b)}&target=de`), {
+        params: promise({ word: "agua" }),
+      }),
+  },
+  {
+    name: "/api/wiktionary ?target",
+    call: (b) =>
+      wiktionaryGET(req(`/api/wiktionary/x?source=es&target=${q(b)}`), {
+        params: promise({ word: "agua" }),
       }),
   },
 ];

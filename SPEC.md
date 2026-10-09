@@ -47,6 +47,7 @@ verifies the claim exists, not that it bites.
 | `URL` | Deeplink state and the page title | PR |
 | `CREDIT` | Which sources and works the page credits | PR |
 | `ETYM` | The word card's link to the word's etymology | PR |
+| `WIKT` | Wiktionary's translations, beside Google's on the word card | PR |
 | `FIG` | The defining figure: full screen, zoom and pan | PR |
 
 Not covered yet, and deliberately: visual design, copy, component layout, the
@@ -196,6 +197,7 @@ The build merges every inflection onto its lemma, so a form is not an entry of i
 ## CREDIT — what the page attributes
 
 The credits sit in the Sources line beneath the browser, and follow the source language.
+Wiktionary's translations follow the pair.
 
 | ID | Rule |
 | --- | --- |
@@ -203,6 +205,7 @@ The credits sit in the Sources line beneath the browser, and follow the source l
 | CREDIT-2 | A language with defining levels cites the works its method follows: Blondin Massé et al. (2008), Vincent-Lamarre et al. (2016), Seidman (1983), West & Endicott (1935) and the Longman Dictionary of Contemporary English (1978) |
 | CREDIT-3 | Every language credits the Leipzig Corpora, since every language's casing is measured from them |
 | CREDIT-4 | Every language credits the lemmatization list under its license, since every language's ranking is lemma-merged |
+| CREDIT-5 | Where the word card shows Wiktionary's translations, the credits name both editions they come from. Elsewhere they name neither for translations |
 
 ## ETYM — the etymology link
 
@@ -214,6 +217,20 @@ written in that language.
 | ETYM-1 | In every source language, the word card links the looked-up word to its etymology in a dictionary of that language |
 | ETYM-2 | English links to Etymonline, German to the DWDS entry at its etymology, French to the CNRTL's etymology, Spanish to the RAE's dictionary, Italian to the Nuovo De Mauro and Portuguese to Priberam |
 | ETYM-3 | The word is spelt the way its dictionary looks it up: lowercase for the RAE's, and lowercase without diacritics for the Nuovo De Mauro |
+
+## WIKT — Wiktionary's translations
+
+Google reaches a pair without English through English, so a word takes on the senses of
+whichever English word it passes through. Each language's own Wiktionary translates into the
+other directly. The card shows both sources, each named, and leaves the reader to weigh them.
+
+| ID | Rule |
+| --- | --- |
+| WIKT-1 | Spanish to German and German to Spanish show Wiktionary's translations on a line of their own, beneath Google's. No other pair does |
+| WIKT-2 | Each line ends with the name of its source, linked to that source's page for the word: Google Translate, or the entry in the source language's own Wiktionary |
+| WIKT-3 | Wiktionary's line is left out when every term on it is already on Google's |
+| WIKT-4 | Wiktionary's line holds at most four terms, each one word or two. Terms both editions give come first, then the more frequent in the target language |
+| WIKT-5 | Wiktionary's translations are served from committed data, with no call out, so they show when Google fails |
 
 ## FIG — the defining figure
 

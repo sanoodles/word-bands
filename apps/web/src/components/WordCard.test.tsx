@@ -70,7 +70,7 @@ describe("WordCard language selector", () => {
 
   // A word of its own: glossCache is module-level and keyed source:target:word, so a
   // render here would otherwise answer a later test's stub from this one's response.
-  it("names the translate link by what it opens, and describes the new tab", () => {
+  it("names the translate link by what it opens, and describes the new tab", async () => {
     render(
       <WordCard
         word="Regenschirm"
@@ -82,8 +82,8 @@ describe("WordCard language selector", () => {
     );
     // The word is what the link is for (2.4.9); the visible text leads it, so speech
     // input still reaches the link by what it says (2.5.3).
-    const link = screen.getByRole("link", { name: "Google Translate: Regenschirm in English" });
-    expect(link).toHaveTextContent(/^Google Translate/);
+    const link = await screen.findByRole("link", { name: "Google Translate: Regenschirm in English" });
+    expect(link).toHaveTextContent(/^Google/);
     // What activating it does is a description, announced on focus, so the name stays
     // the purpose.
     const help = document.getElementById(link.getAttribute("aria-describedby") ?? "");
@@ -91,7 +91,7 @@ describe("WordCard language selector", () => {
   });
 
   // @spec ETYM-1
-  it("links the word to its etymology, in a new tab, named by the word", () => {
+  it("links the word to its etymology, in a new tab, named by the word", async () => {
     render(<WordCard word="Gletscher" forms={["Gletscher"]} source="de" target="en" onTargetChange={() => {}} />);
     const link = screen.getByRole("link", { name: "Etymology of Gletscher" });
     expect(link).toHaveTextContent(/^Etymology/);
@@ -99,7 +99,7 @@ describe("WordCard language selector", () => {
     expect(link).toHaveAttribute("hreflang", "de");
     expect(link).toHaveAttribute("target", "_blank");
     // The same sentence the translate link points at, said once for both.
-    const translate = screen.getByRole("link", { name: /google translate/i });
+    const translate = await screen.findByRole("link", { name: /google translate/i });
     expect(link.getAttribute("aria-describedby")).toBe(translate.getAttribute("aria-describedby"));
   });
 
@@ -166,19 +166,21 @@ function mockDict(senses: Record<string, string[]>) {
 // The workspace renders this frame before the lookup lands, so the hero row is
 // already its settled height and the browser below it never gets shoved down.
 describe("WordCard pending", () => {
-  it("holds the whole frame, translating nothing, until the forms arrive", () => {
+  it("holds the whole frame, translating nothing, until the forms arrive", async () => {
     const { rerender } = render(
       <WordCard word="water" forms={null} source="es" target="en" onTargetChange={() => {}} />,
     );
     expect(screen.getByRole("region", { name: /meaning of water/i })).toBeInTheDocument();
     expect(selector()).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /google translate/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /etymology/i })).toBeInTheDocument();
     expect(screen.getByText("Translating…")).toBeInTheDocument();
     // Nothing is known to be translatable yet — the word may not even be a word.
     expect(fetch).not.toHaveBeenCalled();
 
     rerender(<WordCard word="water" forms={["water"]} source="es" target="en" onTargetChange={() => {}} />);
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/translate/water"), expect.anything());
+    // Google's name arrives with the line it trails.
+    expect(await screen.findByRole("link", { name: /google translate/i })).toBeInTheDocument();
   });
 });
 
@@ -297,14 +299,12 @@ const B2 = { key: "B2", label: "B2 · Upper-intermediate", rank: 9002 };
 // Google orders the alternatives by confidence, not by difficulty, so "water" and
 // "aqua" arrive as equals. The level is what tells a learner which one is theirs.
 
-/** The line as it reads: the badges annotate it, they are not part of it. */
-function reading(): string {
-  const line = document.querySelector("[aria-live] span[lang]");
+/** A line as it reads: the badges annotate it and its source's name trails it. */
+function reading(line: Element | null = document.querySelector("[aria-live] span[lang]")): string {
   if (!line) throw new Error("no translation line");
-  return [...line.querySelectorAll('[role="img"]')].reduce(
-    (text, badge) => text.replace(badge.textContent ?? "", ""),
-    line.textContent ?? "",
-  );
+  const copy = line.cloneNode(true) as Element;
+  for (const aside of copy.querySelectorAll('[role="img"], a, span[lang="en"]')) aside.remove();
+  return copy.textContent ?? "";
 }
 
 describe("WordCard levels", () => {
@@ -533,5 +533,123 @@ describe("WordCard picking a translation", () => {
     // Still the badge's subject, so tabbing to the level still says which word it is for.
     const described = screen.getByText("A1").getAttribute("aria-describedby");
     expect(document.getElementById(described!)).toHaveTextContent("river");
+  });
+});
+
+type Google = { groups: { pos: string; terms: string[] }[]; translation: string };
+type Wiktionary = { terms: string[]; title: string | null };
+
+/** Both sources' routes. A null Google answers the way the route does when Google fails. */
+function mockSources(google: Google | null, wiktionary: Wiktionary, held?: Promise<void>) {
+  return vi.fn(async (url: string | URL) => {
+    const u = new URL(String(url), "http://localhost");
+    if (u.pathname.startsWith("/api/wiktionary/")) {
+      await held;
+      return Response.json({ levels: {}, ...wiktionary });
+    }
+    if (u.pathname.startsWith("/api/translate/"))
+      return google
+        ? Response.json({ senses: [], levels: {}, ...google })
+        : new Response("upstream error", { status: 502 });
+    return new Response("no", { status: 404 });
+  });
+}
+
+const NAP = { pos: "noun", terms: ["Nickerchen", "Schläfchen", "Flor", "Strich"] };
+
+/** Every source's line, in the order they show. */
+const sourceLines = (target: string) => [...document.querySelectorAll(`[aria-live] span[lang="${target}"]`)];
+
+describe("WordCard Wiktionary's line", () => {
+  // @spec WIKT-1, WIKT-2
+  it("shows Wiktionary's terms on a line beneath Google's, each trailed by its source", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockSources(
+        { groups: [NAP], translation: "Schnapp" },
+        { terms: ["Nickerchen", "Mittagsschlaf", "Siesta"], title: "siesta" },
+      ),
+    );
+    render(<WordCard word="siesta" forms={["siesta"]} source="es" target="de" onTargetChange={() => {}} />);
+
+    const wiktionary = await screen.findByRole("link", { name: "Wiktionary entry for siesta" });
+    expect(wiktionary).toHaveTextContent(/^Wiktionary/);
+    expect(wiktionary).toHaveAttribute("href", "https://es.wiktionary.org/wiki/siesta");
+    expect(wiktionary).toHaveAttribute("hreflang", "es");
+    expect(wiktionary).toHaveAttribute("target", "_blank");
+    const google = screen.getByRole("link", { name: "Google Translate: siesta in German" });
+    expect(google.getAttribute("href")).toContain("translate.google.com");
+
+    const [first, second, ...rest] = sourceLines("de");
+    expect(rest).toHaveLength(0);
+    expect(first).toContainElement(google);
+    expect(reading(first!)).toBe("Nickerchen, Schläfchen, Flor, Strich");
+    expect(second).toContainElement(wiktionary);
+    expect(reading(second!)).toBe("Nickerchen, Mittagsschlaf, Siesta");
+    // One sentence says what every new-tab link does.
+    expect(wiktionary.getAttribute("aria-describedby")).toBe(google.getAttribute("aria-describedby"));
+  });
+
+  // @spec WIKT-3
+  it("leaves Wiktionary's line out when Google's already holds every term on it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockSources({ groups: [{ pos: "noun", terms: ["Wasser"] }], translation: "Wasser" }, { terms: ["wasser"], title: "agua" }),
+    );
+    render(<WordCard word="agua" forms={["agua"]} source="es" target="de" onTargetChange={() => {}} />);
+    await screen.findByRole("link", { name: /google translate/i });
+    expect(sourceLines("de")).toHaveLength(1);
+    expect(screen.queryByText("Wiktionary")).not.toBeInTheDocument();
+  });
+
+  // @spec WIKT-5
+  it("still shows Wiktionary's line when Google fails", async () => {
+    vi.stubGlobal("fetch", mockSources(null, { terms: ["Alien", "Außerirdischer"], title: "alienígena" }));
+    render(<WordCard word="alienígena" forms={["alienígena"]} source="es" target="de" onTargetChange={() => {}} />);
+    expect(await screen.findByRole("link", { name: "Wiktionary entry for alienígena" })).toBeInTheDocument();
+    expect(reading(sourceLines("de")[0]!)).toBe("Alien, Außerirdischer");
+    // Google's line says it found nothing, and still leads to Google's own page.
+    expect(screen.getByText(/no translation/)).toContainElement(
+      screen.getByRole("link", { name: /google translate/i }),
+    );
+  });
+
+  // @spec WIKT-1
+  it("asks Wiktionary only for the pairs it is built for", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockSources({ groups: [{ pos: "noun", terms: ["umbrella"] }], translation: "umbrella" }, { terms: ["x"], title: "x" }),
+    );
+    render(<WordCard word="Schirm" forms={["Schirm"]} source="de" target="en" onTargetChange={() => {}} />);
+    await screen.findByText("umbrella");
+    const urls = (fetch as unknown as { mock: { calls: [string][] } }).mock.calls.map(([u]) => String(u));
+    expect(urls.some((u) => u.includes("/api/wiktionary/"))).toBe(false);
+  });
+
+  it("names Wiktionary without a link where its edition has no page for the word", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockSources({ groups: [{ pos: "noun", terms: ["Hölle"] }], translation: "Hölle" }, { terms: ["Unterwelt"], title: null }),
+    );
+    render(<WordCard word="averno" forms={["averno"]} source="es" target="de" onTargetChange={() => {}} />);
+    expect(await screen.findByText("Wiktionary")).not.toHaveAttribute("href");
+    expect(screen.queryByRole("link", { name: /wiktionary/i })).not.toBeInTheDocument();
+  });
+
+  // Each landing would otherwise change the card's height, and the page below it with it.
+  it("lands both lines together", async () => {
+    let release = () => {};
+    const held = new Promise<void>((r) => (release = r));
+    vi.stubGlobal(
+      "fetch",
+      mockSources({ groups: [NAP], translation: "Schnapp" }, { terms: ["Mittagsruhe"], title: "sesteo" }, held),
+    );
+    render(<WordCard word="sesteo" forms={["sesteo"]} source="es" target="de" onTargetChange={() => {}} />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Translating…")).toBeInTheDocument();
+    expect(screen.queryByText(/Nickerchen/)).not.toBeInTheDocument();
+    release();
+    expect(await screen.findByRole("link", { name: "Wiktionary entry for sesteo" })).toBeInTheDocument();
+    expect(sourceLines("de")).toHaveLength(2);
   });
 });

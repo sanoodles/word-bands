@@ -5,15 +5,19 @@ import {
   getDefiningPoints,
   getLevel,
   getSuggestions,
+  getWiktionary,
   getWord,
   viewsFor,
+  WIKTIONARY_PAIRS,
 } from "@/lib/bands";
 import {
   DEFINING_EXAMPLE,
   DEFINING_LANGS,
   DEFINING_LEVEL_COUNT,
   hasDefining,
+  hasWiktionary,
   SOURCE_LANGS,
+  WIKTIONARY_TARGETS,
 } from "@/lib/languages";
 
 // German carries display casing (nouns/names capitalized) while lookups stay
@@ -367,5 +371,30 @@ describe("the defining view", () => {
     const d1Fr = getBand("fr", "defining", "D1")!;
     expect(d1Fr.words).toHaveLength(76);
     expect(d1Fr.words.slice(0, 4)).toEqual(["il", "le", "être", "avoir"]);
+  });
+});
+
+describe("Wiktionary's translations", () => {
+  // @spec WIKT-1
+  it("loads data for exactly the pairs the card asks for", () => {
+    const asked = Object.entries(WIKTIONARY_TARGETS).flatMap(([s, ts]) => ts!.map((t) => `${s}-${t}`));
+    expect([...WIKTIONARY_PAIRS].sort()).toEqual(asked.sort());
+    for (const pair of WIKTIONARY_PAIRS) {
+      const [source, target] = pair.split("-") as [(typeof SOURCE_LANGS)[number], string];
+      expect(hasWiktionary(source, target), pair).toBe(true);
+    }
+    expect(hasWiktionary("de", "en")).toBe(false);
+  });
+
+  // The credit names the source edition and its license once, with the defining levels.
+  it("comes only from languages whose own edition the credits already name", () => {
+    for (const source of Object.keys(WIKTIONARY_TARGETS)) expect(hasDefining(source as never), source).toBe(true);
+  });
+
+  it("answers null for a pair or a word it has nothing for", async () => {
+    expect(await getWiktionary("es", "en", "siesta")).toBeNull();
+    expect(await getWiktionary("es", "de", "zzzzznotaword")).toBeNull();
+    expect(await getWiktionary("es", "de", "__proto__")).toBeNull();
+    expect(await getWiktionary("es", "de", "siesta")).toMatchObject({ title: "siesta" });
   });
 });

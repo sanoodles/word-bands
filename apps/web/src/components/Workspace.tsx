@@ -14,6 +14,7 @@ import {
   DEFINING_LEVEL_COUNT,
   englishName,
   hasDefining,
+  hasWiktionary,
   isSourceLang,
   SOURCE_LANGS,
   SOURCE_LANG_META,
@@ -279,7 +280,7 @@ function Glossary({ source }: { source: SourceLang }) {
   );
 }
 
-function CorpusCredit({ source }: { source: SourceLang }) {
+function CorpusCredit({ source, target }: { source: SourceLang; target: TargetLang }) {
   const { corpus } = SOURCE_LANG_META[source];
   const name = englishName(source);
   return (
@@ -350,6 +351,17 @@ function CorpusCredit({ source }: { source: SourceLang }) {
       <a className={CORPUS_LINK} href={TRANSLATE_URL}>
         Google Translate
       </a>
+      {/* @spec CREDIT-5
+          The source edition and the license are credited above, with the defining levels. */}
+      {hasWiktionary(source, target) ? (
+        <>
+          , and from the translation tables of the {name} Wiktionary and the{" "}
+          <a className={CORPUS_LINK} href={`https://${target}.wiktionary.org/`}>
+            {englishName(target)} Wiktionary
+          </a>
+          , extracted and licensed the same way
+        </>
+      ) : null}
       .
     </>
   );
@@ -737,7 +749,7 @@ export default function Workspace({ country }: { country?: string | null }) {
           className="tw-mt-3 tw-max-w-[65ch] tw-body-x-small text-muted-aaa"
           style={{ lineHeight: 1.5 }}
         >
-          Sources: <CorpusCredit source={source} />
+          Sources: <CorpusCredit source={source} target={target} />
         </p>
         <Glossary source={source} />
       </section>

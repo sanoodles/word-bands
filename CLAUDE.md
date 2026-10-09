@@ -62,7 +62,7 @@ ours. `source`/`target` map onto them at that one call.
 
 | Path | Holds |
 | --- | --- |
-| `src/lib/languages.ts` | `SOURCE_LANGS`, `SourceLang`, `TargetLang`, `SOURCE_LANG_META`, `englishName`, and each language's etymology dictionary |
+| `src/lib/languages.ts` | `SOURCE_LANGS`, `SourceLang`, `TargetLang`, `SOURCE_LANG_META`, `englishName`, each language's etymology dictionary, and the pairs Wiktionary's translations are built for |
 | `src/lib/bands.ts` | Server registry, `getWord`, all word lookups |
 | `src/lib/geo.ts` | Country table, `sourceLang`, `targetLang` |
 | `src/lib/scenario.ts` | URL encode / decode, `pageTitle` |
@@ -72,9 +72,11 @@ ours. `source`/`target` map onto them at that one call.
 | `next.config.mjs` | Response headers, the CSP, `distDir` |
 | `vercel.json` | The build commands, and the cron schedule behind the warm pass |
 | `scripts/build-bands.ts` | Artifact build, the `LANGS` table |
+| `scripts/build-wiktionary.ts` | Wiktionary translation build, the `PAIRS` table |
 | `data/word-bands.<code>.json` | Committed artifact, one per language |
 | `data/forms.<code>.json` | Committed artifact: inflected form -> the indexed word it belongs to |
 | `data/defining.<code>.json` | Committed artifact: one defining level per ranked word, emitted by the defining-vocabulary repo |
+| `data/wiktionary.<source>-<target>.json` | Committed artifact: Wiktionary's translations of each source word, and the page titles that differ from it |
 | `node_modules/next/dist/docs/` | Next.js's own guides for the installed version, which is newer than a model's training data. Read the relevant one before using a Next API. `agentRules: false` in `next.config.mjs` stops `next dev` writing this advice into `apps/web/` as its own AGENTS.md and CLAUDE.md |
 
 Paths are relative to `apps/web/`.
@@ -139,6 +141,7 @@ lemma-merged word ranking plus the band definitions.
 | `casing-<code>.txt` | all | Leipzig Corpora *sentences* file, from `downloads.wortschatz-leipzig.de` | Named by `casingFile`. **Which corpus each language took is not recorded** — see below |
 | `names.txt` | shared | `smashew/NameDatabases` | Personal-name gazetteer, one name a line |
 | `<base>.{dic,aff}` | all | `LibreOffice/dictionaries` | Hunspell spell checkers. Named by `spellDict`, one base per file, listed below |
+| `wiktextract-<code>.jsonl.gz` | es de | kaikki.org, Wiktextract's extract of that language's own Wiktionary | Read by `build:wiktionary` alone. The same files the defining-vocabulary repo downloads, so a symlink to them serves |
 
 Take `_full.txt` because the cut belongs in code, where it is version-controlled, not in
 whichever file someone happened to download.
@@ -187,6 +190,7 @@ has answered. The licence is named here; the question is not settled here.
 | --- | --- |
 | `pnpm --filter @word-bands/web build:bands` | Rebuild every language |
 | `pnpm --filter @word-bands/web build:bands <code>` | Rebuild one |
+| `pnpm --filter @word-bands/web build:wiktionary` | Rebuild Wiktionary's translations, every pair |
 
 To add a language: drop its inputs in `data/`, add a `LANGS` entry in the build script, add
 it to `SOURCE_LANG_META` and to `ETYMOLOGY` beside it, and add the registry import in
@@ -797,6 +801,74 @@ one extra round trip: about 150ms cold, then nothing until the entry expires.
 | Require `MIN_PIVOT_SCORE` confidence | Google's "amigo" entry tops out at .004 with no "friend" in it, and there the plain translation ("Freund") is the better answer |
 | A part-of-speech miss yields nothing | Better than a translation of a different word: "escuela" is never the verb "to school" |
 
+## Wiktionary's translations
+
+`WIKT-1` to `WIKT-5` are the rules. For Spanish and German, the card shows Wiktionary's
+translations on a line beneath Google's. Each line ends with its source's name, which links
+to that source's page for the word.
+
+Google cannot translate this pair without English. Its own plain es→de answer goes through
+English as well, on both endpoints a server can call (`gtx`, and `dict-chrome-ex`):
+
+| Spanish | Google es→en | Google es→de | Right German |
+| --- | --- | --- | --- |
+| `letra` | letter | Brief, a mailed letter | Buchstabe |
+| `mujer` | women | Frauen | Frau |
+| `siesta` | snap | Schnapp | Siesta |
+
+The es→de response names its model, `en_de_2023q1`. The pivot above takes the same flaw
+from the English word it passes through. `siesta` goes through "nap", which is also the pile
+of cloth, so `Flor` and `Strich` arrive beside `Nickerchen`. `criar` goes through "raise" and
+comes back as `erhöhen`, which raises a price. `tiempo` goes through "time" and loses
+`Wetter`. The Spanish and German Wiktionaries each list translations into the other, by
+sense, with no English between.
+
+Measured on 2026-10-09:
+
+| Question | Answer |
+| --- | --- |
+| Can Wiktionary replace Google? | No. On 32 random Spanish words, A1 to B2, judged on the lists unordered and uncapped, it was better on 4, worse on 6 and equal on 22. It wins where the English word means two things. It loses on short lists and on another entry's table: `moretón` → Prellung alone, `global` → pauschal, `alta` → Entlassung, the noun for a hospital discharge |
+| Can it filter Google's list instead? | No. Dropping a term whose German entry lists other Spanish words removed 13 wrong terms and 14 right ones. It kept every error whose German word has no Spanish table, so `alta` showed only "high" |
+| Can an edition's entries for the other language's words serve? | No. The German edition defines 2,765 Spanish words in German: 32% of A1, 9% of B1 |
+| So | Show both, each named. The target is the reader's own language, so the reader can judge the German words, and a second list beside the first makes a stray sense visible |
+
+| | A1 | A2 | B1 | B2 | C1 | C2 | rare |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| es→de, 16,856 words | 93% | 87% | 78% | 63% | 47% | 29% | — |
+| de→es, 17,410 words | 85% | 79% | 70% | 57% | 39% | 16% | 9% |
+
+How `build-wiktionary.ts` builds one direction:
+
+| Step | Rule | Why |
+| --- | --- | --- |
+| Both editions | The source edition's entry lists its translations. The target edition's entries list theirs back, and inverting them finds the target words whose translations include the source word | The German edition is the richer one, and carries most of both directions: 49% of the Spanish list by inversion against 25% from the Spanish edition, and 31% of the German list against 14% |
+| Clean every string | Drop notes in brackets, split variants on `,` `;` `/`, drop a leading article, drop anything with a digit or past two words | The German edition writes `bolso (Handtasche), bolsa (Einkaufstasche)`, and whole proverbs. A target headword passes the same cleaning, or `landauf, landab` arrives as one term |
+| Order (`WIKT-4`) | Terms both editions give first, then the more frequent in the target list, then table order | Two sets of editors reaching a term separately is the one signal Wiktionary has. Frequency puts `mordsmäßig` and `Blättermagen` last |
+| Cap (`WIKT-4`) | Four terms | Google's line holds four |
+| Titles | The page is the entry the terms came from, under its own casing. Stored only where it differs from the word as the list displays it | `soler` displays as "Soler", the surname, but its translations are on `soler`. The German list writes some nouns lowercase: `hölle` |
+
+| Load-bearing detail | Why |
+| --- | --- |
+| A route of its own, `/api/wiktionary` | It reads committed data and calls no one, so its line shows when Google fails (`WIKT-5`). Folded into `/api/translate`, it would go down with Google's 502 |
+| The card waits for both | The lines land in one render, so the card changes height once |
+| Hidden where it adds nothing (`WIKT-3`) | `agua` would show `Wasser` twice |
+| The source's name trails its line | The line is a translation first. Leading names would also start the two lists at different places |
+| The source's name is `select-none` | A copied line stays the translation, as with the badges |
+| A link only where the edition has a page | 752 Spanish words and 60 German have none under any casing. The name stays, as plain text |
+| Where Google has nothing, its line says so | `no translation`, then its name, which is still the way to Google's page |
+
+| Known cost | Detail |
+| --- | --- |
+| The inverted half brings odd terms | `controlar` → annehmen, `amigo` → angenehm, `transportar` → abfahren, `libro` → Blättermagen. The list beside it is what lets a reader see past them |
+| A form the merge keeps as an entry has no table | `gesagt`, `komm`, `dime`. Following Wiktionary's form-of links would take German A1 from 85% to about 95%, but the line would then show `sagen`'s translations under `gesagt` without saying so |
+| A case-homograph gets one line | `essen` and `Essen` share the lowercase key, so the line holds `comer` and `comida` together, beside Google's line per casing |
+
+To add a pair: put both languages' extracts in `data/`, add the pair to `PAIRS` in
+`build-wiktionary.ts`, to `WIKTIONARY_TARGETS` in `languages.ts` and to `WIKTIONARY` in
+`bands.ts`, and run `build:wiktionary`. `bands.test.ts` fails when the last two disagree, and
+when the source language has no defining levels: the credit names the source edition and
+its license once, with those levels.
+
 ## CEFR levels on the translation
 
 Google orders the alternatives by confidence, not by difficulty, so a three-to-four
@@ -896,7 +968,7 @@ The misses are mostly what no dictionary headwords: clitic verb forms (`chantaje
 | German keeps its capital | `essen` and `Essen` are two DWDS entries |
 | The RAE's dictionary gets lowercase | It is case-sensitive: `Dios` has no entry and `dios` does |
 | The Nuovo De Mauro gets no diacritics either | Its URLs drop them: `/parola/caffè` is a 404 and `/parola/caffe` the entry |
-| A new tab, sharing the translate link's description | The two sit together and look the same. One element says "Opens in a new tab." for both |
+| A new tab, sharing the source links' description | One element says "Opens in a new tab." for every link out of the card |
 | Visible text "Etymology", not the dictionary's name | DWDS, CNRTL and RAE are abbreviations, and each would owe an expansion (3.1.4). The name is "Etymology of <word>" |
 
 | Measured and rejected | Why not |
@@ -907,14 +979,10 @@ The misses are mostly what no dictionary headwords: clitic verb forms (`chantaje
 | etimo.it for Italian | Pianigiani's 1907 dictionary, as scanned page images |
 | etimologias.dechile.net for Spanish | 40 of 60, against the RAE's 47 |
 
-The two links take about 305px between them. Where they do not fit beside the translation
-they drop to a row of their own:
-
-| Layout | They drop at | Then |
-| --- | --- | --- |
-| Two columns | 1,384px and under | The hero row is 168px rather than 108 |
-| Stacked | 627px and under | Every common phone width, 360 to 430px, keeps them on one row |
-| Stacked, narrow | 355px and under | One row each |
+The etymology link is the card's one pill, about 105px wide. The lines of translation take
+the width they need (`w-max`, capped at the row), so the pill sits beside them where both
+fit and drops below them where they do not. Where it drops depends on the translation, not
+on a breakpoint.
 
 ## Width on a phone
 
@@ -961,6 +1029,7 @@ credit, in the Sources line beneath the browser. The footer holds only the feedb
 | Every credit opens in this tab | The whole scenario rides in the query string, so Back restores the word, view and band the reader left. A new tab buys nothing Back does not, and 6 to 12 of them would each owe a warning (3.2.5) |
 | Ogden's *Basic English* is not cited | The spike's README compares against it. Nothing in the method comes from it |
 | Every language credits the Leipzig Corpora | Every language's `casingFile` is a Leipzig sentences file. Display casing and the name filter both read it, and its downloads are CC BY |
+| Wiktionary's translations credit both editions (`CREDIT-5`) | They are Wiktionary's text, shown as written. The source edition and the license are already named with the defining levels, so the source edition is named again without a second link, which would put one credit in the tab order twice |
 
 ## What the page says to a machine
 
@@ -979,7 +1048,7 @@ tooltip is open.
 | `CefrBadge` | The band and rank are the name; the word they belong to is the description. `aria-describedby` is always ours, never Radix's — the name already says what its tooltip says. In the search field the description points at the `invisible` mirror of the value, which Chrome reads because a directly-referenced node counts even when hidden |
 | `SwapButton` | Same trade: disabled, the reason why is in the name, not only in the tooltip |
 | A clickable alternative | Named by the word and nothing else, or the line stops reading as the translation. What clicking it does is a description — announced on focus, not while reading — and one element holds that sentence for every term on the card. The cost is two tab stops per badged term, the word and then its level, since the badge keeps its own focus for its rank |
-| The card's two links | Named by the word they open, behind the visible text so speech input still reaches them (2.5.3): "Google Translate: Wasser in English" and "Etymology of Wasser". The page's only new-tab links, and that they open one is a **description**, one element for both: what activating one does, announced on focus, while the name stays what it is for |
+| The card's links | Named by the word they open, behind the visible text so speech input still reaches them (2.5.3): "Google Translate: Wasser in English", "Wiktionary entry for siesta" and "Etymology of Wasser". The first two end the line they name, so reading the line ends with its source. The page's only new-tab links, and that they open one is a **description**, one element for all: what activating one does, announced on focus, while the name stays what it is for |
 | Abbreviations in the credits | Expanded in the sentence, never in a `title`. Chrome puts an `<abbr title>` in no name at all, and neither touch nor the keyboard can reach it — so it was a mechanism for nobody (3.1.4). The `<abbr>` markup went with it, and the lint rule below stays as a guard |
 | `WordSearchBox` | Named by its section heading (`labelledBy`), not by a second copy of the same string |
 | The figure | No heading, deliberately. It is a `<figure>` with a visible `<figcaption>`, which already names it, and its canvas carries a `role="img"` with a long description — a heading on top would be a second name for one thing |
@@ -1025,6 +1094,8 @@ did. That last one is a second scenario (`FORM_SCENARIO`, `?word=jede`) rather t
 section of the first, because a redirect is a different page state — `?word=Wasser` is a
 direct hit and never renders the line at all. It also reaches its base word through the
 chase past a dropped lemma, so the part likeliest to break quietly is the part transcribed.
+A third, `PAIR_SCENARIO` (`?source=es&word=siesta&target=de`), reads the card with two
+sources' lines. Its Google line is stubbed per word; Wiktionary's comes from committed data.
 
 | Command | Does |
 | --- | --- |
@@ -1131,7 +1202,7 @@ row fewer per screen, on the one control the page has hundreds of.
 | Select options | `min-height` on `[role="option"]` inside the popper. They are already a centred flex row, so nothing else moves |
 | The figure's caption toggle | 13px of padding on an 18px line. Padding rather than a height, so it stays centred and a wrapped line still grows |
 | The figure's full-screen button, and every button inside full screen | `TOOL` in `DefiningScatter`: 44px tall, and at least 44 wide |
-| The skip link, Previous and Next, the band tabs, the card's two links | Already 44 or over |
+| The skip link, Previous and Next, the band tabs, the etymology link | Already 44 or over |
 
 What is left under 44 is left on purpose, and the probe still lists it:
 
@@ -1140,6 +1211,7 @@ What is left under 44 is left on purpose, and the probe still lists it:
 | The native `<input>`, 42 | The frame around it is the target, and that is 44. The 2 is its border, top and bottom |
 | A translation's terms and their badges, 24 and 14 | **Inline** — they sit in a sentence, which 2.5.5 exempts. Padding them would space the words apart |
 | Every credit and the feedback link, 14 | Inline in their own paragraph, same exemption |
+| A translation line's source name, 20 | Inline: it ends the run of terms it names, the same sentence the terms are exempt in |
 | The badge in the search field, 24 | It activates the field it sits in rather than anything of its own. 24 is 2.5.8's floor, which is what it was sized to |
 | The figure's points, 14 for a mouse | 44 for touch already. Spacing thousands of points 44 apart is the one thing that would destroy the figure, and the cloud below browses the same words |
 

@@ -38,6 +38,8 @@ const SCENARIO = "/?source=de&word=Wasser&target=en&view=cefr";
 // "jede" reaches "jeder" through the chase past a lemma the build dropped (FILTER-8),
 // which is the part of the redirect most likely to break without anything else noticing.
 const FORM_SCENARIO = "/?source=de&word=jede&target=en&view=cefr";
+// A pair Wiktionary's translations are built for, so the card shows two sources' lines.
+const PAIR_SCENARIO = "/?source=es&word=siesta&target=de&view=cefr";
 
 // The translation is Google's, and Google can reword it any afternoon. Stubbed, so the
 // transcript is our markup rather than today's dictionary — which is the subject anyway.
@@ -48,6 +50,20 @@ const GLOSS = {
   levels: {
     water: { key: "A1", label: "A1 · Beginner", rank: 391 },
     aqua: { key: "C1", label: "C1 · Advanced", rank: 18422 },
+  },
+};
+
+// Google's line for the pair, which Wiktionary's sits under. Wiktionary's comes from
+// committed data and needs no stub.
+const GLOSSES = {
+  siesta: {
+    translation: "Schnapp",
+    senses: ["Nickerchen", "Schläfchen"],
+    groups: [{ pos: "noun", terms: ["Nickerchen", "Schläfchen"] }],
+    levels: {
+      Nickerchen: { key: "B1", label: "B1 · Intermediate", rank: 5442 },
+      Schläfchen: { key: "C1", label: "C1 · Advanced", rank: 14011 },
+    },
   },
 };
 
@@ -185,11 +201,12 @@ async function transcribe(send, on) {
   await send("Fetch.enable", { patterns: [{ urlPattern: "*/api/translate/*" }] });
   on(async (msg) => {
     if (msg.method !== "Fetch.requestPaused") return;
+    const word = decodeURIComponent(new URL(msg.params.request.url).pathname.split("/api/translate/")[1] ?? "");
     await send("Fetch.fulfillRequest", {
       requestId: msg.params.requestId,
       responseCode: 200,
       responseHeaders: [{ name: "content-type", value: "application/json" }],
-      body: Buffer.from(JSON.stringify(GLOSS)).toString("base64"),
+      body: Buffer.from(JSON.stringify(GLOSSES[word] ?? GLOSS)).toString("base64"),
     });
   });
   await send("Page.enable");
@@ -292,8 +309,8 @@ async function transcribe(send, on) {
   };
   for (const root of nodes.filter((n) => !n.parentId)) walk(root, 0);
 
-  rule("READING THE TRANSLATION, rather than tabbing to it");
-  say(`  ${await val(`(() => { const l = document.querySelector("[aria-live] span[lang]"); if (!l) return "(none)";
+  // A line as a screen reader reads it, each named element by its name, and as it copies.
+  const reading = (sel) => val(`(() => { const l = document.querySelector(${JSON.stringify(sel)}); if (!l) return "(none)";
     const walk = (n) => { let o = "";
       for (const c of n.childNodes) {
         if (c.nodeType === 3) { o += c.textContent; continue; }
@@ -301,10 +318,14 @@ async function transcribe(send, on) {
         const al = c.getAttribute && c.getAttribute("aria-label");
         o += al ? " (" + al + ")" : walk(c);
       } return o; };
-    return walk(l).replace(/\\s+/g, " ").trim(); })()`)}`);
-  say(`  copied as    ${JSON.stringify(await val(`(() => { const l = document.querySelector("[aria-live] span[lang]");
+    return walk(l).replace(/\\s+/g, " ").trim(); })()`);
+  const copied = async (sel) => JSON.stringify(await val(`(() => { const l = document.querySelector(${JSON.stringify(sel)});
     const s = getSelection(), r = document.createRange(); r.selectNodeContents(l); s.removeAllRanges(); s.addRange(r);
-    const t = s.toString(); s.removeAllRanges(); return t; })()`))}`);
+    const t = s.toString(); s.removeAllRanges(); return t; })()`));
+
+  rule("READING THE TRANSLATION, rather than tabbing to it");
+  say(`  ${await reading("[aria-live] span[lang]")}`);
+  say(`  copied as    ${await copied("[aria-live] span[lang]")}`);
 
   // Tab moves focus and activates nothing, so this leaves the page as it found it.
   rule("TAB THROUGH THE PAGE");
@@ -356,6 +377,21 @@ async function transcribe(send, on) {
   // Through aria-labelledby, which is how the card is named: its own visible heading.
   say(`  the card     ${await val(`(() => { const c = document.querySelector(".WordCard");
     return document.getElementById(c?.getAttribute("aria-labelledby"))?.textContent.trim() ?? null; })()`)}`);
+
+  // Each source's line ends in its name, which is also the way to its page for the word.
+  rule("TWO SOURCES — Spanish into German, with Wiktionary's line under Google's");
+  await send("Page.navigate", { url: TARGET + PAIR_SCENARIO });
+  await until(
+    `document.querySelectorAll("[aria-live] > div > *").length === 2`,
+    "both sources' lines",
+    `document.querySelector("[aria-live]")?.innerText ?? null`,
+  );
+  for (const [name, sel] of [["Google", ":first-child"], ["Wiktionary", ":last-child"]]) {
+    say(`  ${name.padEnd(12)} ${await reading(`[aria-live] > div > ${sel}`)}`);
+    say(`  ${"copied as".padEnd(12)} ${await copied(`[aria-live] > div > ${sel}`)}`);
+  }
+  await val(`document.querySelector("[aria-live] > div > :last-child a").focus()`);
+  say(`  ${"its link".padEnd(12)} ${await speak()}`);
 
   // Last, because moving off A1 leaves a different band open behind it.
   rule("THE BAND TABS — one stop, arrows inside it");

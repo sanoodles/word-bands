@@ -10,6 +10,7 @@ import {
   hasDefining,
   SOURCE_LANGS,
   type SourceLang,
+  WIKTIONARY_TARGETS,
 } from "@/lib/languages";
 import Workspace from "./Workspace";
 
@@ -487,6 +488,30 @@ describe("Workspace", () => {
       for (const link of links) expect(link).not.toHaveAttribute("target");
       cleanup();
     }
+  });
+
+  // @spec CREDIT-5
+  it("credits both Wiktionaries where the card shows their translations, and neither elsewhere", () => {
+    for (const [source, targets] of Object.entries(WIKTIONARY_TARGETS) as [SourceLang, string[]][])
+      for (const target of targets) {
+        window.history.replaceState(null, "", `/?source=${source}&target=${target}`);
+        render(<Workspace />);
+        const credits = screen.getByRole("link", { name: "CEFR-J" }).closest("p")!;
+        const name = (l: string) => `${englishName(l)} Wiktionary`;
+        expect(credits).toHaveTextContent(`translation tables of the ${name(source)} and the ${name(target)}`);
+        expect(within(credits).getByRole("link", { name: name(target) })).toHaveAttribute(
+          "href",
+          `https://${target}.wiktionary.org/`,
+        );
+        // Linked once, where the defining levels name it.
+        expect(within(credits).getAllByRole("link", { name: name(source) })).toHaveLength(1);
+        cleanup();
+      }
+    window.history.replaceState(null, "", "/?source=es&target=en");
+    render(<Workspace />);
+    const credits = screen.getByRole("link", { name: "CEFR-J" }).closest("p")!;
+    expect(credits).not.toHaveTextContent("translation tables");
+    cleanup();
   });
 
   // @spec CREDIT-1

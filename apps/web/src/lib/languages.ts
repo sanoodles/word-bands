@@ -97,6 +97,23 @@ const ETYMOLOGY: Record<SourceLang, (word: string) => string> = {
 export const etymologyHref = (word: string, source: SourceLang) => ETYMOLOGY[source](word);
 
 /**
+ * The pairs Wiktionary's translations are built for, by source language. `bands` loads one
+ * artifact per pair; `bands.test.ts` proves the two agree.
+ * @spec WIKT-1
+ */
+export const WIKTIONARY_TARGETS: Partial<Record<SourceLang, readonly SourceLang[]>> = {
+  es: ["de"],
+  de: ["es"],
+};
+
+export const hasWiktionary = (source: SourceLang, target: TargetLang) =>
+  (WIKTIONARY_TARGETS[source] as readonly string[] | undefined)?.includes(target) ?? false;
+
+/** A page of the source language's own Wiktionary. Titles are case-sensitive there. */
+export const wiktionaryHref = (title: string, source: SourceLang) =>
+  `https://${source}.wiktionary.org/wiki/${encodeURIComponent(title)}`;
+
+/**
  * A language named in English, for the app's English prose. `SOURCE_LANG_META.name` is
  * the endonym instead, which is what the picker shows.
  */

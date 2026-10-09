@@ -6,6 +6,7 @@ import {
   SOURCE_LANGS,
   SOURCE_LANG_META,
   type SourceLang,
+  wiktionaryHref,
 } from "./languages";
 
 describe("isSourceLang", () => {
@@ -60,5 +61,14 @@ describe("etymologyHref", () => {
 
   it("keeps a hyphenated word one path segment", () => {
     expect(etymologyHref("arc-en-ciel", "fr")).toBe("https://www.cnrtl.fr/etymologie/arc-en-ciel");
+  });
+});
+
+describe("wiktionaryHref", () => {
+  // @spec WIKT-2
+  it("opens the source language's own edition, under the title as given", () => {
+    expect(wiktionaryHref("siesta", "es")).toBe("https://es.wiktionary.org/wiki/siesta");
+    expect(wiktionaryHref("Wasser", "de")).toBe("https://de.wiktionary.org/wiki/Wasser");
+    expect(wiktionaryHref("alienígena", "es")).toBe("https://es.wiktionary.org/wiki/alien%C3%ADgena");
   });
 });

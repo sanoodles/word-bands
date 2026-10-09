@@ -21,7 +21,7 @@ THE OUTLINE — landmarks and headings, in the order they are met
 
 READING THE TRANSLATION, rather than tabbing to it
 ------------------------------------------------------------------------
-  water (A1 · Beginner · rank 391), aqua (C1 · Advanced · rank 18,422)
+  water (A1 · Beginner · rank 391), aqua (C1 · Advanced · rank 18,422) (Google Translate: Wasser in English)
   copied as    "water, aqua"
 
 TAB THROUGH THE PAGE
@@ -71,6 +71,14 @@ LOOKING UP AN INFLECTED FORM — the word answered for is not the one asked for
   announced    Showing jeder, the base form of “jede”.
   the field    "jeder"
   the card     Meaning of jeder
+
+TWO SOURCES — Spanish into German, with Wiktionary's line under Google's
+------------------------------------------------------------------------
+  Google       Nickerchen (B1 · Intermediate · rank 5,442), Schläfchen (C1 · Advanced · rank 14,011) (Google Translate: siesta in German)
+  copied as    "Nickerchen, Schläfchen"
+  Wiktionary   Nickerchen (B1 · Intermediate · rank 5,442), Mittagsschlaf (C1 · Advanced · rank 16,994), Siesta (C1 · Advanced · rank 21,817) (Wiktionary entry for siesta)
+  copied as    "Nickerchen, Mittagsschlaf, Siesta"
+  its link     Wiktionary entry for siesta, link, — Opens in a new tab.
 
 THE BAND TABS — one stop, arrows inside it
 ------------------------------------------------------------------------

@@ -17,6 +17,8 @@ import definingIt from "../../data/defining.it.json";
 import definingFr from "../../data/defining.fr.json";
 import definingEs from "../../data/defining.es.json";
 import definingDe from "../../data/defining.de.json";
+import wiktionaryEsDe from "../../data/wiktionary.es-de.json";
+import wiktionaryDeEs from "../../data/wiktionary.de-es.json";
 
 // The committed data/word-bands.<code>.json files are the build's output and the app's
 // only corpus, so these hold whether or not anyone re-runs the build. Nothing else looks
@@ -235,5 +237,62 @@ describe("defining levels", () => {
       expect(defining.count, defining.lang).toBe(ranked.ranked.length);
       expect(defining.levels, defining.lang).toHaveLength(ranked.ranked.length);
     }
+  });
+});
+
+// Built by scripts/build-wiktionary.ts from both languages' own editions, so nothing in it
+// passed through English.
+describe("Wiktionary's translations", () => {
+  const ARTIFACTS = [wiktionaryEsDe, wiktionaryDeEs].map((a) => ({
+    source: a.source as "es" | "de",
+    target: a.target,
+    terms: new Map(Object.entries(a.terms as Record<string, string[]>)),
+    titles: a.titles as Record<string, string | null>,
+  }));
+
+  // @spec WIKT-4
+  it("holds at most four terms a word, each one word or two", () => {
+    for (const { source, terms } of ARTIFACTS)
+      for (const [word, list] of terms) {
+        expect(list.length, `${source} ${word}`).toBeGreaterThan(0);
+        expect(list.length, `${source} ${word}`).toBeLessThanOrEqual(4);
+        expect(new Set(list.map((t) => t.toLowerCase())).size, `${source} ${word}`).toBe(list.length);
+        for (const t of list) {
+          expect(t.split(" ").length, t).toBeLessThanOrEqual(2);
+          expect(t, t).toMatch(/^[^\s\d()[\]/,;]+(?: [^\s\d()[\]/,;]+)?$/);
+        }
+      }
+  });
+
+  // @spec WIKT-4
+  it("leads with what both editions give, then with the more frequent word", () => {
+    const es = ARTIFACTS.find((a) => a.source === "es")!.terms;
+    // Nickerchen is in both editions; Mittagsschlaf ranks above Siesta in German.
+    expect(es.get("siesta")).toEqual(["Nickerchen", "Mittagsschlaf", "Siesta"]);
+    expect(es.get("terrible")!.indexOf("schrecklich")).toBeLessThan(es.get("terrible")!.indexOf("mordsmäßig"));
+  });
+
+  it("keys only words the source list holds", () => {
+    for (const { source, terms, titles } of ARTIFACTS) {
+      for (const word of terms.keys()) expect(held(source, word), `${source} ${word}`).toBe(true);
+      for (const word of Object.keys(titles)) expect(terms.has(word), `${source} ${word}`).toBe(true);
+    }
+  });
+
+  it("names a page only where Wiktionary titles it unlike the list displays it", () => {
+    for (const { source, titles } of ARTIFACTS)
+      for (const [word, title] of Object.entries(titles)) expect(title, `${source} ${word}`).not.toBe(cased(source, word));
+  });
+
+  // The words a pivot through English gets wrong, because the English word means more.
+  it("translates without passing through English", () => {
+    const es = ARTIFACTS.find((a) => a.source === "es")!.terms;
+    expect(es.get("letra")).toContain("Buchstabe");
+    expect(es.get("letra")).not.toContain("Brief");
+    expect(es.get("criar")).toContain("aufziehen");
+    expect(es.get("criar")).not.toContain("erhöhen");
+    expect(es.get("tiempo")).toContain("Wetter");
+    const de = ARTIFACTS.find((a) => a.source === "de")!.terms;
+    expect(de.get("buchstabe")).toEqual(["letra"]);
   });
 });

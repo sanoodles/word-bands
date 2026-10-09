@@ -5,6 +5,7 @@ import { GET as suggestGET } from "./suggest/route";
 import { GET as bandsGET } from "./bands/[view]/route";
 import { GET as bandGET } from "./band/[view]/[key]/route";
 import { GET as translateGET } from "./translate/[word]/route";
+import { GET as wiktionaryGET } from "./wiktionary/[word]/route";
 
 // A guaranteed-present headword (the single most frequent) and an absent one.
 const REAL = getBand("en", "freq", "1")!.words[0]!;
@@ -256,5 +257,53 @@ describe("GET /api/band/[view]/[key]", () => {
     expect(bad.status).toBe(404);
     const badView = await bandGET(req("/api/band/x/x"), { params: promise({ view: "nope", key: "A1" }) });
     expect(badView.status).toBe(404);
+  });
+});
+
+describe("GET /api/wiktionary/[word]", () => {
+  const ask = (word: string, query: string) =>
+    wiktionaryGET(req(`/api/wiktionary/x?${query}`), { params: promise({ word }) });
+
+  // @spec WIKT-1, BAND-9
+  it("answers Wiktionary's terms with their levels in the target language", async () => {
+    const res = await ask("siesta", "source=es&target=de");
+    expect(res.status).toBe(200);
+    const { terms, title, levels } = await res.json();
+    expect(terms).toEqual(expect.arrayContaining(["Siesta", "Nickerchen"]));
+    expect(title).toBe("siesta");
+    expect(levels.Nickerchen).toMatchObject({ rank: expect.any(Number) });
+  });
+
+  // @spec WIKT-5
+  it("answers from committed data, calling no one", async () => {
+    const spy = vi.fn();
+    vi.stubGlobal("fetch", spy);
+    const res = await ask("Wasser", "source=de&target=es");
+    expect((await res.json()).terms).toContain("agua");
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  // @spec ROUTE-8
+  it("lowercases the param, and links the page the way Wiktionary titles it", async () => {
+    const { terms, title } = await (await ask("WASSER", "source=de&target=es")).json();
+    expect(terms).toContain("agua");
+    expect(title).toBe("Wasser");
+  });
+
+  it("answers no terms for a pair or a word it has none for", async () => {
+    for (const [word, query] of [
+      ["siesta", "source=es&target=en"],
+      [MISSING, "source=es&target=de"],
+      ["siesta", "source=es&target=__proto__"],
+    ] as const) {
+      const res = await ask(word, query);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ terms: [], title: null, levels: {} });
+    }
+  });
+
+  // @spec ROUTE-9
+  it("404s for an unknown source language", async () => {
+    expect((await ask("siesta", "source=xx&target=de")).status).toBe(404);
   });
 });

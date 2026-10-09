@@ -1,6 +1,5 @@
-import { getLevel } from "@/lib/bands";
+import { levelsOf } from "@/lib/bands";
 import { isSourceLang } from "@/lib/languages";
-import type { WordLevel } from "@/lib/types";
 import {
   alignGroup,
   baseLang,
@@ -18,27 +17,6 @@ import {
 // A word's translation is stable, and the rare tail is looked up too seldom to survive a
 // short TTL. The warm pass owns the head's freshness, so this number is really the tail's.
 export const revalidate = 15552000; // 180 days; a literal, since Next cannot evaluate arithmetic here
-
-/**
- * Each translated term's CEFR level in the language it's written in, keyed by the term as
- * Google spelled it. Google's senses are ordered by confidence, not by difficulty — "agua"
- * A1 and "abrevar" C2 arrive as equals — so the level is what tells a learner which
- * alternative is theirs. Only the six indexed languages have levels; a term that is a
- * phrase, or a word the list doesn't carry, is simply absent.
- * @spec BAND-9
- */
-function levelsOf(target: string, groups: SenseGroup[], translation: string) {
-  // Levels come off the indexed word lists, so the target must be a source language too.
-  if (!isSourceLang(target)) return {};
-  // A Map, because `in` on an object is true for every Object.prototype key.
-  const levels = new Map<string, WordLevel>();
-  for (const term of [...groups.flatMap((g) => g.terms), translation]) {
-    if (!term || levels.has(term)) continue;
-    const level = getLevel(target, term);
-    if (level) levels.set(term, level);
-  }
-  return Object.fromEntries(levels);
-}
 
 async function gtx(
   word: string,
@@ -99,7 +77,8 @@ export async function GET(
       senses: flattenSenses(groups),
       // Per-part-of-speech readings, so the card can show a word's distinct meanings.
       groups,
-      levels: levelsOf(target, groups, translation),
+      // @spec BAND-9
+      levels: levelsOf(target, [...groups.flatMap((g) => g.terms), translation]),
     });
   } catch {
     // @spec GATE-6

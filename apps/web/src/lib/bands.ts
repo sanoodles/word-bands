@@ -1,6 +1,6 @@
 import "server-only";
 import type { Band, BandSummary, BandView, WordBands, WordLevel } from "@/lib/types";
-import { definingLevel, type SourceLang } from "@/lib/languages";
+import { definingLevel, isSourceLang, type SourceLang } from "@/lib/languages";
 // The per-language word-bands artifacts (built by scripts/build-bands.ts). Imported
 // directly so Next bundles them into the API functions — each file is small.
 import en from "../../data/word-bands.en.json";
@@ -243,6 +243,70 @@ export function getLevel(target: SourceLang, word: string): WordLevel | null {
   if (rank === undefined) return null;
   const b = bandAtRank(d.cefrBands, rank)!;
   return { key: b.key, label: b.label, rank };
+}
+
+/**
+ * Each term's CEFR level in the language it is written in, keyed by the term as given. A
+ * learner tells the alternatives apart by it, since neither source orders them by
+ * difficulty. A phrase, or a word the list lacks, is simply absent.
+ * @spec BAND-9
+ */
+export function levelsOf(target: string, terms: readonly string[]): Record<string, WordLevel> {
+  // Levels come off the indexed word lists, so the target must be a source language too.
+  if (!isSourceLang(target)) return {};
+  // A Map, because `in` on an object is true for every Object.prototype key.
+  const levels = new Map<string, WordLevel>();
+  for (const term of terms) {
+    if (!term || levels.has(term)) continue;
+    const level = getLevel(target, term);
+    if (level) levels.set(term, level);
+  }
+  return Object.fromEntries(levels);
+}
+
+interface WiktionaryArtifact {
+  terms: Record<string, string[]>;
+  titles: Record<string, string | null>;
+}
+
+// Wiktionary's translations, one artifact per direction (built by
+// scripts/build-wiktionary.ts). Dynamic for the reason the forms are: one route reads them,
+// for one line of the word card.
+const WIKTIONARY: Record<string, () => Promise<{ default: WiktionaryArtifact }>> = {
+  "es-de": () => import("../../data/wiktionary.es-de.json"),
+  "de-es": () => import("../../data/wiktionary.de-es.json"),
+};
+const wiktionaryCache = new Map<string, { terms: Map<string, string[]>; titles: Map<string, string | null> }>();
+
+/** The pairs `getWiktionary` has data for, as `source-target`. */
+export const WIKTIONARY_PAIRS = Object.keys(WIKTIONARY);
+
+/**
+ * Wiktionary's translations of a word into the target, with the title of the page they
+ * link to — null where the source edition has no page for it. Null where the pair or the
+ * word has no translations.
+ * @spec WIKT-1, WIKT-5
+ */
+export async function getWiktionary(
+  source: SourceLang,
+  target: string,
+  word: string,
+): Promise<{ terms: string[]; title: string | null } | null> {
+  const pair = `${source}-${target}`;
+  if (!Object.hasOwn(WIKTIONARY, pair)) return null;
+  let data = wiktionaryCache.get(pair);
+  if (!data) {
+    const { terms, titles } = (await WIKTIONARY[pair]!()).default;
+    // Maps, for the reason `resolveForm` uses one: the key is caller input.
+    data = { terms: new Map(Object.entries(terms)), titles: new Map(Object.entries(titles)) };
+    wiktionaryCache.set(pair, data);
+  }
+  const key = word.toLowerCase();
+  const terms = data.terms.get(key);
+  if (!terms) return null;
+  // Stored only where the page is not titled the way the list displays the word.
+  const title = data.titles.has(key) ? data.titles.get(key)! : (getWord(source, key)?.word ?? key);
+  return { terms, title };
 }
 
 /**
