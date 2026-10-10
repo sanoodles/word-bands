@@ -84,7 +84,7 @@ Paths are relative to `apps/web/`.
 ## URL state (deeplinks)
 
 `Workspace` mirrors the scenario into the query string so it can be shared as a link, and
-writes it back with `replaceState`. It owns all five values: the target sits there rather
+so Back and Forward step through it. It owns all five values: the target sits there rather
 than in `WordCard`, and `band` rather than in `BandBrowser`, so both ride in the URL.
 `Workspace` is client-only (`WorkspaceLazy`, `ssr:false`), so this is all client-side.
 
@@ -98,8 +98,20 @@ than in `WordCard`, and `band` rather than in `BandBrowser`, so both ride in the
 | `view` | `freq` or `cefr` | `cefr` is the default, and sits first in the toggle |
 | `band` | Pinned band tab | Set only when it differs from the word's own band, which the word and view already imply |
 
-`URL-1` to `URL-7` are the rules: the older spellings, what is written and when, and the
-precedence on mount — the URL wins over the stored pick, which wins over the seed below.
+`URL-1` to `URL-12` are the rules: the older spellings, what is written and when, the
+precedence on mount — the URL wins over the stored pick, which wins over the seed below —
+and which writes add a history entry.
+
+| History detail | Why |
+| --- | --- |
+| A step pushes, and the first write replaces | The entry the page opened on is in the history already. The first write only rewrites it in canonical form |
+| Back and Forward set the state, and the mirror then writes nothing | The restored state produces the URL it landed on, and `writeScenario` skips an unchanged URL. That is what keeps the entries ahead for Forward |
+| No write while a lookup is in flight | The params would pair the new choice with the old word, a page nobody saw. Back to another word in another view would push that mix, and cut off Forward |
+| `info` carries the language it was found in | A switch whose lookup fails leaves the old word on screen under the new language. A link to that names a word the language may lack |
+| Only the latest lookup lands, and the swap's probe yields too | An earlier one answering late would land over the newer word, and push an entry for it |
+| A `popstate` that leaves the query alone is ignored | A fragment link, which the skip link is, adds an entry of its own and fires `popstate` |
+| The URL effect runs before the title effect | The browser titles whichever entry is current. Titled first, the entry left behind would take the new word's name |
+| Next keeps the page mounted | Its patched `pushState` copies its router tree into each entry, and its own `popstate` handler restores that same tree. Restoring the scenario is ours |
 
 The tab title carries the word too: `wordbands: <word>`, in the corpus's display casing
 (`wordbands: Wasser`). `generateMetadata` renders it from `?word=` server-side, so a shared

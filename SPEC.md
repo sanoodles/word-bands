@@ -44,7 +44,7 @@ verifies the claim exists, not that it bites.
 | `BAND` | Band definitions, word lookup, levels, typeahead | PR |
 | `FILTER` | What the committed artifacts must and must not contain | PR |
 | `HEAD` | Response headers and the CSP | PR |
-| `URL` | Deeplink state and the page title | PR |
+| `URL` | Deeplink state, history entries and the page title | PR |
 | `CREDIT` | Which sources and works the page credits | PR |
 | `ETYM` | The word card's link to the word's etymology | PR |
 | `WIKT` | Wiktionary's translations, beside Google's on the word card | PR |
@@ -180,7 +180,7 @@ The build merges every inflection onto its lemma, so a form is not an entry of i
 | HEAD-4 | Production carries neither `unsafe-eval` nor a websocket source |
 | HEAD-5 | The framework is not named in a response header |
 
-## URL — deeplink state
+## URL — deeplink state and history
 
 | ID | Rule |
 | --- | --- |
@@ -191,6 +191,11 @@ The build merges every inflection onto its lemma, so a form is not an entry of i
 | URL-5 | On mount the URL wins over a stored pick, which wins over the seeded pair |
 | URL-6 | The tab title is `wordbands: <word>`, capped at 40 characters, and `wordbands` with no word |
 | URL-7 | A deeplink's word reaches the Open Graph and Twitter titles server-side, not only the tab |
+| URL-8 | Every step that changes the URL adds a history entry, whether it changes the word, a language, the view or the band. A step that leaves the URL as it was adds none |
+| URL-9 | Back and Forward restore all five params of the entry they land on, and add no entry of their own |
+| URL-10 | Opening the page adds no entry. The first URL it writes replaces the one it was opened on |
+| URL-11 | The word shown, and the URL written for it, is the last one asked for, whatever order the lookups answer in |
+| URL-12 | A URL the page writes pairs its word with the language that word was found in |
 
 ## CREDIT — what the page attributes
 

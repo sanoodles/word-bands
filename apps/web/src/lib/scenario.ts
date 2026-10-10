@@ -1,7 +1,7 @@
 // The learner's current scenario, encoded in the URL's query string so it can be
-// copied as a shareable deeplink. Reflects the four things a sender might want a
-// recipient to land on: the source language, the looked-up word, the target
-// language, and the band view / pinned band tab.
+// copied as a shareable deeplink, and so Back and Forward step through it. Reflects the
+// four things a sender might want a recipient to land on: the source language, the
+// looked-up word, the target language, and the band view / pinned band tab.
 
 import { isSourceLang, type SourceLang, type TargetLang } from "@/lib/languages";
 import { SITE_NAME } from "@/lib/site";
@@ -69,11 +69,12 @@ export function readScenario(): Partial<Scenario> {
 }
 
 /**
- * Reflect the scenario into the URL. Uses replaceState — we're mirroring live state
- * for sharing, not adding a history entry for every language flip or band click.
- * @spec URL-4
+ * Reflect the scenario into the URL. `push` adds a history entry for a step the reader
+ * took; `replace` rewrites the entry the page is already on. A URL that would not change
+ * is left alone either way.
+ * @spec URL-4, URL-8
  */
-export function writeScenario(s: Scenario): void {
+export function writeScenario(s: Scenario, entry: "push" | "replace"): void {
   if (typeof window === "undefined") return;
   const p = new URLSearchParams();
   p.set(SOURCE_PARAMS[0], s.source);
@@ -81,6 +82,10 @@ export function writeScenario(s: Scenario): void {
   if (s.target) p.set(TARGET_PARAMS[0], s.target);
   p.set("view", s.view);
   if (s.band) p.set("band", s.band);
-  const { pathname, hash } = window.location;
-  window.history.replaceState(null, "", `${pathname}?${p.toString()}${hash}`);
+  const { pathname, search, hash } = window.location;
+  const query = `?${p.toString()}`;
+  if (query === search) return;
+  const url = `${pathname}${query}${hash}`;
+  if (entry === "push") window.history.pushState(null, "", url);
+  else window.history.replaceState(null, "", url);
 }

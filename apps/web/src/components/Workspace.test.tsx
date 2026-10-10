@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import userEvent from "@testing-library/user-event";
 import {
@@ -14,20 +14,29 @@ import Workspace from "./Workspace";
 
 // Isolate the search box + lookup wiring from the data-fetching band browser, but
 // still render the view toggle it hosts (Workspace owns it, via the viewControl slot).
-// The "pick word" button stands in for the browser's chips and prev/next steppers.
+// The "pick word" button stands in for the browser's chips and prev/next steppers, and
+// "pick band" for its tabs.
 vi.mock("./BandBrowser", () => ({
   default: ({
     viewControl,
     onSelect,
+    bandKey,
+    onBandChange,
   }: {
     viewControl?: ReactNode;
     onSelect: (word: string) => void;
+    bandKey?: string | null;
+    onBandChange?: (key: string) => void;
   }) => (
     <div>
       band browser{viewControl}
       <button type="button" onClick={() => onSelect("Plädoyer")}>
         pick word
       </button>
+      <button type="button" onClick={() => onBandChange?.("B2")}>
+        pick band
+      </button>
+      <p>pinned band: {bandKey ?? "none"}</p>
     </div>
   ),
 }));
@@ -778,6 +787,172 @@ describe("Workspace", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/base form of/i));
     // The same node, not a replacement — that is what makes it announce.
     expect(screen.getByRole("status")).toBe(live);
+  });
+});
+
+describe("Back and Forward", () => {
+  // Drops entries an earlier test left ahead, so a length counts only this test's.
+  beforeEach(() => window.history.pushState(null, "", "/"));
+
+  const params = () => new URLSearchParams(window.location.search);
+  const field = () => screen.getByRole("combobox", { name: /look up a word/i });
+  // The page has caught up once the word it looked up is in the URL.
+  const settled = (word: string) => waitFor(() => expect(params().get("word")).toBe(word));
+
+  // @spec URL-8, URL-9
+  it("step through the words looked up", async () => {
+    const user = userEvent.setup();
+    render(<Workspace />);
+    await settled("water");
+    const start = window.history.length;
+
+    await user.click(screen.getByRole("button", { name: "pick word" }));
+    await settled("Plädoyer");
+    expect(window.history.length).toBe(start + 1);
+
+    window.history.back();
+    expect(await screen.findByRole("region", { name: /meaning of water/i })).toBeInTheDocument();
+    expect(field()).toHaveValue("water");
+
+    window.history.forward();
+    expect(await screen.findByRole("region", { name: /meaning of Plädoyer/i })).toBeInTheDocument();
+    expect(field()).toHaveValue("Plädoyer");
+    // Forward had an entry to go to, and arriving there pushed none.
+    expect(window.history.length).toBe(start + 1);
+  });
+
+  // @spec URL-8, URL-9
+  it("step through views, languages and bands too, restoring each", async () => {
+    const user = userEvent.setup();
+    render(<Workspace />); // en → es, CEFR
+    await settled("water");
+    const start = window.history.length;
+    const view = (name: string) => screen.getByRole("radio", { name });
+    const target = () => screen.getByRole("combobox", { name: /target language/i });
+
+    await user.click(view("Frequency"));
+    await waitFor(() => expect(params().get("view")).toBe("freq"));
+    await user.click(screen.getByRole("button", { name: "pick band" }));
+    await waitFor(() => expect(params().get("band")).toBe("B2"));
+    await user.click(target());
+    await user.click(await screen.findByRole("option", { name: /Deutsch/ }));
+    await waitFor(() => expect(params().get("target")).toBe("de"));
+    await user.click(screen.getByRole("combobox", { name: /source language/i }));
+    await user.click(await screen.findByRole("option", { name: /Italiano/ }));
+    await settled("acqua");
+    expect(window.history.length).toBe(start + 4);
+
+    window.history.back();
+    expect(await screen.findByRole("region", { name: /meaning of water/i })).toBeInTheDocument();
+    expect(screen.getByText("pinned band: B2")).toBeInTheDocument();
+    expect(target()).toHaveTextContent("DE");
+
+    window.history.back();
+    await waitFor(() => expect(target()).toHaveTextContent("ES"));
+    expect(screen.getByText("pinned band: B2")).toBeInTheDocument();
+
+    window.history.back();
+    expect(await screen.findByText("pinned band: none")).toBeInTheDocument();
+    expect(view("Frequency")).toHaveAttribute("aria-checked", "true");
+
+    window.history.back();
+    await waitFor(() => expect(view("CEFR")).toHaveAttribute("aria-checked", "true"));
+
+    // All four steps at once, as from the browser's history menu.
+    window.history.go(4);
+    expect(await screen.findByRole("region", { name: /meaning of acqua/i })).toBeInTheDocument();
+    expect(target()).toHaveTextContent("DE");
+    expect(screen.getByText("pinned band: none")).toBeInTheDocument();
+    expect(view("Frequency")).toHaveAttribute("aria-checked", "true");
+    expect(window.history.length).toBe(start + 4);
+  });
+
+  // @spec URL-8
+  it("adds no entry for asking again for the word on screen", async () => {
+    const user = userEvent.setup();
+    render(<Workspace />);
+    await settled("water");
+    const start = window.history.length;
+
+    await user.clear(field());
+    await user.type(field(), "WATER{Enter}");
+    await waitFor(() => expect(field()).toHaveValue("water")); // the lookup has landed
+    expect(window.history.length).toBe(start);
+  });
+
+  // @spec URL-10
+  it("adds no entry for the page it opened on, though it rewrites that URL", async () => {
+    window.history.replaceState(null, "", "/?lang=de&word=wasser&tl=en");
+    const start = window.history.length;
+    render(<Workspace />);
+    await settled("Wasser");
+    expect(params().get("source")).toBe("de");
+    expect(params().has("lang")).toBe(false);
+    expect(window.history.length).toBe(start);
+  });
+
+  // The skip link adds an entry of its own, with the scenario unchanged.
+  it("leaves the page alone when only the fragment changes", async () => {
+    const user = userEvent.setup();
+    render(<Workspace />);
+    await settled("water");
+    await user.clear(field());
+    await user.type(field(), "ca");
+
+    window.location.hash = "main";
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0))); // its popstate
+    expect(field()).toHaveValue("ca");
+  });
+
+  // @spec URL-12
+  it("keeps the URL where it was when a switch of language finds no word", async () => {
+    const answer = mockFetch();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL) =>
+        String(url).includes("/api/word/agua") ? new Response("down", { status: 503 }) : answer(url),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<Workspace />);
+    await settled("water");
+    const before = window.location.search;
+
+    await user.click(screen.getByRole("combobox", { name: /source language/i }));
+    await user.click(await screen.findByRole("option", { name: /Español/ }));
+    // Marked invalid only once the lookup is over.
+    await waitFor(() => expect(field()).toHaveAttribute("aria-invalid", "true"));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(window.location.search).toBe(before);
+  });
+
+  // @spec URL-11
+  it("shows the last word asked for when an earlier lookup answers after it", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const answer = mockFetch();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL) => {
+        if (String(url).includes("/api/word/slow")) await gate;
+        return answer(url);
+      }),
+    );
+    const user = userEvent.setup();
+    render(<Workspace />);
+    await settled("water");
+
+    await user.clear(field());
+    await user.type(field(), "slow{Enter}");
+    await user.click(screen.getByRole("button", { name: "pick word" }));
+    await settled("Plädoyer");
+
+    await act(async () => {
+      release();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(screen.getByRole("region", { name: /meaning of Plädoyer/i })).toBeInTheDocument();
+    expect(params().get("word")).toBe("Plädoyer");
   });
 });
 

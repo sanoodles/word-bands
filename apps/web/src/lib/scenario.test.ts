@@ -50,19 +50,39 @@ describe("readScenario", () => {
 });
 
 describe("writeScenario", () => {
+  const WATER = { source: "en", word: "water", target: "es", view: "cefr", band: null } as const;
+
   // @spec URL-1
   it("round-trips through readScenario", () => {
-    writeScenario({ source: "fr", word: "eau", target: "en", view: "freq", band: null });
+    writeScenario({ source: "fr", word: "eau", target: "en", view: "freq", band: null }, "replace");
     expect(readScenario()).toEqual({ source: "fr", word: "eau", target: "en", view: "freq" });
   });
 
   // @spec URL-4
   it("omits an unset band but always keeps the source and view", () => {
-    writeScenario({ source: "en", word: "water", target: "en", view: "cefr", band: null });
+    writeScenario({ source: "en", word: "water", target: "en", view: "cefr", band: null }, "replace");
     const p = new URLSearchParams(window.location.search);
     expect(p.has("band")).toBe(false);
     expect(p.get("source")).toBe("en");
     expect(p.get("view")).toBe("cefr");
+  });
+
+  // @spec URL-8
+  it("adds an entry for a push and none for a replace", () => {
+    const start = window.history.length;
+    writeScenario(WATER, "replace");
+    expect(window.history.length).toBe(start);
+    writeScenario({ ...WATER, word: "cat" }, "push");
+    expect(window.history.length).toBe(start + 1);
+    expect(readScenario().word).toBe("cat");
+  });
+
+  // @spec URL-8
+  it("adds no entry where the URL would not change", () => {
+    writeScenario(WATER, "replace");
+    const start = window.history.length;
+    writeScenario(WATER, "push");
+    expect(window.history.length).toBe(start);
   });
 });
 

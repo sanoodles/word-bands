@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { SegmentedControl, Tooltip } from "@frontify/fondue/components";
 import BandBrowser from "@/components/BandBrowser";
 import CefrBadge from "@/components/CefrBadge";
@@ -382,7 +382,8 @@ export default function Workspace({ country }: { country?: string | null }) {
 
   // The searched word drives the whole view, so its lookup lives here, above it.
   const [query, setQuery] = useState(() => initial.word ?? SOURCE_LANG_META[source].defaultWord);
-  const [info, setInfo] = useState<WordBands | null>(null);
+  // With the language it was found in: the URL never pairs a word with another.
+  const [info, setInfo] = useState<(WordBands & { source: SourceLang }) | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The nearest word the corpus does hold, offered inside a failed lookup's message
   // (WCAG 3.3.3). Typing folds diacritics, so "cordon" reaches "cordón" — Enter does not,
@@ -398,11 +399,16 @@ export default function Workspace({ country }: { country?: string | null }) {
   // That tells the field to focus itself and select the word — see WordSearchBox.
   const [reseeded, setReseeded] = useState(0);
 
+  // Bumped by every lookup, so one that answers late cannot land over a newer one.
+  // @spec URL-11
+  const lookups = useRef(0);
+
   // The source is passed explicitly so a language switch looks up the right dictionary
   // without waiting for the state update to settle — hence the shadowing. `bandOverride`
   // restores a pinned band from a shared link; a normal lookup follows the word's own (null).
   const lookup = useCallback(
     async (raw: string, source: SourceLang, bandOverride: string | null = null) => {
+      const id = ++lookups.current;
       const term = raw.trim().toLowerCase();
       // Nothing to look up is not a wait: `?word=%20` would otherwise leave the
       // card pending and the button disabled for good.
@@ -413,22 +419,25 @@ export default function Workspace({ country }: { country?: string | null }) {
       setLoading(true);
       try {
         const res = await fetch(`/api/word/${encodeURIComponent(term)}?source=${source}`);
+        if (id !== lookups.current) return;
         if (!res.ok) {
           setError(`"${term}" is not in this dictionary`);
-          setNearMatch(await nearestWord(term, source));
+          const near = await nearestWord(term, source);
+          if (id === lookups.current) setNearMatch(near);
           return;
         }
+        const found = (await res.json()) as WordBands;
+        if (id !== lookups.current) return;
         setError(null);
         setNearMatch(null);
-        const found = (await res.json()) as WordBands;
-        setInfo(found);
+        setInfo({ ...found, source });
         // Echo the corpus's display casing ("Plädoyer"), not the lowercased lookup key
         // — but only onto the word that was asked for. Typing carries on while a
         // lookup is in flight, and the field is the one thing the user is holding.
         setQuery((q) => (q.trim().toLowerCase() === term ? found.word : q));
         setBand(bandOverride);
       } finally {
-        setLoading(false);
+        if (id === lookups.current) setLoading(false);
       }
     },
     [],
@@ -442,25 +451,66 @@ export default function Workspace({ country }: { country?: string | null }) {
     void lookup(query, source, initial.band ?? null);
   }, [lookup, source, query, initial.band]);
 
-  // Mirror the scenario into the URL so learners can exchange deeplinks. Keyed on the
-  // looked-up word (not the in-progress query), and only pins a band when it differs
-  // from the word's own — an unchanged band is already implied by the word + view.
+  // The first write replaces the entry the page opened on, rather than adding one.
+  // @spec URL-10
+  const opening = useRef(true);
+  // The query string of the entry on screen.
+  const shown = useRef(window.location.search);
+
+  // Mirror the scenario into the URL so learners can exchange deeplinks and step back
+  // through it. Keyed on the looked-up word (not the in-progress query), and only pins a
+  // band when it differs from the word's own — an unchanged band is already implied by
+  // the word + view.
+  // @spec URL-8, URL-12
   useEffect(() => {
-    if (!info) return;
+    // Mid-lookup, the params pair a new choice with the old word: a page nobody saw.
+    if (!info || loading || info.source !== source) return;
     const anchor = info[view]?.key ?? null;
-    writeScenario({
-      source,
-      word: info.word,
-      target,
-      view,
-      band: band && band !== anchor ? band : null,
-    });
-  }, [source, target, view, band, info]);
+    writeScenario(
+      { source, word: info.word, target, view, band: band && band !== anchor ? band : null },
+      opening.current ? "replace" : "push",
+    );
+    opening.current = false;
+    shown.current = window.location.search;
+  }, [source, target, view, band, info, loading]);
 
   // Name the word in the tab title too, so a pinned tab or a bookmark says which one.
+  // After the URL above, since the browser titles whichever entry is current.
   useEffect(() => {
     document.title = pageTitle(info?.word);
   }, [info]);
+
+  // Back and Forward land on an entry this page wrote, which names the whole scenario.
+  // Once restored, the URL the page writes is the one it landed on, so it adds no entry.
+  // @spec URL-9
+  const restore = useEffectEvent(() => {
+    const { search } = window.location;
+    // A fragment link, such as the skip link, adds an entry with the same scenario.
+    if (search === shown.current) return;
+    shown.current = search;
+    const s = readScenario();
+    const to = s.source ?? source;
+    const word = s.word ?? SOURCE_LANG_META[to].defaultWord;
+    setSource(to);
+    if (s.target) setTarget(s.target);
+    if (s.view) setView(s.view);
+    setBand(s.band ?? null);
+    setQuery(word);
+    setError(null);
+    setNearMatch(null);
+    if (info?.source === to && info.word.toLowerCase() === word.toLowerCase()) {
+      // Already on screen: nothing to look up, and nothing in flight may land over it.
+      lookups.current++;
+      setLoading(false);
+    } else {
+      void lookup(word, to, s.band ?? null);
+    }
+  });
+  useEffect(() => {
+    const onPopState = () => restore();
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const chooseSource = (l: SourceLang) => {
     if (l === source) return;
@@ -501,6 +551,7 @@ export default function Workspace({ country }: { country?: string | null }) {
     const to = target;
     const from = source;
     setLoading(true);
+    const asked = lookups.current;
     let word = SOURCE_LANG_META[to].defaultWord;
     const seed = glossTerm?.trim().toLowerCase();
     if (seed && !seed.includes(" ")) {
@@ -511,6 +562,8 @@ export default function Workspace({ country }: { country?: string | null }) {
         /* offline: the default word still gives a valid landing place */
       }
     }
+    // Whatever was asked for during the probe is newer than the swap.
+    if (lookups.current !== asked) return;
     await study(to, from, word);
   };
 
