@@ -4,6 +4,5 @@
 # buildCommand cd's there first).
 set -euo pipefail
 
-# The app reads the committed apps/web/data/wordbands.<code>.json — no data download or
-# model precompute is needed. Just build the app.
+# The app's data is committed under apps/web/data, so no step here builds it.
 pnpm turbo run build --filter=@wordbands/web
