@@ -8,11 +8,11 @@ export type Theme = "light" | "dark";
 // …vs. what the user picked. "system" follows the OS via prefers-color-scheme.
 export type ThemePreference = Theme | "system";
 
-export const PREF_COOKIE = "word-bands:theme";
+export const PREF_COOKIE = "wordbands:theme";
 // Last resolved colour, cached so SSR can paint the right theme for a "system"
 // visitor on the very next request — Fondue scopes its tokens to a React-rendered
 // div, so the server (not a pre-paint script) has to get the colour right.
-export const RESOLVED_COOKIE = "word-bands:theme-resolved";
+export const RESOLVED_COOKIE = "wordbands:theme-resolved";
 
 // Lets any client component read and flip the colour theme. A user-selectable
 // foreground/background is what carries WCAG 1.4.8 (AAA) Visual Presentation.

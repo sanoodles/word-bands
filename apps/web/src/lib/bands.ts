@@ -1,13 +1,13 @@
 import "server-only";
 import type { Band, BandSummary, BandView, WordBands, WordLevel } from "@/lib/types";
 import { definingLevel, isSourceLang, type SourceLang } from "@/lib/languages";
-// The per-language word-bands artifacts (built by scripts/build-bands.ts). Imported
+// The per-language wordbands artifacts (built by scripts/build-bands.ts). Imported
 // directly so Next bundles them into the API functions — each file is small.
-import en from "../../data/word-bands.en.json";
-import es from "../../data/word-bands.es.json";
-import fr from "../../data/word-bands.fr.json";
-import de from "../../data/word-bands.de.json";
-import pt from "../../data/word-bands.pt.json";
+import en from "../../data/wordbands.en.json";
+import es from "../../data/wordbands.es.json";
+import fr from "../../data/wordbands.fr.json";
+import de from "../../data/wordbands.de.json";
+import pt from "../../data/wordbands.pt.json";
 // The defining levels, each keyed positionally against its language's `ranked`. Built outside
 // this repo from a Wiktionary extract; see the defining-vocabulary spike.
 import definingPt from "../../data/defining.pt.json";
@@ -16,7 +16,7 @@ import definingFr from "../../data/defining.fr.json";
 import definingEs from "../../data/defining.es.json";
 import definingDe from "../../data/defining.de.json";
 import definingEn from "../../data/defining.en.json";
-import it from "../../data/word-bands.it.json";
+import it from "../../data/wordbands.it.json";
 
 export { isSourceLang } from "@/lib/languages";
 
@@ -71,7 +71,7 @@ interface DefiningData {
 }
 
 /**
- * A rebuild of `word-bands.pt.json` that changed the ranking would slide every level onto
+ * A rebuild of `wordbands.pt.json` that changed the ranking would slide every level onto
  * the wrong word, silently. The length is the free half of the guard and runs here;
  * `artifacts.test.ts` carries the digest, which is the half that actually proves identity.
  */

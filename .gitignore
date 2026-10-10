@@ -16,7 +16,7 @@ out/
 # Claude Code local (personal) settings
 .claude/settings.local.json
 
-# word-bands build inputs (the derived word-bands.<lang>.json artifacts are committed)
+# wordbands build inputs (the derived wordbands.<lang>.json artifacts are committed)
 apps/web/data/subtlex.csv
 apps/web/data/freq-*.txt
 apps/web/data/lemma-*.txt

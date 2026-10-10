@@ -68,7 +68,7 @@ const ALPHA = {
 };
 const HIT = { mouse: 7, finger: 22 };
 /** Whether the reader has folded the caption away. Absent until they touch it. */
-const CAPTION_KEY = "word-bands:defining-caption";
+const CAPTION_KEY = "wordbands:defining-caption";
 
 // @spec FIG-3, FIG-8
 /** The first doubling at which the densest row fits its words 10mm apart on a phone. */

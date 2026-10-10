@@ -48,8 +48,8 @@ const SEIDMAN_URL = "https://doi.org/10.1016/0378-8733(83)90028-X";
 // Persisted picks, so a returning learner lands back where they left off. A shareable
 // URL (see lib/scenario) takes precedence over these when present; where neither says
 // anything, the client's country seeds the source language (see lib/geo).
-const SOURCE_KEY = "word-bands:source";
-const TARGET_KEY = "word-bands:target";
+const SOURCE_KEY = "wordbands:source";
+const TARGET_KEY = "wordbands:target";
 
 // What the typeahead would have offered for a word the dictionary does not hold. The
 // suggest index folds diacritics, so this is what answers a spelling typed without them.

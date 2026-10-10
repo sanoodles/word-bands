@@ -336,7 +336,7 @@ describe("Workspace", () => {
 
     // @spec URL-5
     it("yields to a language the visitor picked before", async () => {
-      localStorage.setItem("word-bands:source", "it");
+      localStorage.setItem("wordbands:source", "it");
       render(<Workspace country="ES" />);
       expect(await screen.findByRole("region", { name: /meaning of acqua/i })).toBeInTheDocument();
     });

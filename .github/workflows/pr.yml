@@ -59,11 +59,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter @word-bands/web lint
+      - run: pnpm --filter @wordbands/web lint
 
-      - run: pnpm --filter @word-bands/web typecheck
+      - run: pnpm --filter @wordbands/web typecheck
 
-      - run: pnpm --filter @word-bands/web test
+      - run: pnpm --filter @wordbands/web test
 
       # No build step on purpose: Vercel builds every PR as a preview deployment, and
       # `next build` type-checks there. Running it here too would spend minutes for a

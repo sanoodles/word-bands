@@ -8,12 +8,12 @@ import formsFr from "../../data/forms.fr.json";
 import formsDe from "../../data/forms.de.json";
 import formsPt from "../../data/forms.pt.json";
 import formsIt from "../../data/forms.it.json";
-import rankedPt from "../../data/word-bands.pt.json";
-import rankedIt from "../../data/word-bands.it.json";
-import rankedFr from "../../data/word-bands.fr.json";
-import rankedEs from "../../data/word-bands.es.json";
-import rankedDe from "../../data/word-bands.de.json";
-import rankedEn from "../../data/word-bands.en.json";
+import rankedPt from "../../data/wordbands.pt.json";
+import rankedIt from "../../data/wordbands.it.json";
+import rankedFr from "../../data/wordbands.fr.json";
+import rankedEs from "../../data/wordbands.es.json";
+import rankedDe from "../../data/wordbands.de.json";
+import rankedEn from "../../data/wordbands.en.json";
 import definingPt from "../../data/defining.pt.json";
 import definingIt from "../../data/defining.it.json";
 import definingFr from "../../data/defining.fr.json";
@@ -21,7 +21,7 @@ import definingEs from "../../data/defining.es.json";
 import definingDe from "../../data/defining.de.json";
 import definingEn from "../../data/defining.en.json";
 
-// The committed data/word-bands.<code>.json files are the build's output and the app's
+// The committed data/wordbands.<code>.json files are the build's output and the app's
 // only corpus, so these hold whether or not anyone re-runs the build. Nothing else looks
 // at what the filters in scripts/build-bands.ts actually did.
 
@@ -222,7 +222,7 @@ describe("redirect targets", () => {
 });
 
 // The defining levels are one character per ranked word, positional. A rebuild of a
-// word-bands.<code>.json that dropped or reordered a single word would slide every level onto
+// wordbands.<code>.json that dropped or reordered a single word would slide every level onto
 // its neighbour and break nothing loudly, so the artifact carries a digest of the ranking
 // it was cut against. Regenerate both together with pipeline/emit_artifact.py in the
 // defining-vocabulary repo.

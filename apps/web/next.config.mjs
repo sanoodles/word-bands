@@ -36,7 +36,7 @@ const nextConfig = {
   // dev server is live corrupts the server. `build:check` overrides this so a
   // verification build lands in a separate dir and can't clobber dev.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
-  // bands.ts imports data/word-bands.json directly, so the tracer bundles it
+  // bands.ts imports each data/wordbands.<code>.json directly, so the tracer bundles it
   // automatically — no outputFileTracingIncludes needed.
   // @spec HEAD-5
   poweredByHeader: false,

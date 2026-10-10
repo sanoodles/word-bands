@@ -20,7 +20,7 @@ const check = process.argv.includes("--check");
 
 const headers = {
   accept: "application/vnd.github+json",
-  "user-agent": "word-bands-skills-sync",
+  "user-agent": "wordbands-skills-sync",
   ...(process.env.GITHUB_TOKEN ? { authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
 };
 

@@ -1,7 +1,7 @@
-// Build the per-language word-bands artifacts backing the app: for each source
+// Build the per-language wordbands artifacts backing the app: for each source
 // language, a pure-frequency, lemma-merged word ranking plus the frequency- and
 // CEFR-band definitions the UI browses by. One artifact per language,
-// `data/word-bands.<code>.json`, all sharing the same band thresholds.
+// `data/wordbands.<code>.json`, all sharing the same band thresholds.
 //
 // One scalable data source per language — a subtitle word-frequency list — with a
 // lemmatization list to merge inflections onto their base form (go/goes/going/went
@@ -862,7 +862,7 @@ function buildLang(cfg: LangConfig) {
   const freqBands = reached(FREQ_BANDS);
   const cefrBands = reached(CEFR_BANDS);
 
-  const outPath = data(`word-bands.${cfg.code}.json`);
+  const outPath = data(`wordbands.${cfg.code}.json`);
   writeFileSync(
     outPath,
     JSON.stringify({ lang: cfg.code, ranked, variants, freqBands, cefrBands }),

@@ -1,4 +1,4 @@
-# word-bands — agent notes
+# wordbands — agent notes
 
 pnpm + turbo monorepo with one app. `apps/web` is the Next.js site and the hosted API.
 It is a vocabulary learning tool. Every word gets a frequency band and a CEFR band, so a
@@ -40,7 +40,7 @@ our own API params — and in that order. `lang`, `sl` and `tl` name neither.
 | Drives | The bands, the word cloud, the suggestions | The word card only |
 | Type | `SourceLang`, one of the six indexed | `TargetLang`, any code Google takes |
 | Seeded from | The client's country | The browser language |
-| Stored under | `word-bands:source` | `word-bands:target` |
+| Stored under | `wordbands:source` | `wordbands:target` |
 | URL and API param | `source` | `target` |
 
 `isSourceLang` asks whether a language is one of the six, whichever role it is in. The
@@ -73,7 +73,7 @@ ours. `source`/`target` map onto them at that one call.
 | `vercel.json` | The build commands, and the cron schedule behind the warm pass |
 | `scripts/build-bands.ts` | Artifact build, the `LANGS` table |
 | `scripts/build-wiktionary.ts` | Wiktionary translation build, the `LANGS` list |
-| `data/word-bands.<code>.json` | Committed artifact, one per language |
+| `data/wordbands.<code>.json` | Committed artifact, one per language |
 | `data/forms.<code>.json` | Committed artifact: inflected form -> the indexed word it belongs to |
 | `data/defining.<code>.json` | Committed artifact: one defining level per ranked word, emitted by the defining-vocabulary repo |
 | `data/wiktionary.<source>-<target>.json` | Committed artifact: Wiktionary's translations of each source word, and the page titles that differ from it |
@@ -130,7 +130,7 @@ absent and English is the fallback.
 ## Build inputs
 
 All inputs are gitignored and live in `apps/web/data/`. The build reads them and writes
-one committed artifact per language, `word-bands.<code>.json`: a pure-frequency,
+one committed artifact per language, `wordbands.<code>.json`: a pure-frequency,
 lemma-merged word ranking plus the band definitions.
 
 | Input | Languages | Source | Notes |
@@ -188,9 +188,9 @@ has answered. The licence is named here; the question is not settled here.
 
 | Command | Does |
 | --- | --- |
-| `pnpm --filter @word-bands/web build:bands` | Rebuild every language |
-| `pnpm --filter @word-bands/web build:bands <code>` | Rebuild one |
-| `pnpm --filter @word-bands/web build:wiktionary` | Rebuild Wiktionary's translations, all 20 directions. About 75s, at 1.8GB |
+| `pnpm --filter @wordbands/web build:bands` | Rebuild every language |
+| `pnpm --filter @wordbands/web build:bands <code>` | Rebuild one |
+| `pnpm --filter @wordbands/web build:wiktionary` | Rebuild Wiktionary's translations, all 20 directions. About 75s, at 1.8GB |
 
 To add a language: drop its inputs in `data/`, add a `LANGS` entry in the build script, add
 it to `SOURCE_LANG_META` and to `ETYMOLOGY` beside it, and add the registry import in
@@ -588,7 +588,7 @@ defining-vocabulary repo builds them from each language's own Wiktionary and wri
 | German's no-level tab | 11,294 of its 18,751 words are forms the merge keeps as entries and the German Wiktionary files only as forms of another word: `gesagt`, which michmech headwords on its own, and `komm` and `musst`, which it does not list. Portuguese, Italian and Spanish have 818 to 1,380. They lead the tab. A1 to B2 holds 2,120 words with no level, against 2,008 in Italian and 1,872 in Spanish. The fix belongs to the merge, not the peel |
 | English's 20 rows | On a 320×568 phone the row labels clear each other by 3.7px. Full screen on a phone held sideways, 740×340, they clear by 0.7px and touch, until one zoom step gives 9.7px. French clears by 4.7px there. Accepted: the labels never overlap, and only that one view crowds them |
 | D1 carries the merge's lumping | `para`, `como` and `una` are not entries, because the merge sums them into `parar`, `comer` and `unir`, so those three sit in Spanish D1 in their place. Portuguese D1 has `parar`, `comer` and `pelar` the same way, French D1 has `Dan` for `dans`, and German D1's `ich` takes the uses of `du`, `sie`, `er`, `es`, `wir` and `ihr`. The fix belongs to the merge, not the peel |
-| The artifact is positional | It holds one level per word of `ranked`, in order. A rebuild of `word-bands.<code>.json` needs the levels emitted again, and `artifacts.test.ts` fails on the digest until they are |
+| The artifact is positional | It holds one level per word of `ranked`, in order. A rebuild of `wordbands.<code>.json` needs the levels emitted again, and `artifacts.test.ts` fails on the digest until they are |
 | Each language names its own example | The figure's caption names an A1 word at the bottom level from `DEFINING_EXAMPLE`. `bands.test.ts` checks that the claim holds. French takes `allô`, because `bonjour` sits at D12 and `salut` at D10. English takes `tomorrow`, because `hello` sits at D17 and `bye` at D18 |
 | `coeur` has the level of `cœur` | The French list holds 21 words in both spellings, and the dictionary writes only the ligature. The emitter gives the `oe` spelling its twin's level, or `oeil` at rank 257 would have none |
 
@@ -772,7 +772,7 @@ app does not have.
 **The destination is the assumption underneath all of it.** The data cache is the only place
 a server can write without taking one on, and its eviction and regionality are Vercel's.
 `alreadyCached` is where that would show up. The alternative depending on none of it is a
-committed artifact of the same head, built the way `word-bands.<code>.json` is — not what
+committed artifact of the same head, built the way `wordbands.<code>.json` is — not what
 this does, because a server cannot commit to git, so that path is a build step someone runs
 and reviews rather than a schedule. It also answers a different question: an artifact never
 expires, where the point here is that entries stay fresh on their own.
@@ -1078,7 +1078,7 @@ tooltip is open.
 
 ### The lint rule, and what it cannot see
 
-`eslint.config.mjs` runs `jsx-a11y` over `src/**/*.tsx`. `pnpm --filter @word-bands/web lint`,
+`eslint.config.mjs` runs `jsx-a11y` over `src/**/*.tsx`. `pnpm --filter @wordbands/web lint`,
 and it runs in the pre-push hook and in `pr.yml` alongside the typecheck.
 
 | Choice | Why |
@@ -1401,7 +1401,7 @@ start returning 500s.
 | Command | Safe while `pnpm dev` is up |
 | --- | --- |
 | `pnpm test`, `pnpm typecheck` | Yes |
-| `pnpm --filter @word-bands/web build:check` | Yes — builds into `.next-build` |
+| `pnpm --filter @wordbands/web build:check` | Yes — builds into `.next-build` |
 | `pnpm build`, `turbo run build`, `next build` | No — stop the dev server first |
 
 `.githooks/pre-push` runs the typecheck and the suite before a push, which is why it runs

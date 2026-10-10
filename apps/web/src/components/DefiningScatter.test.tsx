@@ -160,7 +160,7 @@ describe("the caption's fold", () => {
 
   it("lets a remembered choice beat the screen width", async () => {
     screenWidth(false);
-    localStorage.setItem("word-bands:defining-caption", "open");
+    localStorage.setItem("wordbands:defining-caption", "open");
     render(<DefiningScatter source="pt" anchorWord={null} onSelect={() => {}} />);
     expect((await openState()).open).toBe(true);
   });
@@ -168,7 +168,7 @@ describe("the caption's fold", () => {
   it("writes nothing until the reader touches it", async () => {
     render(<DefiningScatter source="pt" anchorWord={null} onSelect={() => {}} />);
     await openState();
-    expect(localStorage.getItem("word-bands:defining-caption")).toBeNull();
+    expect(localStorage.getItem("wordbands:defining-caption")).toBeNull();
   });
 
   it("remembers a fold", async () => {
@@ -179,7 +179,7 @@ describe("the caption's fold", () => {
     details.open = false;
     fireEvent(details, new Event("toggle"));
     await waitFor(() =>
-      expect(localStorage.getItem("word-bands:defining-caption")).toBe("closed"),
+      expect(localStorage.getItem("wordbands:defining-caption")).toBe("closed"),
     );
   });
 });

@@ -1,8 +1,8 @@
 {
-  "name": "word-bands",
+  "name": "wordbands",
   "version": "0.0.0",
   "private": true,
-  "description": "word-bands — a vocabulary learning tool: every English word placed on a frequency and CEFR learning band.",
+  "description": "wordbands — a vocabulary learning tool: every English word placed on a frequency and CEFR learning band.",
   "type": "module",
   "packageManager": "pnpm@11.5.2",
   "engines": {

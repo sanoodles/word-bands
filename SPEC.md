@@ -1,4 +1,4 @@
-# word-bands — spec
+# wordbands — spec
 
 What this app must do.
 
@@ -139,7 +139,7 @@ dictionary, so each language has its own count.
 
 ## FILTER — what the artifacts hold
 
-The committed `data/word-bands.<code>.json` files are the build's output and the app's
+The committed `data/wordbands.<code>.json` files are the build's output and the app's
 only corpus. These rules are about their contents, so they hold whether or not anyone
 re-runs the build.
 

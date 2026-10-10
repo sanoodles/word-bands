@@ -86,7 +86,7 @@ async function harvest(lang: string): Promise<Edition> {
 }
 
 function ranked(lang: string): string[] {
-  return (JSON.parse(readFileSync(data(`word-bands.${lang}.json`), "utf8")) as { ranked: string[] }).ranked;
+  return (JSON.parse(readFileSync(data(`wordbands.${lang}.json`), "utf8")) as { ranked: string[] }).ranked;
 }
 
 interface Artifact {
@@ -157,7 +157,7 @@ function build(source: string, target: string, own: Edition, other: Edition): Ar
 }
 
 function report({ source, target, terms }: Artifact) {
-  const a = JSON.parse(readFileSync(data(`word-bands.${source}.json`), "utf8")) as {
+  const a = JSON.parse(readFileSync(data(`wordbands.${source}.json`), "utf8")) as {
     ranked: string[];
     cefrBands: { key: string; min: number; max: number | null }[];
   };

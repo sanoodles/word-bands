@@ -1,4 +1,4 @@
-# word-bands
+# wordbands
 
 A vocabulary learning tool: **which words to learn first** — in English, Spanish,
 French, German, Portuguese, or Italian. Pick the language you're studying; every word
@@ -68,8 +68,8 @@ A single Next.js app.
 | --- | --- |
 | `apps/web` | The website + hosted API (the band browser and word lookup). |
 | `apps/web/src/lib/languages.ts` | The supported source languages + their metadata. |
-| `apps/web/scripts/build-bands.ts` | Builds the per-language `word-bands.<code>.json` artifacts. |
-| `apps/web/data/word-bands.<code>.json` | Committed artifacts: the ranked words + band definitions. |
+| `apps/web/scripts/build-bands.ts` | Builds the per-language `wordbands.<code>.json` artifacts. |
+| `apps/web/data/wordbands.<code>.json` | Committed artifacts: the ranked words + band definitions. |
 
 ## Develop
 
@@ -87,7 +87,7 @@ the one-time setup above. `git push --no-verify` skips it.
 
 ## Rebuild the data
 
-The `word-bands.<code>.json` artifacts are committed, so the app runs without a build
+The `wordbands.<code>.json` artifacts are committed, so the app runs without a build
 step. To regenerate them, place each language's gitignored inputs in `apps/web/data/`
 — English `subtlex.csv` + `lemma-en.txt`; each other language `freq-<code>.txt` +
 `lemma-<code>.txt`. Casing and the name filter additionally need `casing-<code>.txt` (a
@@ -98,14 +98,14 @@ build applies its own floor (`minCount` in the `LANGS` table) so the cut is reco
 code rather than in whichever file was downloaded. Then run:
 
 ```sh
-pnpm --filter @word-bands/web build:bands        # all languages
-pnpm --filter @word-bands/web build:bands es     # just one
+pnpm --filter @wordbands/web build:bands        # all languages
+pnpm --filter @wordbands/web build:bands es     # just one
 ```
 
 > **Heads up:** `next dev` and `next build` share `apps/web/.next`, so running
 > `pnpm build` while the web dev server is live corrupts it (its API routes start
 > 500ing). To verify a production build without stopping `pnpm dev`, use
-> `pnpm --filter @word-bands/web build:check` — it builds into `.next-build`.
+> `pnpm --filter @wordbands/web build:check` — it builds into `.next-build`.
 
 ## License
 
