@@ -7,6 +7,5 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const source = new URL(req.url).searchParams.get("source") ?? DEFAULT_SOURCE;
   if (!isSourceLang(source)) return new Response("unknown language", { status: 404 });
-  const points = getDefiningPoints(source);
-  return points ? Response.json(points) : new Response("no defining levels", { status: 404 });
+  return Response.json(getDefiningPoints(source));
 }

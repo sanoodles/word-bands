@@ -1242,12 +1242,8 @@ export default function DefiningScatter({
             numbers across the bottom are ranks, not counts: 6k is the 6,000th commonest word, so
             the further right a point sits, the rarer it is. The vertical lines divide the CEFR
             bands, named in the row beneath — A1 the first thousand words, C2 the rarest.{" "}
-            {example && (
-              <>
-                <span lang={source}>{example}</span> is A1 vocabulary sitting at
-                D{points.levelCount}, which is what &ldquo;not a difficulty scale&rdquo; means.{" "}
-              </>
-            )}
+            <span lang={source}>{example}</span> is A1 vocabulary sitting at
+            D{points.levelCount}, which is what &ldquo;not a difficulty scale&rdquo; means.{" "}
             Pick a point to look it up.
           </details>
         </figcaption>

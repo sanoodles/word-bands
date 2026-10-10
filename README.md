@@ -38,12 +38,11 @@ learning order than any dictionary-structure metric, so the ranking rests on it 
   aren't vocabulary. A word is dropped only when a [names gazetteer](https://github.com/smashew/NameDatabases),
   the lemma list, mid-sentence casing, and how often it follows a determiner *all* agree
   it's a name; each guard rescues words the others would wrongly take.
-- **Defining levels**, for Portuguese, Italian, French, Spanish and German, measure how
-  heavily the dictionary leans on a word to define others. They are not a difficulty scale.
-  They are computed from each language's own Wiktionary: the
-  [Portuguese](https://pt.wiktionary.org/), [Italian](https://it.wiktionary.org/),
-  [French](https://fr.wiktionary.org/), [Spanish](https://es.wiktionary.org/) and
-  [German](https://de.wiktionary.org/)
+- **Defining levels** measure how heavily the dictionary leans on a word to define others.
+  They are not a difficulty scale. They are computed from each language's own Wiktionary:
+  the [English](https://en.wiktionary.org/), [Portuguese](https://pt.wiktionary.org/),
+  [Italian](https://it.wiktionary.org/), [French](https://fr.wiktionary.org/),
+  [Spanish](https://es.wiktionary.org/) and [German](https://de.wiktionary.org/)
   ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)), extracted by
   [Wiktextract](https://kaikki.org/) (Ylonen, 2022). The definitions are read as a graph of
   which word defines which, as in

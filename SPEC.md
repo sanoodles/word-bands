@@ -115,10 +115,9 @@ and reused for every language.
 
 The `defining` view is the exception: a defining level is a property of the word, measured
 from how often a dictionary reaches for it when defining others, so its bands are sets
-rather than rank windows. It needs a dictionary graph per language, and only Portuguese,
-Italian, French, Spanish and German have one, which is why it is the one view a language can
-lack. How many levels a graph peels into is a property of that dictionary, so each language
-has its own count.
+rather than rank windows. It needs a dictionary graph per language, built from that
+language's own Wiktionary. How many levels a graph peels into is a property of that
+dictionary, so each language has its own count.
 
 | ID | Rule |
 | --- | --- |
@@ -132,9 +131,9 @@ has its own count.
 | BAND-8 | A phrase, or a word the language has no headword for, has no level |
 | BAND-9 | Only the six indexed languages carry levels |
 | BAND-10 | Typeahead matches a lowercase prefix, answers in frequency order, honours its limit, and leads with an exact match |
-| BAND-11 | Only a language carrying defining levels offers the `defining` view; for the rest it answers 404 |
+| BAND-11 | Every language offers the `defining` view |
 | BAND-12 | In the `defining` view every word falls in a band, the ones with no level in `none` |
-| BAND-13 | The defining figure's data carries one level per ranked word, and is served only for a language that has levels |
+| BAND-13 | The defining figure's data carries one level per ranked word |
 | BAND-14 | In typeahead a letter typed without a diacritic also matches that letter with any diacritic, and a letter typed with one matches only itself. The exact match it leads with is exact in its diacritics too |
 | BAND-15 | The `defining` view offers every level its language's dictionary peels into, D1 to Dn, and the figure draws one row per level. n is the language's own |
 
@@ -192,7 +191,6 @@ The build merges every inflection onto its lemma, so a form is not an entry of i
 | URL-5 | On mount the URL wins over a stored pick, which wins over the seeded pair |
 | URL-6 | The tab title is `word-bands: <word>`, capped at 40 characters, and `word-bands` with no word |
 | URL-7 | A deeplink's word reaches the Open Graph and Twitter titles server-side, not only the tab |
-| URL-8 | `view=defining` is dropped when the link's source language has no defining levels |
 
 ## CREDIT — what the page attributes
 
@@ -201,8 +199,8 @@ Wiktionary's translations follow the pair.
 
 | ID | Rule |
 | --- | --- |
-| CREDIT-1 | A language with defining levels credits the Wiktionary they are computed from, under its license, and Wiktextract. A language without them credits neither |
-| CREDIT-2 | A language with defining levels cites the works its method follows: Blondin Massé et al. (2008), Vincent-Lamarre et al. (2016), Seidman (1983), West & Endicott (1935) and the Longman Dictionary of Contemporary English (1978) |
+| CREDIT-1 | Every language credits the Wiktionary its defining levels are computed from, under its license, and Wiktextract |
+| CREDIT-2 | Every language cites the works its defining levels' method follows: Blondin Massé et al. (2008), Vincent-Lamarre et al. (2016), Seidman (1983), West & Endicott (1935) and the Longman Dictionary of Contemporary English (1978) |
 | CREDIT-3 | Every language credits the Leipzig Corpora, since every language's casing is measured from them |
 | CREDIT-4 | Every language credits the lemmatization list under its license, since every language's ranking is lemma-merged |
 | CREDIT-5 | Where the word card shows Wiktionary's translations, the credits name both editions they come from. Elsewhere they name neither for translations |

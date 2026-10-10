@@ -4,10 +4,8 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import type { ReactNode } from "react";
 import userEvent from "@testing-library/user-event";
 import {
-  DEFINING_LANGS,
   DEFINING_LEVEL_COUNT,
   englishName,
-  hasDefining,
   SOURCE_LANGS,
   type SourceLang,
   WIKTIONARY_LANGS,
@@ -395,7 +393,7 @@ describe("Workspace", () => {
 
   // @spec CREDIT-1, CREDIT-2
   it("credits the dictionary and the works behind a language's defining levels", () => {
-    for (const source of DEFINING_LANGS) {
+    for (const source of SOURCE_LANGS) {
       const credits = creditsFor(source);
       const link = (name: string) => within(credits).getByRole("link", { name });
       expect(link(`${englishName(source)} Wiktionary`)).toHaveAttribute(
@@ -465,17 +463,12 @@ describe("Workspace", () => {
       const glossary = screen.getByText("What these words mean").closest("details")!;
       for (const term of ["Lemmatization list", "Display casing", "Frequency rank"])
         expect(within(glossary).getByText(term)).toBeInTheDocument();
-      // The two that only mean anything where the levels exist.
-      const defining = ["Defining vocabulary", "K-core decomposition"];
-      for (const term of defining)
-        if (hasDefining(source)) expect(within(glossary).getByText(term)).toBeInTheDocument();
-        else expect(within(glossary).queryByText(term)).toBeNull();
+      for (const term of ["Defining vocabulary", "K-core decomposition"])
+        expect(within(glossary).getByText(term)).toBeInTheDocument();
       // The bottom level is the language's own, D7 in Portuguese and D14 in French.
       const n = DEFINING_LEVEL_COUNT[source];
-      if (n) {
-        expect(glossary, source).toHaveTextContent(`D${n} is never used to explain a word outside D${n}`);
-        expect(glossary, source).toHaveTextContent(`How the ${n} levels are worked out`);
-      }
+      expect(glossary, source).toHaveTextContent(`D${n} is never used to explain a word outside D${n}`);
+      expect(glossary, source).toHaveTextContent(`How the ${n} levels are worked out`);
       cleanup();
     }
   });
@@ -512,15 +505,6 @@ describe("Workspace", () => {
     const credits = screen.getByRole("link", { name: "CEFR-J" }).closest("p")!;
     expect(credits).not.toHaveTextContent("translation tables");
     cleanup();
-  });
-
-  // @spec CREDIT-1
-  it("credits no dictionary where a language has no defining levels", () => {
-    for (const source of SOURCE_LANGS.filter((l) => !hasDefining(l))) {
-      const credits = creditsFor(source);
-      expect(within(credits).queryByRole("link", { name: /Wiktionary|Wiktextract/ })).toBeNull();
-      cleanup();
-    }
   });
 
   it("offers a debounced typeahead that looks up the picked word", async () => {
@@ -797,31 +781,19 @@ describe("Workspace", () => {
   });
 });
 
-// The defining view exists only where the levels do, and the toggle is where a learner
-// finds that out. Gated on the source language, so switching to a language without levels
-// has to take the segment with it.
 describe("the defining segment", () => {
   // Fondue stacks an active and an inactive copy of each label, so the radio's text reads
   // "DefiningDefining" and only the aria-label names it once. See ViewToggle.
   const toggle = () => screen.findByRole("radiogroup", { name: "Band view" });
 
   // @spec BAND-11
-  it("is offered for every language with levels", async () => {
-    for (const source of DEFINING_LANGS) {
+  it("is offered for every language", async () => {
+    for (const source of SOURCE_LANGS) {
       window.history.replaceState(null, "", `/?source=${source}`);
       render(<Workspace />);
       const t = await toggle();
       expect(within(t).getByRole("radio", { name: "Defining level" }), source).toBeInTheDocument();
       cleanup();
     }
-  });
-
-  // @spec BAND-11
-  it("is absent for a language with no levels", async () => {
-    window.history.replaceState(null, "", "/?source=en&word=water");
-    render(<Workspace />);
-    const t = await toggle();
-    expect(within(t).getByRole("radio", { name: "CEFR" })).toBeInTheDocument();
-    expect(within(t).queryByRole("radio", { name: "Defining level" })).toBeNull();
   });
 });

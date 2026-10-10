@@ -12,7 +12,7 @@ import DefiningScatter, {
   zoomView,
 } from "./DefiningScatter";
 import { getDefiningPoints } from "@/lib/bands";
-import { DEFINING_LANGS, type SourceLang } from "@/lib/languages";
+import { SOURCE_LANGS, type SourceLang } from "@/lib/languages";
 
 // `paint` bails on the zero-size wrap that jsdom reports, before it reaches the context
 // stub in test/setup.ts. That is the point: everything outside the canvas — the label, the
@@ -406,8 +406,8 @@ describe("the view", () => {
     // plot's margins. 10mm at Android's 160px an inch.
     const phone = { w: 254 * MAX_ZOOM, h: 183 * MAX_ZOOM };
     const tenMm = (10 * 160) / 25.4;
-    for (const source of DEFINING_LANGS) {
-      const { u, v } = layoutOf(getDefiningPoints(source)!);
+    for (const source of SOURCE_LANGS) {
+      const { u, v } = layoutOf(getDefiningPoints(source));
       // Sorted across, so the search stops once the gap across alone is too wide.
       const across = [...u.keys()].sort((a, b) => u[a]! - u[b]!);
       let closest = Infinity;

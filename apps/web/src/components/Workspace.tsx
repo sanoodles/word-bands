@@ -13,7 +13,6 @@ import {
   DEFAULT_SOURCE,
   DEFINING_LEVEL_COUNT,
   englishName,
-  hasDefining,
   hasWiktionary,
   isSourceLang,
   SOURCE_LANGS,
@@ -167,16 +166,7 @@ function SwapButton({ enabled, onSwap }: { enabled: boolean; onSwap: () => void 
   );
 }
 
-function ViewToggle({
-  view,
-  onChange,
-  defining,
-}: {
-  view: BandView;
-  onChange: (v: BandView) => void;
-  /** Whether the active language offers the defining view at all. */
-  defining: boolean;
-}) {
+function ViewToggle({ view, onChange }: { view: BandView; onChange: (v: BandView) => void }) {
   return (
     <div>
       <SegmentedControl.Root aria-label="Band view" value={view} onValueChange={(v) => onChange(v as BandView)}>
@@ -201,18 +191,16 @@ function ViewToggle({
           </Tooltip.Trigger>
           <Tooltip.Content>Rank by how often the word appears in film and TV subtitles</Tooltip.Content>
         </Tooltip.Root>
-        {defining && (
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <SegmentedControl.Item value="defining" {...({ "aria-label": "Defining level" } as object)}>
-                Defining level
-              </SegmentedControl.Item>
-            </Tooltip.Trigger>
-            <Tooltip.Content>
-              How often the dictionary uses the word to explain other words
-            </Tooltip.Content>
-          </Tooltip.Root>
-        )}
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <SegmentedControl.Item value="defining" {...({ "aria-label": "Defining level" } as object)}>
+              Defining level
+            </SegmentedControl.Item>
+          </Tooltip.Trigger>
+          <Tooltip.Content>
+            How often the dictionary uses the word to explain other words
+          </Tooltip.Content>
+        </Tooltip.Root>
       </SegmentedControl.Root>
     </div>
   );
@@ -260,21 +248,17 @@ function Glossary({ source }: { source: SourceLang }) {
         <dd className="tw-mb-2 tw-ml-0">
           A word’s place in the list, most common first. Rank 1 is the commonest word.
         </dd>
-        {levelCount ? (
-          <>
-            <dt className="tw-font-medium">Defining vocabulary</dt>
-            <dd className="tw-mb-2 tw-ml-0">
-              The words a dictionary uses to write its own entries. D1 is the core of that
-              set. D{levelCount} is never used to explain a word outside D{levelCount}.
-            </dd>
-            <dt className="tw-font-medium">K-core decomposition</dt>
-            <dd className="tw-mb-2 tw-ml-0">
-              How the {levelCount} levels are worked out. It reads the dictionary as a
-              network of which word explains which, then peels it one layer at a time. Each
-              layer is one level.
-            </dd>
-          </>
-        ) : null}
+        <dt className="tw-font-medium">Defining vocabulary</dt>
+        <dd className="tw-mb-2 tw-ml-0">
+          The words a dictionary uses to write its own entries. D1 is the core of that set.
+          D{levelCount} is never used to explain a word outside D{levelCount}.
+        </dd>
+        <dt className="tw-font-medium">K-core decomposition</dt>
+        <dd className="tw-mb-2 tw-ml-0">
+          How the {levelCount} levels are worked out. It reads the dictionary as a network of
+          which word explains which, then peels it one layer at a time. Each layer is one
+          level.
+        </dd>
       </dl>
     </details>
   );
@@ -316,37 +300,32 @@ function CorpusCredit({ source, target }: { source: SourceLang; target: TargetLa
       </a>
       .{" "}
       {/* @spec CREDIT-1, CREDIT-2 */}
-      {hasDefining(source) ? (
-        <>
-          Defining levels are computed from the{" "}
-          <a className={CORPUS_LINK} href={`https://${source}.wiktionary.org/`}>
-            {name} Wiktionary
-          </a>{" "}
-          (
-          <a className={CORPUS_LINK} href={CC_BY_SA_URL}>
-            CC BY-SA 4.0
-          </a>
-          , {CC_BY_SA_TITLE}), extracted by{" "}
-          <a className={CORPUS_LINK} href={WIKTEXTRACT_URL}>
-            Wiktextract
-          </a>{" "}
-          (Ylonen, 2022). The definitions are read as a graph of which word defines which, as
-          in{" "}
-          <a className={CORPUS_LINK} href={BLONDIN_MASSE_URL}>
-            Blondin Massé et al. (2008)
-          </a>{" "}
-          and{" "}
-          <a className={CORPUS_LINK} href={VINCENT_LAMARRE_URL}>
-            Vincent-Lamarre et al. (2016)
-          </a>
-          . The levels come from that graph&rsquo;s k-core decomposition (
-          <a className={CORPUS_LINK} href={SEIDMAN_URL}>
-            Seidman, 1983
-          </a>
-          ). Restricted defining vocabularies go back to West &amp; Endicott (1935) and the{" "}
-          <cite>Longman Dictionary of Contemporary English</cite> (1978).{" "}
-        </>
-      ) : null}
+      Defining levels are computed from the{" "}
+      <a className={CORPUS_LINK} href={`https://${source}.wiktionary.org/`}>
+        {name} Wiktionary
+      </a>{" "}
+      (
+      <a className={CORPUS_LINK} href={CC_BY_SA_URL}>
+        CC BY-SA 4.0
+      </a>
+      , {CC_BY_SA_TITLE}), extracted by{" "}
+      <a className={CORPUS_LINK} href={WIKTEXTRACT_URL}>
+        Wiktextract
+      </a>{" "}
+      (Ylonen, 2022). The definitions are read as a graph of which word defines which, as in{" "}
+      <a className={CORPUS_LINK} href={BLONDIN_MASSE_URL}>
+        Blondin Massé et al. (2008)
+      </a>{" "}
+      and{" "}
+      <a className={CORPUS_LINK} href={VINCENT_LAMARRE_URL}>
+        Vincent-Lamarre et al. (2016)
+      </a>
+      . The levels come from that graph&rsquo;s k-core decomposition (
+      <a className={CORPUS_LINK} href={SEIDMAN_URL}>
+        Seidman, 1983
+      </a>
+      ). Restricted defining vocabularies go back to West &amp; Endicott (1935) and the{" "}
+      <cite>Longman Dictionary of Contemporary English</cite> (1978).{" "}
       Word translations come from{" "}
       <a className={CORPUS_LINK} href={TRANSLATE_URL}>
         Google Translate
@@ -725,7 +704,7 @@ export default function Workspace({ country }: { country?: string | null }) {
             setQuery(w);
             void lookup(w, source);
           }}
-          viewControl={<ViewToggle view={view} onChange={chooseView} defining={hasDefining(source)} />}
+          viewControl={<ViewToggle view={view} onChange={chooseView} />}
           // The figure only the defining view has: what the tabs below cannot show, which
           // is that frequency and defining level come apart.
           figure={

@@ -15,6 +15,7 @@ import definingIt from "../../data/defining.it.json";
 import definingFr from "../../data/defining.fr.json";
 import definingEs from "../../data/defining.es.json";
 import definingDe from "../../data/defining.de.json";
+import definingEn from "../../data/defining.en.json";
 import it from "../../data/word-bands.it.json";
 
 export { isSourceLang } from "@/lib/languages";
@@ -102,8 +103,7 @@ interface LangData {
   variants: Record<string, string[]>;
   /** 1- and 2-char prefix, lowercased and folded -> `ranked` indices, frequency order. */
   byPrefix: Map<string, number[]>;
-  /** Defining levels, or null for a language that has none. */
-  defining: DefiningData | null;
+  defining: DefiningData;
 }
 
 // Takes the diacritics off: "córdoba" -> "cordoba".
@@ -117,7 +117,7 @@ function load(
     freqBands: BandDef[];
     cefrBands: BandDef[];
   },
-  defining?: { count: number; levels: string },
+  defining: { count: number; levels: string },
 ): LangData {
   const rankOf = new Map<string, number>();
   const byPrefix = new Map<string, number[]>();
@@ -141,12 +141,12 @@ function load(
     rankOf,
     variants: data.variants ?? {},
     byPrefix,
-    defining: defining ? loadDefining(data.ranked, defining) : null,
+    defining: loadDefining(data.ranked, defining),
   };
 }
 
 const REGISTRY: Record<SourceLang, LangData> = {
-  en: load(en),
+  en: load(en, definingEn),
   es: load(es, definingEs),
   fr: load(fr, definingFr),
   de: load(de, definingDe),
@@ -165,15 +165,6 @@ export function isView(v: string): v is BandView {
   return v === "freq" || v === "cefr" || v === "defining";
 }
 
-/**
- * The views a language actually offers. `defining` needs a dictionary graph behind it, which
- * only some languages have.
- * @spec BAND-11
- */
-export function viewsFor(source: SourceLang): BandView[] {
-  return REGISTRY[source].defining ? ["freq", "cefr", "defining"] : ["freq", "cefr"];
-}
-
 // @spec BAND-3, BAND-5, BAND-6
 export function getWord(source: SourceLang, word: string): WordBands | null {
   const d = REGISTRY[source];
@@ -190,9 +181,8 @@ export function getWord(source: SourceLang, word: string): WordBands | null {
     rank,
     freq: { key: freq.key, label: freq.label },
     cefr: { key: cefr.key, label: cefr.label },
-    // Every word in a language that has levels lands in a band, `none` included, so the
-    // browser always has a tab to open. Absent entirely where the language has none.
-    ...(d.defining ? { defining: { ...d.defining.bands.get(definingKey(d.defining.levels[rank - 1]!))! } } : {}),
+    // Every word lands in a band, `none` included, so the browser always has a tab to open.
+    defining: { ...d.defining.bands.get(definingKey(d.defining.levels[rank - 1]!))! },
   };
 }
 
@@ -329,7 +319,7 @@ export async function getWiktionary(
 
 /**
  * Everything the defining figure plots: the level of every ranked word, and the words
- * themselves so a point can name itself. Null where the language has no levels.
+ * themselves so a point can name itself.
  *
  * This is the one place the whole ranking goes to the client — about 165KB gzipped — so it
  * is served on its own route and fetched only when the defining view is opened.
@@ -337,23 +327,19 @@ export async function getWiktionary(
  */
 export function getDefiningPoints(
   source: SourceLang,
-): { levels: string; levelCount: number; words: string[] } | null {
+): { levels: string; levelCount: number; words: string[] } {
   const d = REGISTRY[source];
-  return d.defining
-    ? { levels: d.defining.levels, levelCount: d.defining.levelCount, words: d.ranked }
-    : null;
+  return { levels: d.defining.levels, levelCount: d.defining.levelCount, words: d.ranked };
 }
 
 /**
- * Every band of a view with its word count — the browser's tabs. Empty for a view the
- * language does not offer, which is what the routes 404 on.
+ * Every band of a view with its word count — the browser's tabs.
  * @spec BAND-4, BAND-12
  */
 export function getBandSummary(source: SourceLang, view: BandView): BandSummary[] {
   const d = REGISTRY[source];
   if (view === "defining") {
     const def = d.defining;
-    if (!def) return [];
     return [...def.bands.values()].map((b) => ({
       key: b.key,
       label: b.label,
@@ -372,8 +358,8 @@ export function getBandSummary(source: SourceLang, view: BandView): BandSummary[
 export function getBand(source: SourceLang, view: BandView, key: string): Band | null {
   const d = REGISTRY[source];
   if (view === "defining") {
-    const idx = d.defining?.byKey.get(key);
-    const def = d.defining?.bands.get(key);
+    const idx = d.defining.byKey.get(key);
+    const def = d.defining.bands.get(key);
     if (!idx || !def) return null;
     return { key: def.key, label: def.label, words: idx.map((i) => d.ranked[i]!) };
   }

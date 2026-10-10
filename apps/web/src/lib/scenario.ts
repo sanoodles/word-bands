@@ -3,7 +3,7 @@
 // recipient to land on: the source language, the looked-up word, the target
 // language, and the band view / pinned band tab.
 
-import { hasDefining, isSourceLang, type SourceLang, type TargetLang } from "@/lib/languages";
+import { isSourceLang, type SourceLang, type TargetLang } from "@/lib/languages";
 import { SITE_NAME } from "@/lib/site";
 import type { BandView } from "@/lib/types";
 
@@ -62,13 +62,7 @@ export function readScenario(): Partial<Scenario> {
   const target = param(p, TARGET_PARAMS);
   if (target) out.target = target;
   const view = p.get("view");
-  // `defining` exists only for a source language that has levels, so a link pairing it
-  // with one that has none keeps the language and falls back on the view. Read against
-  // the link's own `source`: an absent one means the default, which has no levels.
-  // @spec URL-8
-  if (view && isView(view) && (view !== "defining" || (!!out.source && hasDefining(out.source)))) {
-    out.view = view;
-  }
+  if (view && isView(view)) out.view = view;
   const band = p.get("band");
   if (band) out.band = band;
   return out;

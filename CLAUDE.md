@@ -583,13 +583,13 @@ defining-vocabulary repo builds them from each language's own Wiktionary and wri
 | A level count per language (`BAND-15`) | The count is how far the peel goes, and a dictionary whose definitions use more words peels further. Links per word run from 10.7 in German to 30.2 in English, and the counts run from 5 to 20 with them. One count for every language would mean merging or splitting levels, and then a level stops being one round of the peel |
 | `DEFINING_LEVEL_COUNT` holds the count for the client | The glossary names the bottom level and has no data to read it from. `bands` reads the count off the artifact instead, and `bands.test.ts` proves the two agree |
 | One base-36 digit per level | The artifact keeps one character per word, so D10 to D14 are `a` to `e`, and a language under ten levels reads as plain digits. `definingLevel` decodes it |
-| Portuguese, Italian, French, Spanish and German | 65% to 97% of each list has a level. Spanish's D2 holds 9 words, the smallest tab of any language, and `BAND-15` keeps it rather than merging it into D1 |
+| The six languages | 65% to 97% of each list has a level. Spanish's D2 holds 9 words, the smallest tab of any language, and `BAND-15` keeps it rather than merging it into D1 |
 | German's D5 | It holds 64% of the words with a level, against 34% to 44% elsewhere, because German definitions link the fewest words. That is 42% of the list, under the 47% its C2 tab holds in the CEFR view |
 | German's no-level tab | 11,294 of its 18,751 words are forms the merge keeps as entries and the German Wiktionary files only as forms of another word: `gesagt`, which michmech headwords on its own, and `komm` and `musst`, which it does not list. Portuguese, Italian and Spanish have 818 to 1,380. They lead the tab. A1 to B2 holds 2,120 words with no level, against 2,008 in Italian and 1,872 in Spanish. The fix belongs to the merge, not the peel |
-| Not English | English peels into 20. The figure would give each level 15.5px at the phone figure's 360px cap, and 12.3px on a 320×568 phone, under the 16px line of its label. It also tracks plain frequency most closely |
+| English's 20 rows | On a 320×568 phone the row labels clear each other by 3.7px. Full screen on a phone held sideways, 740×340, they clear by 0.7px and touch, until one zoom step gives 9.7px. French clears by 4.7px there. Accepted: the labels never overlap, and only that one view crowds them |
 | D1 carries the merge's lumping | `para`, `como` and `una` are not entries, because the merge sums them into `parar`, `comer` and `unir`, so those three sit in Spanish D1 in their place. Portuguese D1 has `parar`, `comer` and `pelar` the same way, French D1 has `Dan` for `dans`, and German D1's `ich` takes the uses of `du`, `sie`, `er`, `es`, `wir` and `ihr`. The fix belongs to the merge, not the peel |
 | The artifact is positional | It holds one level per word of `ranked`, in order. A rebuild of `word-bands.<code>.json` needs the levels emitted again, and `artifacts.test.ts` fails on the digest until they are |
-| Each language names its own example | The figure's caption names an A1 word at the bottom level from `DEFINING_EXAMPLE`. `bands.test.ts` checks that the claim holds. French takes `allô`, because `bonjour` sits at D12 and `salut` at D10 |
+| Each language names its own example | The figure's caption names an A1 word at the bottom level from `DEFINING_EXAMPLE`. `bands.test.ts` checks that the claim holds. French takes `allô`, because `bonjour` sits at D12 and `salut` at D10. English takes `tomorrow`, because `hello` sits at D17 and `bye` at D18 |
 | `coeur` has the level of `cœur` | The French list holds 21 words in both spellings, and the dictionary writes only the ligature. The emitter gives the `oe` spelling its twin's level, or `oeil` at rank 257 would have none |
 
 To add a language: emit its levels in the defining-vocabulary repo, add it to
@@ -880,10 +880,9 @@ How `build-wiktionary.ts` builds one direction:
 
 To add a language: put its extract in `data/`, add it to `LANGS` in `build-wiktionary.ts`
 and to `WIKTIONARY_LANGS` in `languages.ts`, add its directions to `WIKTIONARY` in
-`bands.ts`, and run `build:wiktionary`. `bands.test.ts` fails when the last two disagree, and
-when the language has no defining levels: the credit names the source edition and its
-license once, with those levels. English is left out: its pairs need no pivot, since Google's
-dictionary for them is direct and scored.
+`bands.ts`, and run `build:wiktionary`. `bands.test.ts` fails when the last two disagree.
+English is left out: its pairs need no pivot, since Google's dictionary for them is direct
+and scored.
 
 ## CEFR levels on the translation
 
@@ -1036,12 +1035,12 @@ credit, in the Sources line beneath the browser. The footer holds only the feedb
 
 | Detail | Why |
 | --- | --- |
-| The Sources line, not the footer | It already changes with the source language. Only Portuguese, Italian, French, Spanish and German have defining levels, and the footer is the same in all six |
+| The Sources line, not the footer | It already changes with the source language: each language credits its own Wiktionary. The footer is the same in all six |
 | Wiktionary is credited with its license | The levels are computed from its definitions, and its text is CC BY-SA 4.0. Whether a computed level reuses that text is a legal question. The credit answers it either way |
 | The method's works are cited, not only its data | The method is theirs: the dictionary read as a graph, its peel into k-cores, and the term "defining vocabulary" |
-| The Wiktionary is named after the source language | The pipeline reads each language's own edition: `ptwiktionary`, `itwiktionary`, `frwiktionary`, `eswiktionary` and `dewiktionary`. A language built from another edition needs its credit changed |
+| The Wiktionary is named after the source language | The pipeline reads each language's own edition: `enwiktionary`, `ptwiktionary`, `itwiktionary`, `frwiktionary`, `eswiktionary` and `dewiktionary`. A language built from another edition needs its credit changed |
 | The credits read at grade 12 and that is fine | WCAG 3.1.5 measures **after removing proper names and titles**, and the credits are mostly those — the citations, the licenses and "Common European Framework of Reference for Languages". Stripped, they read 7.6 and 8.0, inside the criterion's lower-secondary band. `readability.py` prints both columns; read `bare`. No rewrite of ours moves the other one |
-| The unusual words are defined under the credits | `Glossary`, a folded list (3.1.3). Folded because it answers a question most readers never ask; under the credits because that is the block the terms come from. The two defining-vocabulary entries render only where a language has levels |
+| The unusual words are defined under the credits | `Glossary`, a folded list (3.1.3). Folded because it answers a question most readers never ask; under the credits because that is the block the terms come from |
 | Every credit opens in this tab | The whole scenario rides in the query string, so Back restores the word, view and band the reader left. A new tab buys nothing Back does not, and 6 to 12 of them would each owe a warning (3.2.5) |
 | Ogden's *Basic English* is not cited | The spike's README compares against it. Nothing in the method comes from it |
 | Every language credits the Leipzig Corpora | Every language's `casingFile` is a Leipzig sentences file. Display casing and the name filter both read it, and its downloads are CC BY |
@@ -1311,7 +1310,7 @@ is where it zooms and pans.
 | Safari's trackpad pinch | Safari sends `gesturechange`, not a ctrl+wheel. A pinch on glass sends both, so the gesture handler stands down while a pointer is down |
 | `MAX_ZOOM` is 512 (`FIG-8`) | The first doubling at which the densest row fits its words 10mm apart on a phone. At 256 French cannot: 1,342 of its words would sit closer. A desktop never needs this much, and the extra costs it nothing |
 | 10mm is room for a large or a shaking fingertip | It is the closest pair that has to be pickable, not the typical one. A view of the densest row at full zoom holds two or three points, and a reader who needs less stops zooming sooner |
-| A word keeps its hashed offset unless that lands within 10mm of a word already in its row | Random offsets put 28–103 pairs per language within 0.05px of each other on a phone at 1×, and only over 13,000× would pull those 10mm apart. The rule moves 5–10% of the words, nearly 90% of them in the bottom two rows, so the picture is still the one the hash draws |
+| A word keeps its hashed offset unless that lands within 10mm of a word already in its row | The hashed offsets alone put 189 to 1,004 pairs per language within 0.05px of each other on a phone at 1×, and only 11,800× to 24,600× would pull the closest pair 10mm apart. The rule moves 5–10% of the words, and 17.5% in English, whose 20 rows are the thinnest. 87% to 98% of the moves are in the bottom two rows, so the picture is still the one the hash draws |
 | 10mm is measured on a 254 by 183 plot, at 160px an inch | The least plot full screen leaves a phone: 320px wide in portrait, 340px tall in landscape. 160px an inch is Android's, and near every phone's. A larger plot only spreads the points further, so `FIG-8`'s test reads this one |
 | Rank labels between the band edges, full screen only | Zoomed inside one band, its edges are off screen and the row would be empty. The step is the finest round number whose rightmost pair stays 56px apart, since the square root crowds ranks to the right |
 | A row or band is named in the middle of what shows (`FIG-5`) | Zoomed past its middle, the middle is off screen. Wholly in view, it is named in its middle |
@@ -1322,7 +1321,7 @@ is where it zooms and pans.
 | --- | --- |
 | Offsets from the golden-ratio sequence along each row | 10mm by 83–199×, but its lattice draws vertical streaks through the dense rows at 1×, which read as structure in the data |
 | Best-candidate blue noise for every word | About 0.6s a language to lay out as prototyped, and short landscape plots still needed 555× |
-| A zoom large enough for the random offsets | Over 13,000×, at which a view almost never holds a point |
+| A zoom large enough for the hashed offsets | Over 11,800×, at which a view almost never holds a point |
 
 ### Crawlers and link previews
 
