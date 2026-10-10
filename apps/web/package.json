@@ -15,8 +15,8 @@
     "build:wiktionary": "tsx scripts/build-wiktionary.ts"
   },
   "dependencies": {
-    "@frontify/fondue": "^13.7.10",
-    "next": "^16.3.5",
+    "@frontify/fondue": "^13.8.1",
+    "next": "^16.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1"
