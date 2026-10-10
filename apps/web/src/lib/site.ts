@@ -6,7 +6,7 @@
 // deployment, not the production domain — so it is stated.
 
 export const SITE_URL = "https://wordbands.vercel.app";
-export const SITE_NAME = "word-bands";
+export const SITE_NAME = "wordbands";
 
 /**
  * The one-line description, on the page's `<meta>`, its Open Graph card and the

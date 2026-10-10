@@ -713,10 +713,10 @@ describe("Workspace", () => {
     const user = userEvent.setup();
     render(<Workspace />);
     await screen.findByRole("region", { name: /meaning of water/i });
-    await waitFor(() => expect(document.title).toBe("word-bands: water"));
+    await waitFor(() => expect(document.title).toBe("wordbands: water"));
 
     await user.click(screen.getByRole("button", { name: "pick word" }));
-    await waitFor(() => expect(document.title).toBe("word-bands: Plädoyer"));
+    await waitFor(() => expect(document.title).toBe("wordbands: Plädoyer"));
   });
 
   it("announces an unknown word through an alert", async () => {

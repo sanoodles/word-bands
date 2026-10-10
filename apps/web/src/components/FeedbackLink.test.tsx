@@ -12,7 +12,7 @@ describe("FeedbackLink", () => {
     const link = await screen.findByRole("link", { name: "samuelgomezcrespo@gmail.com" });
     expect(link).toHaveAttribute(
       "href",
-      "mailto:samuelgomezcrespo@gmail.com?subject=word-bands%20feedback",
+      "mailto:samuelgomezcrespo@gmail.com?subject=wordbands%20feedback",
     );
   });
 

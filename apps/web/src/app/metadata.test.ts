@@ -30,14 +30,14 @@ describe("what names the site to a machine", () => {
 });
 
 // Next merges metadata shallowly: a child naming `openGraph` replaces the parent's whole
-// object. Returning only `title` here leaves a shared deeplink previewing as "word-bands".
+// object. Returning only `title` here leaves a shared deeplink previewing as "wordbands".
 describe("a deeplink's word reaches the preview, not only the tab", () => {
   // @spec URL-7
   it("carries the word into the Open Graph and Twitter titles", async () => {
     const meta = await generateMetadata({ searchParams: Promise.resolve({ word: "Wasser" }) });
-    expect(meta.title).toBe("word-bands: Wasser");
-    expect(meta.openGraph.title).toBe("word-bands: Wasser");
-    expect(meta.twitter.title).toBe("word-bands: Wasser");
+    expect(meta.title).toBe("wordbands: Wasser");
+    expect(meta.openGraph.title).toBe("wordbands: Wasser");
+    expect(meta.twitter.title).toBe("wordbands: Wasser");
     expect(meta.openGraph.description).toBe(SITE_DESCRIPTION);
     expect(meta.openGraph.siteName).toBe(SITE_NAME);
   });

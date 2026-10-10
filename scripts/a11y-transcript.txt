@@ -1,13 +1,13 @@
 THE DOCUMENT — before anything is touched
 ------------------------------------------------------------------------
-  title        "word-bands: Wasser"
+  title        "wordbands: Wasser"
   description  "Which words to learn first — every word's frequency rank and CEFR level, in English, Spanish, French, German, Portuguese and Italian."
   lang         "en"
 
 THE OUTLINE — landmarks and headings, in the order they are met
 ------------------------------------------------------------------------
   main (unnamed)
-    h1 "word-bands"
+    h1 "wordbands"
     region "Language"
       h2 "Language"
     region "Look up a word"

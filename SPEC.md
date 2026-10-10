@@ -189,7 +189,7 @@ The build merges every inflection onto its lemma, so a form is not an entry of i
 | URL-3 | An unknown source language or view is dropped rather than honoured |
 | URL-4 | `band` is written only when set. `source` and `view` are always written |
 | URL-5 | On mount the URL wins over a stored pick, which wins over the seeded pair |
-| URL-6 | The tab title is `word-bands: <word>`, capped at 40 characters, and `word-bands` with no word |
+| URL-6 | The tab title is `wordbands: <word>`, capped at 40 characters, and `wordbands` with no word |
 | URL-7 | A deeplink's word reaches the Open Graph and Twitter titles server-side, not only the tab |
 
 ## CREDIT — what the page attributes
