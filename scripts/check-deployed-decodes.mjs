@@ -14,7 +14,7 @@ import { dirname, join } from "node:path";
 
 // The production alias, not a deployment's own URL: Deployment Protection answers those
 // with a 302 to a Vercel login, which would read here as every row having changed at once.
-const TARGET = process.argv[2] ?? process.env.EIGENLEX_URL ?? "https://word-bands.vercel.app";
+const TARGET = process.argv[2] ?? process.env.WORDBANDS_URL ?? "https://wordbands.vercel.app";
 
 // The rows are read out of SPEC.md rather than restated here. They were written in both
 // places at first, and the script's own failure message tells you to go edit the table —

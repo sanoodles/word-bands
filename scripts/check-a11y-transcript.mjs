@@ -28,7 +28,7 @@ const BASELINE = join(HERE, "a11y-transcript.txt");
 
 const args = process.argv.slice(2);
 const UPDATE = args.includes("--update");
-const TARGET = args.find((a) => !a.startsWith("--")) ?? process.env.EIGENLEX_URL ?? "https://word-bands.vercel.app";
+const TARGET = args.find((a) => !a.startsWith("--")) ?? process.env.WORDBANDS_URL ?? "https://wordbands.vercel.app";
 
 // One fixed scenario, so the transcript is of the page and not of the day. German for the
 // mid-sentence capitalization, `view=cefr` because that is the default and the band tabs

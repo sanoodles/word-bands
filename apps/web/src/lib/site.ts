@@ -5,7 +5,7 @@
 // The origin is not derivable at build time — Vercel's `VERCEL_URL` names the
 // deployment, not the production domain — so it is stated.
 
-export const SITE_URL = "https://word-bands.vercel.app";
+export const SITE_URL = "https://wordbands.vercel.app";
 export const SITE_NAME = "word-bands";
 
 /**
